@@ -84,7 +84,7 @@ body {
 /* the office fills the page; a small heads-up bar holds the menu and play */
 .stage { position: fixed; inset: 0; display: grid; place-items: center; background: #ffffff; overflow: hidden; }
 .board { position: relative; width: min(100vw, calc(100dvh * 440 / 310)); }
-.hud { position: fixed; top: max(12px, env(safe-area-inset-top, 0px)); left: max(12px, env(safe-area-inset-left, 0px)); display: flex; gap: 8px; z-index: 5; }
+.hud { position: fixed; top: max(12px, env(safe-area-inset-top, 0px)); left: max(12px, env(safe-area-inset-left, 0px)); display: flex; align-items: center; gap: 14px; z-index: 5; }
 .byline { position: fixed; top: max(12px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); z-index: 5; display: flex; align-items: center; gap: 8px; height: 40px; color: var(--muted); text-decoration: none; font: 400 15px/1 var(--font-body); }
 .byline img { height: 22px; width: auto; display: block; }
 .byline:hover span { color: var(--fg); }
@@ -94,7 +94,8 @@ body {
 .hud svg { width: 14px; height: 14px; fill: currentColor; }
 .menu { position: fixed; top: 0; left: 0; bottom: 0; width: min(420px, 100vw); overflow-y: auto; background: var(--surface); color: var(--fg); border-right: 1px solid var(--edge); padding: 64px max(20px, env(safe-area-inset-left, 0px)) 28px 20px; display: grid; align-content: start; gap: 22px; z-index: 6; }
 .menu[hidden] { display: none; }
-.menu .close { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border: 1px solid var(--edge); background: var(--surface); border-radius: 4px; font-size: 22px; line-height: 1; cursor: pointer; }
+.menu .close { position: absolute; top: 12px; right: 16px; width: 34px; height: 34px; border: 1px solid #3a3a3c; background: #fff; color: #2b2b2d; border-radius: 0; font: 400 20px/1 var(--font-label); cursor: pointer; box-shadow: 1px 1px 0 #cfd6e2, 2px 2px 0 #cfd6e2, 3px 3px 0 #cfd6e2, 3px 3px 0 1px #3a3a3c; }
+.menu .close:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #cfd6e2, 1px 1px 0 1px #3a3a3c; }
 .menu .top { display: grid; gap: 18px; }
 .menu .foot { color: var(--muted); font-size: 13px; }
 .wrap {
@@ -144,35 +145,55 @@ h1 em { font-style: normal; color: var(--accent); }
 
 .transport { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 button { font: inherit; color: inherit; }
+/* buttons are little slabs from the plan: a pale top, two shaded sides, pressed down into their shadow */
 .btn {
-  border: 1px solid var(--edge);
-  background: var(--surface);
-  border-radius: 4px;
+  --top: #ffffff; --side: #cfd6e2; --ink: #3a3a3c;
+  border: 1px solid var(--ink);
+  background: var(--top);
+  color: #2b2b2d;
+  border-radius: 0;
   padding: 8px 14px;
-  font-weight: 700;
+  font: 400 14px/1.1 var(--font-label);
   cursor: pointer;
-  box-shadow: none;
-  transition: transform .06s steps(1), box-shadow .06s steps(1);
+  box-shadow: 1px 1px 0 var(--side), 2px 2px 0 var(--side), 3px 3px 0 var(--side), 4px 4px 0 var(--side), 4px 4px 0 1px var(--ink);
+  transition: transform .08s ease, box-shadow .08s ease;
 }
-.btn:hover { background: var(--accent-soft); }
-.btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--edge); }
+.btn:hover { --top: #f3f7fb; }
+.btn:active, .btn.explore[aria-pressed="true"] { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--side), 1px 1px 0 1px var(--ink); }
+#menuBtn { --top: #d9ece4; --side: #9fc4b3; }
+#menuBtn:hover { --top: #e6f3ee; }
 .btn:focus-visible, .role:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
-/* musical / ambient switch: two halves of one button */
-.mode { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 3px; border: 1px solid var(--edge); border-radius: 6px; background: var(--surface); }
-.mode .thumb { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 4px; background: var(--fg); transition: transform .25s ease; }
-.mode[data-on="ambient"] .thumb { transform: translateX(100%); }
-.mode button { position: relative; display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; column-gap: 7px; align-items: center; text-align: left; border: 0; background: transparent; padding: 5px 12px 5px 9px; cursor: pointer; color: var(--fg); transition: color .25s; }
-.mode button svg { grid-row: 1 / 3; width: 16px; height: 16px; fill: currentColor; }
-.mode button b { font: 700 13px/1.1 var(--font-label); }
-.mode button small { font: 500 11px/1.2 var(--font-body); color: var(--muted); transition: color .25s; }
-.mode button.on, .mode button.on small { color: var(--surface); }
-.mode button:not(.on):hover small { color: var(--fg); }
-.mode button:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; border-radius: 4px; }
-@media (prefers-reduced-motion: reduce) { .mode .thumb, .mode button { transition: none; } }
-@media (max-width: 520px) { .mode button small { display: none; } .mode button { padding: 7px 9px; } .hud { right: max(12px, env(safe-area-inset-right, 0px)); flex-wrap: wrap; } }
+/* the bar's panel: the Musical / Ambient switch and the tempo, on one slab */
+.panel { display: flex; align-items: center; gap: 12px; padding: 5px 12px 5px 10px; background: #fff; color: #2b2b2d; border: 1px solid #3a3a3c; box-shadow: 1px 1px 0 #cfd6e2, 2px 2px 0 #cfd6e2, 3px 3px 0 #cfd6e2, 4px 4px 0 #cfd6e2, 4px 4px 0 1px #3a3a3c; }
+.modeswitch { display: flex; align-items: center; gap: 8px; }
+.modeswitch .ml { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 4px 2px; font: 400 13px/1 var(--font-label); color: #8a8a8f; cursor: pointer; transition: color .2s; }
+.modeswitch .ml svg { width: 15px; height: 15px; fill: currentColor; }
+.modeswitch .ml.on, .modeswitch .ml:hover { color: #2b2b2d; }
+.sw { position: relative; flex: none; width: 46px; height: 24px; padding: 0; border: 1px solid #3a3a3c; background: #d6ebf7; cursor: pointer; box-shadow: inset 2px 2px 0 rgba(58,58,60,.14); transition: background-color .2s; }
+.sw i { position: absolute; top: 2px; left: 2px; width: 19px; height: 15px; background: #fff; border: 1px solid #3a3a3c; box-shadow: 1px 1px 0 #cfd6e2, 2px 2px 0 #cfd6e2, 2px 2px 0 1px #3a3a3c; transition: transform .2s ease; }
+.sw[aria-checked="true"] { background: #d9ece4; }
+.sw[aria-checked="true"] i { transform: translateX(20px); }
+.sw:focus-visible, .modeswitch .ml:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.panel .tempo { border-left: 1px solid #d9d7d1; padding-left: 12px; color: #6b6b6e; font-size: 12px; }
+.panel .tempo input { width: 84px; accent-color: #ee6f6a; }
+.panel .tempo output { color: #2b2b2d; }
+/* Explore: bottom left, marks what you can click */
+.explore { position: fixed; left: max(14px, env(safe-area-inset-left, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); z-index: 5; display: inline-flex; align-items: center; gap: 8px; }
+.explore svg { width: 15px; height: 15px; fill: currentColor; }
+.explore small { font: 400 12px/1 var(--font-body); color: #6b6b6e; padding-left: 8px; border-left: 1px solid #c9c6bf; }
+.explore[aria-pressed="true"] { --top: #fdeaa0; --side: #d6b85a; }
+.mark { position: absolute; width: clamp(18px, 2.6%, 30px); transform: translate(-50%, -100%); opacity: 0; transition: opacity .35s ease; }
+.mark svg { display: block; width: 100%; height: auto; }
+body.exploring .mark { opacity: 1; animation: markBob 1.6s ease-in-out infinite; animation-delay: calc(var(--k) * -.19s); }
+@keyframes markBob { 50% { transform: translate(-50%, calc(-100% - 4px)); } }
+.foot .keys { display: block; margin-top: 10px; }
+.foot kbd { font: 400 12px/1 var(--font-label); padding: 2px 5px; border: 1px solid var(--edge); box-shadow: 1px 1px 0 var(--edge); background: var(--surface); }
+@media (prefers-reduced-motion: reduce) { .btn, .sw, .sw i { transition: none; } body.exploring .mark { animation: none; } }
+@media (max-width: 640px) { .panel .tempo { display: none; } .explore small { display: none; } }
+@media (max-width: 520px) { .hud { right: max(12px, env(safe-area-inset-right, 0px)); flex-wrap: wrap; } }
 .btn.play {
-  background: var(--accent);
-  color: var(--surface);
+  --top: #ee6f6a; --side: #b9494a;
+  color: #ffffff;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -180,6 +201,7 @@ button { font: inherit; color: inherit; }
   font-weight: 400;
   padding: 9px 18px 9px 14px;
 }
+.btn.play:hover { --top: #f27f7a; }
 .btn.play svg { width: 14px; height: 14px; fill: currentColor; shape-rendering: crispEdges; }
 .tempo {
   display: flex;
@@ -397,12 +419,20 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
     <svg viewBox="0 0 14 14" aria-hidden="true"><path id="playIcon" d="M3 1h2v1h2v2h2v2h2v2h-2v2h-2v2h-2v1h-2z"/></svg>
     <span id="playLabel">Play</span>
   </button>
-<div class="mode" role="radiogroup" aria-label="Sound mode" data-on="musical">
-    <span class="thumb" aria-hidden="true"></span>
-    <button type="button" role="radio" data-mode="musical" title="Everyone plays in time, like a band"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5 13 1v9.2a2.2 2.2 0 1 1-1.4-2V4.1L7.4 5v6.7a2.2 2.2 0 1 1-1.4-2z"/></svg><b>Musical</b><small>on the beat</small></button>
-    <button type="button" role="radio" data-mode="ambient" title="Everyone works at their own pace, like a quiet office"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 6c2-2 4-2 6 0s4 2 6 0M1 10c2-2 4-2 6 0s4 2 6 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><b>Ambient</b><small>office hum</small></button>
+<div class="panel">
+    <div class="modeswitch">
+      <button type="button" class="ml" data-mode="musical" title="Everyone plays in time, like a band"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5 13 1v9.2a2.2 2.2 0 1 1-1.4-2V4.1L7.4 5v6.7a2.2 2.2 0 1 1-1.4-2z"/></svg>Musical</button>
+      <button type="button" class="sw" id="modeSwitch" role="switch" aria-checked="false" aria-label="Ambient mode"><i></i></button>
+      <button type="button" class="ml" data-mode="ambient" title="Everyone works at their own pace, like a quiet office"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 6c2-2 4-2 6 0s4 2 6 0M1 10c2-2 4-2 6 0s4 2 6 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Ambient</button>
+    </div>
+    <label class="tempo" for="tempo"><span id="tempoName">Tempo</span>
+      <input type="range" id="tempo" min="70" max="120" value="88">
+      <output id="tempoOut">88 bpm</output>
+    </label>
   </div>
 </div>
+</div>
+<button class="btn explore" id="exploreBtn" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3C4 3 1.5 6 1 8c.5 2 3 5 7 5s6.5-3 7-5c-.5-2-3-5-7-5zm0 8a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg><span>Explore</span><small id="exploreCount"></small></button>
 <aside class="menu" id="menu" hidden>
   <button class="close" id="menuClose" aria-label="Close menu">×</button>
   <header class="top">
@@ -412,21 +442,13 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
       <p class="lede">Every teammate makes one office noise: ringing phones, papers knocked into neat stacks, the coffee machine, typing, clicking, the claims stamp, a pen on a glass, the photocopier and the washroom flush. Thirteen people, each with their own seat. Call them in and their noises lock into one groove, or switch to Ambient and let the office hum along at its own pace.</p>
     </div>
     <div class="transport">
-      <div class="mode" role="radiogroup" aria-label="Sound mode" data-on="musical">
-        <span class="thumb" aria-hidden="true"></span>
-        <button type="button" role="radio" data-mode="musical" title="Everyone plays in time, like a band"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5 13 1v9.2a2.2 2.2 0 1 1-1.4-2V4.1L7.4 5v6.7a2.2 2.2 0 1 1-1.4-2z"/></svg><b>Musical</b><small>on the beat</small></button>
-        <button type="button" role="radio" data-mode="ambient" title="Everyone works at their own pace, like a quiet office"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 6c2-2 4-2 6 0s4 2 6 0M1 10c2-2 4-2 6 0s4 2 6 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><b>Ambient</b><small>office hum</small></button>
-      </div>
-      <label class="tempo" for="tempo"><span id="tempoName">Tempo</span>
-        <input type="range" id="tempo" min="70" max="120" value="88">
-        <output id="tempoOut">88 bpm</output>
-      </label>
       <button class="btn" id="fillBtn">Everyone in</button>
       <button class="btn" id="clearBtn">Empty office</button>
     </div>
   </header>
   <footer class="foot">
-    <span>Hover over someone to see who they are. Click them to send them home, or click an empty seat to call its person back.</span>
+    <span>Hover over someone to see who they are. Click them to send them home, or click an empty seat to call its person back. On a phone, tap once to see what something is and tap again to use it.</span>
+    <span class="keys"><kbd>Space</kbd> play or pause · <kbd>M</kbd> Musical or Ambient · <kbd>E</kbd> everyone in · <kbd>Esc</kbd> close</span>
   </footer>
 </aside>
 <div class="toasts" id="toasts" aria-live="polite"></div>
@@ -1188,8 +1210,8 @@ function setMode(mode) {
 }
 function syncMode() {
   const amb = A.mode === "ambient";
-  document.querySelectorAll(".mode").forEach(g => g.dataset.on = A.mode);
-  document.querySelectorAll(".mode button").forEach(b => { const on = b.dataset.mode === A.mode; b.setAttribute("aria-checked", String(on)); b.tabIndex = on ? 0 : -1; b.classList.toggle("on", on); });
+  $("modeSwitch").setAttribute("aria-checked", String(amb));
+  document.querySelectorAll(".modeswitch .ml").forEach(b => b.classList.toggle("on", b.dataset.mode === A.mode));
   $("tempoName").textContent = amb ? "Busyness" : "Tempo";
   const el = $("tempo");
   el.value = amb ? 70 + A.busy * 50 : A.bpm;
@@ -1519,23 +1541,18 @@ function syncPlayBtn() {
   $("playBtn").setAttribute("aria-pressed", String(A.playing));
 }
 $("playBtn").addEventListener("click", () => A.playing ? stop() : start());
-document.querySelectorAll(".mode button").forEach(b => {
-  b.addEventListener("click", () => {
-    const was = A.mode;
-    setMode(b.dataset.mode); start();
-    if (was !== A.mode) toast(A.mode === "ambient" ? "Ambient: everyone works at their own pace" : "Musical: everyone plays on the beat");
-  });
-  b.addEventListener("keydown", e => {
-    if (!["ArrowLeft", "ArrowRight"].includes(e.key)) return;
-    e.preventDefault(); const other = b.parentElement.querySelector(`button[data-mode="${b.dataset.mode === "musical" ? "ambient" : "musical"}"]`); other.focus(); other.click();
-  });
-});
+function pickMode(mode) {
+  const was = A.mode;
+  setMode(mode); start();
+  if (was !== A.mode) toast(A.mode === "ambient" ? "Ambient: everyone works at their own pace" : "Musical: everyone plays on the beat");
+}
+$("modeSwitch").addEventListener("click", () => pickMode(A.mode === "musical" ? "ambient" : "musical"));
+document.querySelectorAll(".modeswitch .ml").forEach(b => b.addEventListener("click", () => pickMode(b.dataset.mode)));
 syncMode();
 const menu = $("menu"), menuBtn = $("menuBtn");
 function setMenu(open) { menu.hidden = !open; menuBtn.setAttribute("aria-expanded", String(open)); if (open) $("menuClose").focus(); }
 menuBtn.addEventListener("click", () => setMenu(menu.hidden));
 $("menuClose").addEventListener("click", () => { setMenu(false); menuBtn.focus(); });
-document.addEventListener("keydown", e => { if (e.key === "Escape" && !menu.hidden) { setMenu(false); menuBtn.focus(); } });
 $("tempo").addEventListener("input", e => {
   if (A.mode === "ambient") { A.busy = (+e.target.value - 70) / 50; syncMode(); return; }
   A.bpm = +e.target.value; $("tempoOut").textContent = A.bpm + " bpm"; setDelayTime();
@@ -1667,12 +1684,8 @@ function glassWallX(c, x, y0, y1, gap) {
     for (let y = a + 12; y < b; y += 12) seg(c, iso(x + 1, y, 16), iso(x + 1, y, WH - 6), INK_LINE, .3);
   });
 }
-// a full-height plastered partition along x, with an open doorway
-function solidWallX(c, x, y0, y1, gap) {
-  const runs = gap ? [[y0, gap[0]], [gap[1], y1]] : [[y0, y1]];
-  runs.forEach(([a, b]) => box(c, x, a, 0, x + 2, b, WH - 6, { top: "#ffffff", left: PAL.wallShade, right: "#ffffff" }));
-  if (gap) box(c, x, gap[0], WH - 22, x + 2, gap[1], WH - 6, { top: "#ffffff", left: PAL.wallShade, right: "#ffffff" });   // the wall over the door
-}
+// a full-height plastered partition along x
+function solidWallX(c, x, y0, y1) { box(c, x, y0, 0, x + 2, y1, WH - 6, { top: "#ffffff", left: PAL.wallShade, right: "#ffffff" }); }
 function windowOnX(c, y0, y1, z0, z1) {
   poly(c, quadX(.2, y0, y1, z0, z1), PAL.sky); poly(c, quadX(.3, y0 + 2, y1 - 2, z0 + 2, z1 - 2), null);
   seg(c, iso(.3, (y0 + y1) / 2, z0 + 2), iso(.3, (y0 + y1) / 2, z1 - 2)); seg(c, iso(.3, y0 + 2, (z0 + z1) / 2), iso(.3, y1 - 2, (z0 + z1) / 2));
@@ -1765,7 +1778,7 @@ function drawStatic() {
   cylinder(c, 233, 11, 6, 8.2, 4.6, "#ffffff", .45); ellipseFloor(c, 233, 11, 3.2, 8.25, "#e8eef9");
   box(c, 236, 1, 16, 237.4, 2.4, 16.8, { top: "#d8d8d6", left: "#d8d8d6", right: "#c8c8c6" }, .3);
   // washroom: a solid side wall with a doorway, and its front cut low like the outer walls so you can see in
-  GLASS.washX.paint(c => solidWallX(c, 204, 0, 60, [36, 52])); GLASS.washY.paint(c => lowWall(c, [[204, 60], [240, 60]]));
+  GLASS.washX.paint(c => solidWallX(c, 204, 0, 60)); GLASS.washY.paint(c => { lowWall(c, [[204, 60], [222, 60]]); lowWall(c, [[234, 60], [240, 60]]); });   // the door is in the front wall
 
   // meeting room: glass walls with a doorway, a long table and four coral chairs facing it
 
@@ -2986,7 +2999,7 @@ function snackBoxAt(p) {
 }
 function closeSnack() { if (snackEl) { snackEl.remove(); snackEl = null; } }
 function openSnack(b) {
-  closeSnack(); closeCal();
+  closePopups();
   const [x, z, k] = SNACK_BOXES[b], col = PAL[k], board = cv.parentElement;
   const show = n => {
     const f = SNACK_FACTS[n % SNACK_FACTS.length];
@@ -3014,9 +3027,14 @@ function openSnack(b) {
   snackEl.style.left = Math.max(8, Math.min(bw - w - 8, ax / LW * bw - w / 2)) + "px";
   snackEl.style.top = Math.max(8, Math.min(bh - h - 8, ay / LH * bh + 10)) + "px";
 }
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeSnack(); });
-// clicking the empty page around the office closes any open popup
-document.getElementById("stage").addEventListener("click", e => { if (e.target === e.currentTarget || e.target.classList.contains("board")) { closeSnack(); closeCal(); closeWB(); closeShelf(); closeScreen(); closeAlbum(); } });
+// only one popup is open at a time; this closes whichever it is and says whether there was one
+function closePopups() {
+  const open = !!document.querySelector(".board > [role=dialog]");
+  closeSnack(); closeCal(); closeWB(); closeShelf(); closeScreen(); closeAlbum();
+  return open;
+}
+// a click anywhere outside a popup closes it (popups stop their own clicks from getting here)
+document.addEventListener("click", e => { if (e.target !== cv && !e.target.closest("[role=dialog]")) closePopups(); });
 const SNACK_CSS = `
 .snack { position: absolute; z-index: 4; width: 288px; font-family: var(--font-body); color: #23296b; }
 .snack .lbl { position: relative; background: var(--box-tint); border-radius: 20px; padding: 20px 20px 16px; transform: rotate(-2deg); box-shadow: inset 0 0 0 8px var(--box-tint), inset 0 0 0 9.5px #23296b, 5px 6px 0 rgba(35,41,107,.16); display: grid; gap: 0; }
@@ -3097,7 +3115,7 @@ const WB_STATS = [
 ];
 function closeWB() { if (wbEl) { wbEl.remove(); wbEl = null; } }
 function openWB() {
-  closeWB(); closeSnack(); closeCal();
+  closePopups();
   const board = cv.parentElement;
   wbEl = document.createElement("div"); wbEl.className = "wbpop"; wbEl.setAttribute("role", "dialog"); wbEl.setAttribute("aria-label", "Whiteboard: Standard of Employee Benefits 2026–27");
   wbEl.innerHTML = `<div class="wbf"><button class="cx" aria-label="Close">×</button>
@@ -3122,7 +3140,6 @@ function openWB() {
   wbEl.style.left = Math.max(8, Math.min(bw - w - 8, ax / LW * bw - w / 2)) + "px";
   wbEl.style.top = Math.max(8, Math.min(bh - h - 8, ay / LH * bh - h / 3)) + "px";
 }
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeWB(); });
 const WB_CSS = `
 .wbpop { position: absolute; z-index: 5; width: 470px; color: #23296b; font-family: var(--font-body); }
 .wbpop .wbf { position: relative; background: #fff linear-gradient(115deg, rgba(220,228,240,.0) 40%, rgba(220,228,240,.55) 48%, rgba(220,228,240,0) 56%); border: 9px solid #c9ccd1; outline: 1px solid #3a3a3c; outline-offset: 0; border-radius: 6px; padding: 16px 20px 34px; box-shadow: inset 0 0 0 1px #3a3a3c, 5px 7px 0 rgba(58,58,60,.14); }
@@ -3171,7 +3188,7 @@ function shelfAt(p) {
 let shelfEl = null;
 function closeShelf() { if (shelfEl) { shelfEl.remove(); shelfEl = null; } }
 function openShelf() {
-  closeShelf(); closeSnack(); closeCal(); closeWB();
+  closePopups();
   const board = cv.parentElement;
   // the lower shelf: a run of plain spines, then a little stack lying flat
   const r = mulberry(21), cols = ["#d6545a", "#2c3a66", "#ffd95c", "#5aa67a", "#9fd3ec", "#c2407a", "#f6c9cf", "#ffffff", "#e2a23b"];
@@ -3194,7 +3211,6 @@ function openShelf() {
   shelfEl.style.left = Math.max(8, Math.min(bw - w - 8, ax / LW * bw - w / 2)) + "px";
   shelfEl.style.top = Math.max(8, Math.min(bh - h - 8, ay / LH * bh - h - 12)) + "px";
 }
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeShelf(); });
 const SHELF_CSS = `
 .shelfpop { position: absolute; z-index: 5; width: 640px; padding: 14px 16px 16px; background: #fff; border: 1px solid #3a3a3c; border-radius: 6px; box-shadow: 5px 6px 0 rgba(58,58,60,.14); font-family: var(--font-body); color: #2b2b2e; }
 .shelfpop .shh { display: flex; align-items: center; }
@@ -3227,7 +3243,7 @@ function screenAt(p) { const pts = [iso(67.5, 0, 54.5), iso(98.5, 0, 54.5), iso(
 let scrEl = null;
 function closeScreen() { if (scrEl) { scrEl.remove(); scrEl = null; } }
 function openScreen() {
-  closeScreen(); closeSnack(); closeCal(); closeWB(); closeShelf();
+  closePopups();
   const board = cv.parentElement;
   scrEl = document.createElement("div"); scrEl.className = "scrpop"; scrEl.setAttribute("role", "dialog"); scrEl.setAttribute("aria-label", "About Office Harmony");
   scrEl.innerHTML = `<div class="bez"><div class="glass">
@@ -3249,7 +3265,6 @@ function openScreen() {
   scrEl.style.left = Math.max(8, Math.min(bw - w - 8, ax / LW * bw - w / 2)) + "px";
   scrEl.style.top = Math.max(8, Math.min(bh - h - 8, ay / LH * bh - h / 2)) + "px";
 }
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeScreen(); });
 const SCR_CSS = `
 .scrpop { position: absolute; z-index: 5; width: 460px; animation: scrIn .28s ease-out; }
 @keyframes scrIn { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
@@ -3282,7 +3297,7 @@ function printAt(p) { const pts = [iso(0, 90.5, 49.5), iso(0, 119.5, 49.5), iso(
 let albEl = null, albAt = 0;
 function closeAlbum() { if (albEl) { albEl.remove(); albEl = null; } }
 function openAlbum() {
-  closeAlbum(); closeSnack(); closeCal(); closeWB(); closeShelf(); closeScreen();
+  closePopups();
   const board = cv.parentElement;
   albEl = document.createElement("div"); albEl.className = "album"; albEl.setAttribute("role", "dialog"); albEl.setAttribute("aria-label", "Humanise album");
   albEl.innerHTML = `<div class="cover"><div class="page">
@@ -3312,7 +3327,6 @@ function openAlbum() {
   albEl.style.top = Math.max(8, Math.min(bh - h - 8, ay / LH * bh - h / 2)) + "px";
   albEl.querySelector(".next").focus();
 }
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeAlbum(); });
 const ALB_CSS = `
 .album { position: absolute; z-index: 6; width: 500px; font-family: var(--font-body); color: #2b2b2e; }
 .album .cover { background: #2c3a66; border: 1px solid #1d2648; border-radius: 6px 10px 10px 6px; padding: 10px 10px 10px 22px; box-shadow: inset 12px 0 0 #23305a, inset 13px 0 0 #1d2648, 5px 7px 0 rgba(58,58,60,.18); }
@@ -3339,6 +3353,15 @@ const ALB_CSS = `
 `;
 // the popup styles go last in the page so nothing else overrides them
 document.body.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOARD_CSS}${SNACK_CSS}${WB_CSS}${SHELF_CSS}${SCR_CSS}${ALB_CSS}
+/* every popup shares one close button in its top right corner */
+.board > [role=dialog] .cx { position: absolute; top: 10px; right: 10px; margin: 0; padding: 0; width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid #3a3a3c; border-radius: 0; background: #fff; color: #2b2b2d; font: 400 18px/1 var(--font-label); cursor: pointer; z-index: 3; box-shadow: 1px 1px 0 #cfd6e2, 2px 2px 0 #cfd6e2, 3px 3px 0 #cfd6e2, 3px 3px 0 1px #3a3a3c; }
+.board > [role=dialog] .cx:hover { background: #f3f7fb; }
+.board > [role=dialog] .cx:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #cfd6e2, 1px 1px 0 1px #3a3a3c; }
+.board > [role=dialog] .cx:focus-visible { outline: 3px solid #5b6ee1; outline-offset: 2px; }
+.board > .album .cx { top: 20px; right: 20px; }
+.board > .scrpop .cx { top: 20px; right: 20px; }
+.board > [role=dialog] :is(.ch, .shh, .sh, .ah) { padding-right: 40px; }
+.snack .lt, .wbpop .wh { padding-right: 36px; }
 /* nothing on the page is bold */
 *, *::before, *::after { font-weight: 400 !important; }</style>`);
 // each free desk has its own board; ?cal=1..20 shows one look on every desk instead
@@ -3348,7 +3371,7 @@ let calEl = null;
 function closeCal() { if (calEl) { calEl.remove(); calEl = null; } }
 // the calendar opens beside the desk and stays inside the office
 function openCal(i) {
-  closeCal();
+  closePopups();
   const d = SEATS[i], k = LAYOUT.hot.indexOf(i), D = calData(k), board = cv.parentElement;
   const V = CAL_ASK ? CAL_VARIANTS[CAL_PICK] : BOARD_VARIANTS[k % BOARD_VARIANTS.length];
   calEl = document.createElement("div"); calEl.className = V.board ? "cal pinboard" : "cal"; calEl.setAttribute("role", "dialog"); calEl.setAttribute("aria-label", `${BITS[k % BITS.length].who} is out of office: ${D.reason}`);
@@ -3366,74 +3389,72 @@ function openCal(i) {
   calEl.querySelector(".cx").addEventListener("click", closeCal);
   calEl.addEventListener("click", e => e.stopPropagation());
 }
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeCal(); });
 const tip = $("tip");
+// what is under a point on the office: its name, a hint, where the tip sits, and what a click does
+function whatAt(p) {
+  if (printAt(p)) return { key: "album", at: iso(0, 105, 50), title: "Humanise", hover: "Click to flip through the album", hint: "flip through the album", act: openAlbum };
+  if (screenAt(p)) return { key: "screen", at: iso(83, 0, 55), title: "Click me", hover: "What is this place?", hint: "find out what this place is", act: openScreen };
+  if (shelfAt(p)) return { key: "shelf", at: iso(234, 104, 18), title: "Bookshelf", hover: "Click for Plum's reports and guides", hint: "open Plum's reports and guides", act: openShelf };
+  if (whiteboardAt(p)) return { key: "wb", at: iso(31, 0, 51), title: "Whiteboard", hover: "Click for the Standard of Employee Benefits 2026–27", hint: "see the benefits stats", act: openWB };
+  const sb = snackBoxAt(p);
+  if (sb >= 0) { const [x, z] = SNACK_BOXES[sb]; return { key: "snack" + sb, at: iso(x + 2.5, 2.8, z + 6), title: "Snack box", hover: "Click for an employee snack fact", hint: "read a snack fact", act: () => openSnack(sb) }; }
+  const i = deskAt(p);
+  if (i < 0 || !(CAST[i] || LAYOUT.hot.includes(i))) return { desk: i };
+  const d = SEATS[i], at = [d.sx, d.sy - 48], m = members.find(o => o.desk === i);
+  if (!CAST[i]) return { key: "desk" + i, desk: i, at, title: BITS[LAYOUT.hot.indexOf(i) % BITS.length].who, hover: "Out of office · click to see when they're back", hint: "see when they're back", act: () => openCal(i) };
+  if (m) return { key: "desk" + i, desk: i, at, title: m.name, hint: "send them home", act: () => fire(m) };
+  return { key: "desk" + i, desk: i, at, title: CAST[i].name, hover: "Click to call in", hint: "call them in", act: () => { start(); callIn(i); } };
+}
+function showTip(h, touch) {
+  const sub = touch ? `Tap again to ${h.hint}` : h.hover;
+  tip.innerHTML = `<b>${h.title}</b>${sub ? `<small>${sub}</small>` : ""}`;
+  tip.style.left = (h.at[0] / LW * 100) + "%"; tip.style.top = (h.at[1] / LH * 100) + "%"; tip.hidden = false;
+}
+let pointerKind = "mouse", armed = null;
+cv.addEventListener("pointerdown", e => { pointerKind = e.pointerType; });
 cv.addEventListener("pointermove", e => {
-  if (printAt(toLogical(e)) && e.pointerType !== "touch") {
-    const q = iso(0, 105, 50); cv.style.cursor = "pointer";
-    tip.innerHTML = `<b>Humanise</b><small>Click to flip through the album</small>`;
-    tip.style.left = (q[0] / LW * 100) + "%"; tip.style.top = (q[1] / LH * 100) + "%"; tip.hidden = false; hoverDesk = -1; return;
-  }
-  if (screenAt(toLogical(e)) && e.pointerType !== "touch") {
-    const q = iso(83, 0, 55); cv.style.cursor = "pointer";
-    tip.innerHTML = `<b>Click me</b><small>What is this place?</small>`;
-    tip.style.left = (q[0] / LW * 100) + "%"; tip.style.top = (q[1] / LH * 100) + "%"; tip.hidden = false; hoverDesk = -1; return;
-  }
-  if (shelfAt(toLogical(e)) && e.pointerType !== "touch") {
-    const q = iso(234, 104, 18); cv.style.cursor = "pointer";
-    tip.innerHTML = `<b>Bookshelf</b><small>Click for Plum's reports and guides</small>`;
-    tip.style.left = (q[0] / LW * 100) + "%"; tip.style.top = (q[1] / LH * 100) + "%"; tip.hidden = false; hoverDesk = -1; return;
-  }
-  if (whiteboardAt(toLogical(e)) && e.pointerType !== "touch") {
-    const q = iso(31, 0, 51); cv.style.cursor = "pointer";
-    tip.innerHTML = `<b>Whiteboard</b><small>Click for the Standard of Employee Benefits 2026–27</small>`;
-    tip.style.left = (q[0] / LW * 100) + "%"; tip.style.top = (q[1] / LH * 100) + "%"; tip.hidden = false; hoverDesk = -1; return;
-  }
-  const sb = snackBoxAt(toLogical(e));
-  cv.style.cursor = sb >= 0 ? "pointer" : "default";
-  if (sb >= 0 && e.pointerType !== "touch") {
-    const [x, z] = SNACK_BOXES[sb], q = iso(x + 2.5, 2.8, z + 6);
-    tip.innerHTML = `<b>Snack box</b><small>Click for an employee snack fact</small>`;
-    tip.style.left = (q[0] / LW * 100) + "%"; tip.style.top = (q[1] / LH * 100) + "%"; tip.hidden = false; hoverDesk = -1; return;
-  }
-  const i = deskAt(toLogical(e));
-  hoverDesk = i;
-  const m = members.find(o => o.desk === i);
-  // the hand only shows over something you can click: a person, their empty seat, or a free desk
-  cv.style.cursor = i >= 0 && (CAST[i] || LAYOUT.hot.includes(i)) ? "pointer" : "default";
-  if (i >= 0 && (CAST[i] || LAYOUT.hot.includes(i)) && e.pointerType !== "touch") {
-    const d = SEATS[i];
-    tip.innerHTML = !CAST[i] ? `<b>${BITS[LAYOUT.hot.indexOf(i) % BITS.length].who}</b><small>Out of office · click to see when they're back</small>` : m ? `<b>${m.name}</b>` : `<b>${CAST[i].name}</b><small>Click to call in</small>`;
-    tip.style.left = (d.sx / LW * 100) + "%"; tip.style.top = ((d.sy - 48) / LH * 100) + "%";
-    tip.hidden = false;
-  } else tip.hidden = true;
+  if (e.pointerType === "touch") return;
+  const h = whatAt(toLogical(e));
+  hoverDesk = h.desk != null ? h.desk : -1;
+  cv.style.cursor = h.act ? "pointer" : "default";
+  if (h.act) showTip(h, false); else tip.hidden = true;
 });
-cv.addEventListener("pointerleave", () => { hoverDesk = -1; tip.hidden = true; });
+cv.addEventListener("pointerleave", () => { hoverDesk = -1; if (pointerKind !== "touch") tip.hidden = true; });
+// with a mouse a click acts at once; on a touch screen the first tap shows what it is and the second does it
 cv.addEventListener("click", e => {
-  if (printAt(toLogical(e))) { tip.hidden = true; openAlbum(); return; }
-  closeAlbum();
-  if (screenAt(toLogical(e))) { tip.hidden = true; openScreen(); return; }
-  closeScreen();
-  if (whiteboardAt(toLogical(e))) { tip.hidden = true; openWB(); return; }
-  closeWB();
-  if (shelfAt(toLogical(e))) { tip.hidden = true; openShelf(); return; }
-  closeShelf();
-  const sb = snackBoxAt(toLogical(e));
-  if (sb >= 0) { tip.hidden = true; openSnack(sb); return; }
-  closeSnack();
-  const i = deskAt(toLogical(e));
-  closeCal();
-  if (i < 0) return;
-  const m = members.find(o => o.desk === i);
-  tip.hidden = true;
-  if (m) { fire(m); return; }
-  if (!CAST[i]) { if (LAYOUT.hot.includes(i)) openCal(i); return; }
-  start();
-  callIn(i);
+  const h = whatAt(toLogical(e));
+  closePopups();
+  if (!h.act) { armed = null; tip.hidden = true; return; }
+  if (pointerKind === "touch" && armed !== h.key) { armed = h.key; showTip(h, true); return; }
+  armed = null; tip.hidden = true; h.act();
 });
 document.addEventListener("keydown", e => {
-  if (e.code === "Space" && e.target === document.body) { e.preventDefault(); A.playing ? stop() : start(); }
+  if (e.key === "Escape") { if (closePopups()) return; if (!menu.hidden) { setMenu(false); menuBtn.focus(); } return; }
+  if (e.metaKey || e.ctrlKey || e.altKey || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if (e.code === "Space" && (e.target === document.body || e.target === cv)) { e.preventDefault(); A.playing ? stop() : start(); }
+  else if (e.key === "m" || e.key === "M") pickMode(A.mode === "musical" ? "ambient" : "musical");
+  else if (e.key === "e" || e.key === "E") $("fillBtn").click();
 });
+
+/* ---------- Explore: small slabs float over everything you can click ---------- */
+const MARK_SVG = `<svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 15v8" stroke="#3a3a3c" stroke-width="1.2" stroke-linecap="round"/><path d="M10 1 19 5.5 10 10 1 5.5Z" fill="#f6a5a1"/><path d="M1 5.5 10 10v4L1 9.5Z" fill="#ee6f6a"/><path d="M10 10 19 5.5v4L10 14Z" fill="#c4534f"/><path d="M10 1 19 5.5v4L10 14 1 9.5v-4ZM1 5.5 10 10 19 5.5M10 10v4" fill="none" stroke="#3a3a3c" stroke-width=".8" stroke-linejoin="round"/></svg>`;
+function markSpots() {
+  const [a, b, c2, d] = WB_BOX(), pts = [iso(0, 105, 40), iso(83, 0, 44), [(a + c2) / 2, (b + d) / 2 - 4], iso(234, 107, 14)];
+  // one mark over each run of snack boxes on a shelf
+  [...new Set(SNACK_BOXES.map(sb => sb[1]))].forEach(z => { const xs = SNACK_BOXES.filter(sb => sb[1] === z).map(sb => sb[0]); pts.push(iso((Math.min(...xs) + Math.max(...xs) + 5) / 2, 2.8, z + 7)); });
+  LAYOUT.hot.filter(i => !CAST[i]).forEach(i => pts.push(iso(SEATS[i].cx, SEATS[i].cy, 24)));
+  return pts;
+}
+const SPOTS_TO_CLICK = markSpots(), exploreBtn = $("exploreBtn");
+$("tags").innerHTML = SPOTS_TO_CLICK.map(([x, y], k) => `<span class="mark" style="left:${x / LW * 100}%;top:${y / LH * 100}%;--k:${k}">${MARK_SVG}</span>`).join("");
+$("exploreCount").textContent = `${SPOTS_TO_CLICK.length} things to click`;
+let exploreTouched = false;
+function setExplore(on) { document.body.classList.toggle("exploring", on); exploreBtn.setAttribute("aria-pressed", String(on)); }
+exploreBtn.addEventListener("click", () => { exploreTouched = true; setExplore(!document.body.classList.contains("exploring")); });
+// on a first visit the marks come up for a few seconds, then fade
+let explored = false;
+try { explored = !!localStorage.getItem("office-harmony-explored"); localStorage.setItem("office-harmony-explored", "1"); } catch (e) {}
+if (!explored) { setTimeout(() => { if (!exploreTouched) setExplore(true); }, 1200); setTimeout(() => { if (!exploreTouched) setExplore(false); }, 6500); }
 
 /* ---------- Boot with a starter team so the office isn't empty ---------- */
 readTokens();
