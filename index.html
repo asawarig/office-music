@@ -1262,6 +1262,8 @@ const DRAW_ORDER = [
   ...[["meet", 51], ["washX", 210], ["washY", 300]].map(([k, depth]) => ({ depth, draw: () => { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(GLASS[k].cv, 0, 0); g.restore(); } })),
   { depth: 86, draw: () => drawCopier(g) },
   { depth: 104, draw: () => drawCooler(g) },
+  // the kitchen cabinets' front stands in front of the cooler, so it is drawn again after it
+  { depth: 105, draw: () => { poly(g, quadY(14, 104, 182, 0, 22), PAL.mint, INK_LINE, HAIR); for (let x = 106; x < 180; x += 13) poly(g, quadY(14.05, x, x + 11, 3, 19), null, INK_LINE, .35); } },
   { depth: 220, draw: () => drawSink(g) },   // in front of the washroom's glass wall, behind whoever washes up
   // the kitchen's round table and its two stools, clear of the coffee machine
   { depth: 179, draw: () => stool(149, 30) }, { depth: 190, draw: () => kitchenTable(160, 30) }, { depth: 201, draw: () => stool(171, 30) },
