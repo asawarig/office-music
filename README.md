@@ -1,9 +1,11 @@
 # Office Pulse
 
-An isometric pixel-art office where every hire adds a sound. Each employee has a healthy habit
-(heartbeat kick, step-counter hats, water-drop plucks, breathing pads, bass, bells, a heart-monitor
-melody, claps, a pill-bottle shaker) and each habit maps to a benefit on a group health policy.
-Cover all nine benefits to hear the full band. Hire a second person in the same role to add a harmony part.
+An isometric pixel-art office where every hire adds an office object to the band. Knuckles on a
+desk play the kick in a heartbeat rhythm, the claims stamp hits the backbeat, keyboards and pens are
+the hi-hats, a spoon on a mug rings out the melody, the water cooler bubbles, the desk phone trills,
+the printer buzzes the bassline and the microwave hums the chords and dings. Each role covers one
+benefit on a group health policy. Cover all nine to hear the full band. A second hire in the same
+role brings a related object (stapler, mouse, glass of water, photocopier, elevator ding) and plays a new part.
 
 Everything is in one static `index.html`: Web Audio synthesis (no samples) and a hand-rasterised canvas.
 
