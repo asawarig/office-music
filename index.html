@@ -2202,9 +2202,11 @@ function drawSeat(i, now) {
       if (s.place !== "beanbag" && s.place !== "couch") shadowAt(s.x, s.y, 5);
       lower();
       if (s.place === "meeting") meetingTableTop();
+      const plantAfter = s.place === "meeting";   // the table plant stands in front of whoever sits there
       const lap = F.P.props.find(p => p.kind === "lapLaptop");
       if (lap) lapLaptop(F, lap, col);
       upper();
+      if (plantAfter) plant(g, 32, 44, 16, .5);
       roomFx(s, m, F);
       if (clockFor(m, now).talk) speechBubble(F.S.head, now);
     } else hoverHint(i, s.x, s.y, now);
@@ -2430,7 +2432,6 @@ function drawDeskTop(i, s, m, col, lit, F) {
 }
 function meetingTableTop() {
   box(g, 14, 36, 14.5, 50, 52, 16, { top: "#ffffff", left: PAL.wallShade, right: PAL.wallShade });
-  plant(g, 32, 44, 16, .5);
 }
 // a small speech bubble with three dots, bobbing while someone talks
 function speechBubble([hx, hy], now) {
