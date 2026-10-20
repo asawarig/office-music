@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Office Pulse Open Plan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: a sketchbook, second round. Five numbered scenes, each a large drawing with a short note.
+   The page chrome stays quiet so the drawings lead. */
+:root {
+  --bg: #efece4; --surface: #f8f6f0; --fg: #1f1d1a; --muted: #6a665e; --line: #1f1d1a;
+  --font-hand: "Gaegu", "Comic Sans MS", "Marker Felt", cursive;
+  --font-body: "Figtree", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #1a1916; --surface: #24221e; --fg: #efece4; --muted: #a8a399; --line: #efece4; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #1a1916; --surface: #24221e; --fg: #efece4; --muted: #a8a399; --line: #efece4; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap {
+  max-width: 1000px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 72px; display: grid; gap: 44px;
+}
+h1 { font-family: var(--font-hand); font-weight: 700; font-size: clamp(40px, 7vw, 64px); line-height: .95; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--font-hand); font-weight: 700; font-size: 32px; line-height: 1; margin: 0; }
+.lede { color: var(--muted); max-width: 62ch; margin: 10px 0 0; }
+.scene { display: grid; gap: 12px; }
+.scene-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.num { font-family: var(--font-hand); font-size: 22px; font-weight: 700; border: 2px solid var(--line); border-radius: 50%; width: 38px; height: 38px; display: grid; place-items: center; }
+.scene p { margin: 0; color: var(--muted); max-width: 70ch; flex-basis: 100%; }
+canvas { display: block; width: 100%; max-width: 100%; border-radius: 6px; }
+.swatches { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.swatches span { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--line); }
+.swatches small { color: var(--muted); margin-left: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>The open plan, with people</h1>
+    <p class="lede">Just the open-plan office now, tidied so everything makes sense, with people instead of animals. Faces come in five shapes (round, long, square, wide, heart) with crops, side parts, bobs, long hair, buns, ponytails, afros, beanies and bald heads, plus beards, glasses, brows and a range of skin tones. Same crisp low-poly style.</p>
+  </header>
+  <div id="scenes" style="display:grid;gap:56px"></div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+let R = rng(7);
+
+/* ---------- hand-drawn toolkit ----------
+   Lines wobble with smooth noise and overshoot a little at the ends; fills sit slightly off the line
+   like a print; washes add soft blotches inside a shape. */
+let C, INK, LW = 2.6, WOB = 0;
+function noiseFn() { const a = R() * 6.28, b = R() * 6.28, f1 = .04 + R() * .05, f2 = .12 + R() * .1; return t => Math.sin(t * f1 + a) * .6 + Math.sin(t * f2 + b) * .4; }
+function wobble(pts, closed, amp = WOB) {
+  const out = [], n = noiseFn(), segs = closed ? pts.length : pts.length - 1;
+  let dist = 0;
+  for (let i = 0; i < segs; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length], len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    const steps = Math.max(1, Math.ceil(len / 7)), nx = -(b[1] - a[1]) / len, ny = (b[0] - a[0]) / len;
+    for (let s = 0; s < steps; s++) { const t = s / steps, off = n(dist + len * t) * amp; out.push([a[0] + (b[0] - a[0]) * t + nx * off, a[1] + (b[1] - a[1]) * t + ny * off]); }
+    dist += len;
+  }
+  if (!closed) out.push(pts[pts.length - 1]);
+  return out;
+}
+function path(pts, closed) { C.beginPath(); pts.forEach((p, i) => i ? C.lineTo(p[0], p[1]) : C.moveTo(p[0], p[1])); if (closed) C.closePath(); }
+function ink(pts, closed = false, w = LW, col = INK) {
+  let p = pts;
+  if (!closed && pts.length === 2) {   // straight strokes overshoot a touch, like a pen
+    const [a, b] = pts, len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, ux = (b[0] - a[0]) / len, uy = (b[1] - a[1]) / len, o = .8 + R() * 1.6;
+    p = [a, b];
+  }
+  C.save(); C.strokeStyle = col; C.lineWidth = w; C.lineJoin = "miter"; C.miterLimit = 3; C.lineCap = "round";
+  path(wobble(p, closed), closed); C.stroke(); C.restore();
+}
+function fill(pts, col, wash = 0) {
+  if (!col) return;
+  C.save(); C.fillStyle = col;
+  path(pts, true); C.fill();
+  if (wash && false) {
+    C.clip();
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const n = Math.min(60, Math.max(4, ((x1 - x0) * (y1 - y0)) / 900));
+    for (let i = 0; i < n; i++) {
+      C.globalAlpha = .05 + R() * .05; C.fillStyle = R() < .5 ? wash : "#ffffff";
+      C.beginPath(); C.ellipse(x0 + R() * (x1 - x0), y0 + R() * (y1 - y0), 6 + R() * 26, 4 + R() * 14, R() * 3, 0, 6.3); C.fill();
+    }
+  }
+  C.restore();
+}
+function shape(pts, col, opts = {}) { fill(pts, col, opts.wash); if (opts.line !== false) ink(pts, true, opts.w || LW); }
+function dot(x, y, r, col = INK) { C.fillStyle = col; C.beginPath(); C.arc(x, y, r, 0, 6.3); C.fill(); }
+function circle(x, y, r, col, w = LW) {
+  const pts = []; for (let k = 0; k < 22; k++) { const a = k / 22 * 6.283; pts.push([x + Math.cos(a) * r, y + Math.sin(a) * r]); }
+  shape(pts, col, { w });
+}
+// dry-brush ticks scattered inside an area, like the marks on the gnome's baskets
+function ticks(pts, n, len = 5, col = INK, w = 1) {
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  C.save(); path(pts, true); C.clip();
+  for (let i = 0; i < n; i++) { const x = Math.min(...xs) + R() * (Math.max(...xs) - Math.min(...xs)), y = Math.min(...ys) + R() * (Math.max(...ys) - Math.min(...ys)), a = -.5 + R() * .3; ink([[x, y], [x + Math.cos(a) * len, y + Math.sin(a) * len]], false, w, col); }
+  C.restore();
+}
+function text(str, x, y, size, col = INK, rot = 0) {
+  C.save(); C.translate(x, y); C.rotate(rot); C.fillStyle = col; C.font = `700 ${size}px Gaegu, "Comic Sans MS", cursive`; C.textAlign = "center"; C.fillText(str, 0, 0); C.restore();
+}
+function paper(W, H, strength = .05) { return;
+  C.save();
+  for (let i = 0; i < 2600; i++) { C.globalAlpha = R() * strength; C.fillStyle = R() < .5 ? "#000" : "#fff"; C.fillRect(R() * W, R() * H, 1 + R() * 1.5, 1 + R() * 1.5); }
+  C.restore();
+}
+
+/* ---------- projection and boxes ---------- */
+let PJ = (x, y, z) => [x, y];
+// centre a room of X by Y by Z units in the canvas
+function fitIso(W, H, X, Y, Z, s, nudgeY = 0) {
+  const pts = [[0, 0, Z], [X, 0, 0], [0, Y, 0], [X, Y, 0], [X, 0, Z], [0, Y, Z], [X, Y, -0.5]].map(([x, y, z]) => [(x - y) * .866 * s, (x + y) * .5 * s - z * s]);
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  iso(W / 2 - (Math.min(...xs) + Math.max(...xs)) / 2, H / 2 - (Math.min(...ys) + Math.max(...ys)) / 2 + nudgeY, s);
+}
+function iso(ox, oy, s, ang = .5) { PJ = (x, y, z = 0) => [ox + (x - y) * .866 * s, oy + (x + y) * ang * s - z * s]; }
+// box with its three visible faces: top, the side facing you-left (+y) and the side facing you-right (+x)
+function box(x0, y0, z0, x1, y1, z1, t, opts = {}) {
+  const L = [PJ(x0, y1, z0), PJ(x1, y1, z0), PJ(x1, y1, z1), PJ(x0, y1, z1)];
+  const Rt = [PJ(x1, y0, z0), PJ(x1, y1, z0), PJ(x1, y1, z1), PJ(x1, y0, z1)];
+  const Tp = [PJ(x0, y0, z1), PJ(x1, y0, z1), PJ(x1, y1, z1), PJ(x0, y1, z1)];
+  shape(L, t.left, opts); shape(Rt, t.right, opts); shape(Tp, t.top, opts);
+  return { L, Rt, Tp };
+}
+// flat cast shadow on the floor: the footprint swept along the light direction
+let SHADOW = [0, 0];
+function castShadow(x0, y0, x1, y1, h, col) {
+  const [dx, dy] = SHADOW, pts = [[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0 + dx * h, y0 + dy * h], [x1 + dx * h, y0 + dy * h], [x1 + dx * h, y1 + dy * h], [x0 + dx * h, y1 + dy * h]];
+  const hull = convexHull(pts).map(([x, y]) => PJ(x, y, 0));
+  fill(hull, col);
+}
+function convexHull(p) {
+  p = p.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lo = [], up = [];
+  for (const q of p) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (const q of p.slice().reverse()) { while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+const quadX = (x, y0, y1, z0, z1) => [PJ(x, y0, z0), PJ(x, y1, z0), PJ(x, y1, z1), PJ(x, y0, z1)];   // on the left wall
+const quadY = (y, x0, x1, z0, z1) => [PJ(x0, y, z0), PJ(x1, y, z0), PJ(x1, y, z1), PJ(x0, y, z1)];   // on the right wall
+
+
+/* ---------- low-poly kit ----------
+   Chunky faceted shapes with thick dark outlines, after the low-poly character sheet. The same
+   faceting runs through the furniture and plants so people and space feel like one world. */
+function desk(x, y, w, d, t, z = 0) {
+  const h = 2.4 + z;
+  box(x + .15, y + .1, z + .9, x + w - .15, y + .2, h - .25, { top: t.side, left: t.side, right: t.side });
+  box(x + .1, y + d - .25, z, x + .35, y + d - .05, h - .25, { top: t.leg, left: t.leg, right: t.leg });
+  box(x + w - .35, y + d - .25, z, x + w - .1, y + d - .05, h - .25, { top: t.leg, left: t.leg, right: t.leg });
+  box(x, y, h - .25, x + w, y + d, h, { top: t.top, left: t.side, right: t.side });
+}
+// monitor facing +y (toward whoever sits on the near side), its screen showing a few coloured lines
+function monitorFacing(x, y, screen, t, z = 0) {
+  box(x + .5, y + .15, 2.4 + z, x + 1.1, y + .5, 2.55 + z, { top: t.dark, left: t.dark, right: t.dark });
+  box(x + .7, y + .25, 2.55 + z, x + .9, y + .4, 3.0 + z, { top: t.dark, left: t.dark, right: t.dark });
+  box(x, y, 3.0 + z, x + 1.6, y + .25, 4.1 + z, { top: t.dark, left: screen, right: t.dark });
+  for (let k = 0; k < 3; k++) ink([PJ(x + .2, y + .26, 3.8 - k * .25 + z), PJ(x + .5 + R() * .9, y + .26, 3.8 - k * .25 + z)], false, 1.4, t.dark);
+}
+// laptop for someone sitting on the far (-y) side: keyboard toward them, lid hinged on the side nearest you
+function laptop(x, y, t, z = 0) {
+  box(x, y, 2.4 + z, x + 1.0, y + .75, 2.47 + z, { top: t.metal, left: t.metal, right: t.metal });
+  for (let k = 0; k < 3; k++) ink([PJ(x + .15, y + .15 + k * .14, 2.48 + z), PJ(x + .85, y + .15 + k * .14, 2.48 + z)], false, 1, "#9ea2aa");
+  const lid = [PJ(x, y + .75, 2.47 + z), PJ(x + 1.0, y + .75, 2.47 + z), PJ(x + 1.0, y + .95, 3.25 + z), PJ(x, y + .95, 3.25 + z)];
+  shape(lid, t.metal);
+  const c = PJ(x + .5, y + .85, 2.86 + z); heartAt(c[0], c[1], .45, "#ffffff");
+}
+function mug(x, y, col, z = 0) { box(x, y, 2.4 + z, x + .28, y + .28, 2.78 + z, { top: INK, left: col, right: col }); }
+function keyboard(x, y, t, z = 0) { box(x, y, 2.4 + z, x + 1.3, y + .45, 2.48 + z, { top: t.metal, left: t.metal, right: t.metal }); }
+// office chair; facing is where the sitter looks: "x", "-x", "y", "-y"
+function chair(cx, cy, facing, t, opts = {}) {
+  const z0 = opts.z || 0, P0 = PJ;
+  const at = (fn) => { PJ = (x, y, z = 0) => P0(x, y, z + z0); fn(); PJ = P0; };
+  const v = { x: [1, 0], "-x": [-1, 0], y: [0, 1], "-y": [0, -1] }[facing];
+  const back = [cx - v[0] * .62, cy - v[1] * .62];
+  const drawBack = () => at(() => {
+    const [bx, by] = back, px = v[1] !== 0 ? .55 : .12, py = v[0] !== 0 ? .55 : .12;
+    box(bx - px, by - py, 1.3, bx + px, by + py, opts.tall ? 3.3 : 2.3, { top: t.chair2, left: t.chair, right: t.chair2 });
+  });
+  at(() => {
+    const hub = PJ(cx, cy, .25);
+    for (let k = 0; k < 5; k++) { const a = k * 1.2566 + .4, e = PJ(cx + Math.cos(a) * .7, cy + Math.sin(a) * .7, .08); ink([hub, e], false, 2.4); dot(e[0], e[1] + 1.5, 2.2); }
+    ink([PJ(cx, cy, .25), PJ(cx, cy, 1.0)], false, 3.2);
+    if (facing === "x" || facing === "y") drawBack();
+    box(cx - .55, cy - .55, 1.0, cx + .55, cy + .55, 1.25, { top: t.chair, left: t.chair2, right: t.chair2 });
+  });
+  return { drawBack: facing === "-x" || facing === "-y" ? drawBack : () => {}, seat: [cx, cy, 1.25 + z0] };
+}
+function stool(cx, cy, t, z = 0) {
+  ink([PJ(cx, cy, z), PJ(cx, cy, z + 1.2)], false, 3.2);
+  shape(octo(cx, cy, .55, z + 1.2), t.chair, { w: 2 });
+  return [cx, cy, z + 1.3];
+}
+function octo(cx, cy, r, z) { const p = []; for (let k = 0; k < 8; k++) { const a = (k + .5) * Math.PI / 4; p.push(PJ(cx + Math.cos(a) * r, cy + Math.sin(a) * r, z)); } return p; }
+function partition(x0, y0, x1, y1, h, col, col2) { box(x0, y0, 0, x1, y1, h, { top: col2, left: col, right: col2 }); }
+// faceted plant: a chunky pot and a fan of triangular leaves
+function plant(x, y, pot, g1, g2, size = 1, z = 0) {
+  box(x - .4 * size, y - .4 * size, z, x + .4 * size, y + .4 * size, z + .8 * size, { top: INK, left: pot, right: shade2(pot) });
+  const [px, py] = PJ(x, y, z + .8 * size);
+  const n = 7;
+  for (let k = 0; k < n; k++) {
+    const a = -Math.PI / 2 + (k - (n - 1) / 2) * .36, len = (26 + (k % 3) * 9) * size;
+    const tip = [px + Math.cos(a) * len, py + Math.sin(a) * len];
+    const side = [px + Math.cos(a + .35) * len * .55, py + Math.sin(a + .35) * len * .55];
+    shape([[px, py], side, tip], k % 2 ? g1 : g2, { w: 1.6 });
+  }
+}
+function shade2(hex) { const n = parseInt(hex.slice(1), 16), f = .78; return "#" + [n >> 16 & 255, n >> 8 & 255, n & 255].map(v => Math.round(v * f).toString(16).padStart(2, "0")).join(""); }
+function cooler(x, y, body, water, z = 0) {
+  box(x, y, z, x + .8, y + .8, z + 2.6, { top: body, left: body, right: shade2(body) });
+  const [cx, cy] = PJ(x + .4, y + .4, z + 3.1);
+  shape([[cx - 11, cy + 9], [cx - 13, cy - 4], [cx - 7, cy - 14], [cx + 7, cy - 14], [cx + 13, cy - 4], [cx + 11, cy + 9]], water, { w: 1.8 });
+  ink([[cx - 8, cy - 4], [cx + 2, cy - 9]], false, 1.6, "#ffffff");
+}
+function printer(x, y, body, z = 0) {
+  box(x, y, z, x + 1.4, y + 1.2, z + 1.8, { top: body, left: body, right: shade2(body) });
+  box(x + .2, y + .2, z + 1.8, x + 1.2, y + 1.0, z + 2.1, { top: "#ffffff", left: shade2(body), right: shade2(body) });
+  box(x + .3, y + 1.2, z + .9, x + 1.1, y + 1.5, z + 1.0, { top: "#ffffff", left: "#ffffff", right: "#ffffff" });
+}
+function poster(quad, bg, draw) { shape(quad, bg, { w: 2 }); if (draw) draw(); }
+function heartAt(x, y, s, col) { shape([[x, y + 6 * s], [x - 7 * s, y - 1 * s], [x - 6 * s, y - 6 * s], [x - 2 * s, y - 7 * s], [x, y - 4 * s], [x + 2 * s, y - 7 * s], [x + 6 * s, y - 6 * s], [x + 7 * s, y - 1 * s]], col, { w: 1.6 }); }
+// checker band along the top of a wall, like the header of the reference
+function checkerX(y0, y1, z0, z1, a, b) { const n = Math.round((y1 - y0) / .6); for (let k = 0; k < n; k++) for (let r = 0; r < 2; r++) shape(quadX(.01, y0 + k * (y1 - y0) / n, y0 + (k + 1) * (y1 - y0) / n, z0 + r * (z1 - z0) / 2, z0 + (r + 1) * (z1 - z0) / 2), (k + r) % 2 ? a : b, { line: false }); ink(quadX(.02, y0, y1, z0, z1), true, 1.6); }
+function checkerY(x0, x1, z0, z1, a, b) { const n = Math.round((x1 - x0) / .6); for (let k = 0; k < n; k++) for (let r = 0; r < 2; r++) shape(quadY(.01, x0 + k * (x1 - x0) / n, x0 + (k + 1) * (x1 - x0) / n, z0 + r * (z1 - z0) / 2, z0 + (r + 1) * (z1 - z0) / 2), (k + r) % 2 ? a : b, { line: false }); ink(quadY(.02, x0, x1, z0, z1), true, 1.6); }
+
+// desk against a wall: the teammate faces it (back to you); the chair back is between you and them
+function wallDesk(x, y, look, t, screen, z = 0) {
+  desk(x, y, 3.2, 1.5, t, z);
+  monitorFacing(x + .8, y + .25, screen, t, z); keyboard(x + .9, y + .9, t, z);
+  if (look.mug) mug(x + 2.6, y + .8, look.mug, z);
+  if (!look.who) return chair(x + 1.6 + (look.dx || 0), y + 2.7, look.facing || "-y", t, { z });
+  const c = chair(x + 1.6, y + 2.6, "-y", t, { z });
+  lp([x + 1.6, y + 2.6, 1.25 + z], "back", look.who);
+  c.drawBack();
+}
+// desk in the open: the teammate sits on the far side facing it and you, chair tucked behind them
+function openDesk(x, y, look, t, z = 0) {
+  if (look.who) { chair(x + 1.6, y - .85, "y", t, { z }); lp([x + 1.6, y - .85, 1.25 + z], "front", look.who); }
+  desk(x, y, 3.2, 1.5, t, z);
+  laptop(x + 1.1, y + .45, t, z);
+  if (look.mug) mug(x + .4, y + .5, look.mug, z);
+}
+// round meeting table: everyone's chair faces the middle; far seats show faces, near seats show backs
+function meetingTable(cx, cy, people, t, top) {
+  const seats = [[cx - 2.0, cy, "x", "front"], [cx, cy - 2.0, "y", "front"], [cx + 2.0, cy, "-x", "back"], [cx, cy + 2.0, "-y", "back"]];
+  const legs = () => { ink([PJ(cx, cy, 0), PJ(cx, cy, 2.2)], false, 5); shape(octo(cx, cy, .9, 0), t.leg); };
+  const topFn = () => { shape(octo(cx, cy, 1.55, 2.25), shade2(top), { w: 2 }); shape(octo(cx, cy, 1.55, 2.45), top, { w: 2 }); };
+  seats.forEach(([x, y, f, v], i) => { if (v === "front" && people[i]) { chair(x, y, f, t); lp([x, y, 1.25], "front", people[i]); } });
+  legs(); topFn();
+  seats.forEach(([x, y, f, v], i) => { if (v === "back" && people[i]) { const c = chair(x, y, f, t); lp([x, y, 1.25], "back", people[i]); c.drawBack(); } });
+}
+function beanbag(x, y, col) {
+  const [px, py] = PJ(x, y, 0);
+  shape([[px - 30, py + 4], [px - 34, py - 10], [px - 20, py - 26], [px + 4, py - 30], [px + 26, py - 20], [px + 32, py - 4], [px + 20, py + 10], [px - 10, py + 12]], col, { w: 2.2 });
+  ink([[px - 18, py - 12], [px + 4, py - 18], [px + 20, py - 8]], false, 1.4);
+}
+// floor with a soft grid, like the reference background
+function gridFloor(X, Y, base, line, step = 1) {
+  shape([PJ(0, 0, 0), PJ(X, 0, 0), PJ(X, Y, 0), PJ(0, Y, 0)], base, { w: 2 });
+  for (let k = step; k < X; k += step) ink([PJ(k, 0, 0), PJ(k, Y, 0)], false, 1.1, line);
+  for (let k = step; k < Y; k += step) ink([PJ(0, k, 0), PJ(X, k, 0)], false, 1.1, line);
+}
+function shell(X, Y, Hh, wl, wr, edge) {
+  shape(quadX(0, 0, Y, 0, Hh), wl, { w: 2 }); shape(quadY(0, 0, X, 0, Hh), wr, { w: 2 });
+}
+function cutEdges(X, Y, Hh, col) {
+  shape([PJ(-.35, Y, -.5), PJ(X, Y, -.5), PJ(X, Y, 0), PJ(-.35, Y, 0)], col); shape([PJ(X, -.35, -.5), PJ(X, Y, -.5), PJ(X, Y, 0), PJ(X, -.35, 0)], shade2(col));
+  shape([PJ(-.35, Y, 0), PJ(0, Y, 0), PJ(0, Y, Hh), PJ(-.35, Y, Hh)], col); shape([PJ(X, -.35, 0), PJ(X, 0, 0), PJ(X, 0, Hh), PJ(X, -.35, Hh)], shade2(col));
+  shape([PJ(-.35, -.35, Hh), PJ(X, -.35, Hh), PJ(X, 0, Hh), PJ(0, 0, Hh), PJ(0, Y, Hh), PJ(-.35, Y, Hh)], col);
+}
+function windowY(x0, x1, z0, z1, frame, glass) { shape(quadY(.02, x0, x1, z0, z1), frame, { w: 2 }); shape(quadY(.03, x0 + .2, x1 - .2, z0 + .2, z1 - .2), glass); ink([PJ((x0 + x1) / 2, .03, z0 + .2), PJ((x0 + x1) / 2, .03, z1 - .2)], false, 1.8); ink([PJ(x0 + .5, .03, z1 - .6), PJ(x0 + 1.1, .03, z1 - 1.4)], false, 2.2, "#ffffff"); }
+function windowX(y0, y1, z0, z1, frame, glass) { shape(quadX(.02, y0, y1, z0, z1), frame, { w: 2 }); shape(quadX(.03, y0 + .2, y1 - .2, z0 + .2, z1 - .2), glass); ink([PJ(.03, (y0 + y1) / 2, z0 + .2), PJ(.03, (y0 + y1) / 2, z1 - .2)], false, 1.8); }
+
+const WHITE = "#fbfbf6";
+/* ---------- low-poly people ----------
+   Faceted heads in several shapes, hair as one crisp outlined shape, thick even outlines, pink blush.
+   view: "front" faces you across a desk, "back" faces a wall desk or a machine, "stand", "lounge". */
+const FACE = {
+  round:  [[-15, -27], [-18, -40], [-15, -53], [-6, -57], [6, -57], [15, -53], [18, -40], [15, -27], [5, -23], [-5, -23]],
+  long:   [[-13, -26], [-15, -41], [-13, -55], [-5, -59], [5, -59], [13, -55], [15, -41], [13, -26], [4, -21], [-4, -21]],
+  square: [[-16, -25], [-17, -42], [-15, -54], [-7, -57], [7, -57], [15, -54], [17, -42], [16, -25], [8, -22], [-8, -22]],
+  wide:   [[-18, -28], [-20, -40], [-16, -51], [-7, -55], [7, -55], [16, -51], [20, -40], [18, -28], [6, -24], [-6, -24]],
+  heart:  [[-15, -31], [-17, -43], [-14, -54], [-6, -57], [6, -57], [14, -54], [17, -43], [15, -31], [6, -24], [0, -21], [-6, -24]],
+};
+const HALF_W = { round: 18, long: 15, square: 17, wide: 20, heart: 17 };
+// hair shapes, front view; each is one outlined shape that sits over the top of the head
+const HAIR = {
+  crop:     w => [[-w, -40], [-w + 2, -53], [-6, -59], [6, -59], [w - 2, -53], [w, -40], [w - 4, -47], [0, -50], [-w + 4, -47]],
+  sidepart: w => [[-w - 1, -36], [-w + 1, -54], [-6, -60], [7, -60], [w - 1, -54], [w, -42], [w - 4, -49], [3, -51], [-2, -47], [-w + 5, -49], [-w + 3, -36]],
+  bob:      w => [[-w - 2, -25], [-w - 2, -44], [-w + 2, -56], [-6, -61], [6, -61], [w - 2, -56], [w + 2, -44], [w + 2, -25], [w - 4, -25], [w - 4, -44], [0, -49], [-w + 4, -44], [-w + 4, -25]],
+  long:     w => [[-w - 2, -14], [-w - 2, -44], [-w + 2, -56], [-6, -61], [6, -61], [w - 2, -56], [w + 2, -44], [w + 2, -14], [w - 4, -14], [w - 4, -44], [2, -50], [-w + 4, -44], [-w + 4, -14]],
+  bun:      w => [[-w, -40], [-w + 2, -53], [-6, -59], [6, -59], [w - 2, -53], [w, -40], [w - 4, -47], [0, -50], [-w + 4, -47]],
+  ponytail: w => [[-w, -40], [-w + 2, -53], [-6, -59], [6, -59], [w - 2, -53], [w, -40], [w - 4, -47], [0, -50], [-w + 4, -47]],
+  afro:     w => [[-w - 5, -34], [-w - 6, -50], [-w + 1, -63], [-6, -68], [7, -68], [w - 1, -63], [w + 6, -50], [w + 5, -34], [w - 2, -42], [5, -47], [-6, -47], [-w + 2, -42]],
+  beanie:   w => [[-w - 1, -44], [-w + 1, -56], [-6, -63], [6, -63], [w - 1, -56], [w + 1, -44]],
+  bald:     () => null,
+};
+function lp(seat, view, look = {}) {
+  const [sx, sy] = PJ(...seat), s = look.scale || 1.25, f = look.dir || 1;
+  const skin = look.skin || "#f3d2b0", shirt = look.shirt || "#f4a7b9", pants = look.pants || "#3b3f5c", hairCol = look.hairCol || "#2b2622";
+  const shapeName = look.face || "round", w = HALF_W[shapeName], head = FACE[shapeName], hair = look.hair || "crop";
+  C.save(); C.translate(sx, sy); C.scale(s * f, s);
+  const S = (pts, col, lw = 2.6) => shape(pts, col, { w: lw / s });
+  const L = (pts, lw = 2.2, col = INK) => ink(pts, false, lw / s, col);
+  // legs and shoes
+  if (view === "standback") view = "back", look = Object.assign({}, look, { standing: true });
+  if (view === "stand" || look.standing) { S([[-8, -2], [-8, 14], [-1, 14], [-1, -2]], pants); S([[1, -2], [1, 14], [8, 14], [8, -2]], pants); S([[-10, 14], [-1, 14], [-1, 18], [-10, 18]], INK); S([[1, 14], [10, 14], [10, 18], [1, 18]], INK); }
+  if (view === "lounge") { S([[-4, -5], [13, -4], [14, 3], [-4, 3]], pants); S([[11, -4], [16, 7], [11, 9], [8, 1]], pants); S([[10, 8], [19, 7], [20, 11], [11, 12]], INK); }
+  // ponytail and long hair hang behind the body
+  if (view === "back" && (hair === "long")) S(HAIR.long(w), hairCol);
+  // top and arms; hands are skin
+  S([[-10, 0], [-12, -12], [-8, -24], [8, -24], [12, -12], [10, 0]], shirt);
+  if (look.collar) S([[-4, -24], [0, -18], [4, -24]], look.collar, 2);
+  if (look.lanyard && view !== "back") { L([[-4, -24], [-1, -14]], 1.6, look.lanyard); L([[4, -24], [1, -14]], 1.6, look.lanyard); S([[-3, -14], [3, -14], [3, -8], [-3, -8]], "#ffffff", 1.6); }
+  if (view === "front") { S([[-11, -20], [-17, -10], [-13, -6], [-8, -13]], shirt); S([[11, -20], [17, -10], [13, -6], [8, -13]], shirt); S([[-17, -10], [-16, -4], [-11, -5], [-13, -8]], skin, 2); S([[17, -10], [16, -4], [11, -5], [13, -8]], skin, 2); }
+  else if (view === "back") { S([[-11, -20], [-15, -9], [-11, -7], [-8, -15]], shirt); S([[11, -20], [15, -9], [11, -7], [8, -15]], shirt); }
+  else { S([[-11, -20], [-14, -7], [-10, -6], [-8, -14]], shirt); S([[11, -20], [19, -14], [16, -9], [9, -14]], shirt); S([[19, -14], [21, -9], [17, -7], [16, -10]], skin, 2); }
+  if (look.cup && view !== "back") { S([[16, -20], [24, -20], [23, -8], [17, -8]], look.cup); S([[15, -23], [25, -23], [25, -20], [15, -20]], INK, 1.5); }
+  // ears, then the head
+  S([[-w - 3, -44], [-w + 1, -45], [-w + 1, -35], [-w - 2, -36]], skin, 2); S([[w + 3, -44], [w - 1, -45], [w - 1, -35], [w + 2, -36]], skin, 2);
+  if (hair === "ponytail") S([[w - 2, -52], [w + 7, -46], [w + 5, -30], [w, -38]], hairCol);
+  if (hair === "bun") S([[-5, -58], [-6, -64], [-2, -68], [3, -68], [6, -64], [5, -58]], hairCol);
+  S(head, skin);
+  if (view === "back") {
+    // from behind, hair covers the head down to the nape
+    if (hair === "beanie") S(HAIR.beanie(w), look.hatCol || "#e8392e");
+    else if (hair !== "bald") S(head.map(([x, y]) => [x * 1.03, Math.min(y, -29) - 1]), hairCol);
+    if (hair === "afro") S(HAIR.afro(w).map(([x, y]) => [x, Math.min(y, -32)]), hairCol);
+    if (hair === "bob") S([[-w - 2, -25], [-w - 2, -44], [w + 2, -44], [w + 2, -25]], hairCol);
+  } else {
+    const fy = -38, e = look.eyes || "dot";
+    // facial hair goes under the features
+    if (look.beard) S([[-w + 1, -36], [-w + 2, -27], [-7, -21], [7, -21], [w - 2, -27], [w - 1, -36], [6, -31], [-6, -31]], hairCol, 2);
+    if (look.moustache) S([[-6, -32], [-1, -34], [1, -34], [6, -32], [4, -30], [-4, -30]], hairCol, 1.6);
+    const h = HAIR[hair](w);
+    if (h) S(h, hair === "beanie" ? (look.hatCol || "#e8392e") : hairCol);
+    if (hair === "beanie") S([[-w - 1, -46], [w + 1, -46], [w + 1, -42], [-w - 1, -42]], look.hatCol2 || "#f5c64c", 2);
+    if (hair === "bald") { C.fillStyle = "#ffffff"; C.fillRect(-6, -54, 5, 2); }
+    if (look.brows) { L([[-10, fy - 6], [-5, fy - 7]], 2.2); L([[5, fy - 7], [10, fy - 6]], 2.2); }
+    if (e === "dot") { C.fillStyle = INK; C.fillRect(-8.5, fy - 2, 3, 4.5); C.fillRect(5.5, fy - 2, 3, 4.5); }
+    else if (e === "closed") { L([[-11, fy - 1], [-7.5, fy + 1.5], [-4, fy - 1]], 2); L([[4, fy - 1], [7.5, fy + 1.5], [11, fy - 1]], 2); }
+    else if (e === "wink") { C.fillStyle = INK; C.fillRect(-8.5, fy - 2, 3, 4.5); L([[4, fy], [11, fy]], 2); }
+    const m = look.mouth || "smile";
+    if (look.beard) L([[-3, fy + 6], [3, fy + 6]], 1.8, "#ffffff");
+    else if (m === "w") L([[-3.5, fy + 5], [-1.7, fy + 7.5], [0, fy + 5], [1.7, fy + 7.5], [3.5, fy + 5]], 1.8);
+    else if (m === "open") S([[-3, fy + 5], [3, fy + 5], [2, fy + 9], [-2, fy + 9]], INK, 1.2);
+    else L([[-3.5, fy + 5.5], [0, fy + 7.5], [3.5, fy + 5.5]], 1.8);
+    if (!look.beard) {
+      C.fillStyle = look.blush || "#f6a8b8";
+      [[-w + 5, fy + 5], [w - 5, fy + 5]].forEach(([x, y]) => { C.beginPath(); C.moveTo(x - 4, y); C.lineTo(x - 2, y - 2.6); C.lineTo(x + 2, y - 2.6); C.lineTo(x + 4, y); C.lineTo(x + 2, y + 2.6); C.lineTo(x - 2, y + 2.6); C.closePath(); C.fill(); });
+    }
+    if (look.glasses) { S([[-12, fy - 4], [-3, fy - 4], [-3, fy + 3], [-12, fy + 3]], null, 2); S([[3, fy - 4], [12, fy - 4], [12, fy + 3], [3, fy + 3]], null, 2); L([[-3, fy - 1], [3, fy - 1]], 1.8); }
+  }
+  if (look.headphones) { L([[-w - 1, -40], [-w, -56], [0, -64], [w, -56], [w + 1, -40]], 7); L([[-w - 1, -40], [-w, -56], [0, -64], [w, -56], [w + 1, -40]], 3.6, "#a9adb3"); S([[-w - 5, -46], [-w + 1, -47], [-w + 1, -32], [-w - 5, -31]], "#a9adb3"); S([[w + 5, -46], [w - 1, -47], [w - 1, -32], [w + 5, -31]], "#a9adb3"); }
+  C.restore();
+}
+
+/* ---------- cast: ten different people ---------- */
+const CAST = [
+  { face: "round",  hair: "afro",     skin: "#7a4b2f", hairCol: "#1f1b19", shirt: "#f4a7b9", eyes: "closed", headphones: true },
+  { face: "long",   hair: "sidepart", skin: "#f3d2b0", hairCol: "#3b2a22", shirt: "#3cc0a8", eyes: "dot", collar: "#ffffff", glasses: true },
+  { face: "square", hair: "crop",     skin: "#c98d5e", hairCol: "#1f1b19", shirt: "#4c8de0", eyes: "dot", beard: true, brows: true },
+  { face: "heart",  hair: "long",     skin: "#f6dcc2", hairCol: "#d98b3a", shirt: "#e8392e", eyes: "dot", mouth: "w" },
+  { face: "wide",   hair: "bald",     skin: "#a46a3f", shirt: "#f5c64c", eyes: "closed", moustache: true, hairCol: "#2b2622" },
+  { face: "round",  hair: "bob",      skin: "#e8b48a", hairCol: "#2b2622", shirt: "#7c6fd6", eyes: "dot", lanyard: "#3cc0a8" },
+  { face: "long",   hair: "bun",      skin: "#8a5536", hairCol: "#2b2622", shirt: "#c3cf4a", eyes: "wink", mouth: "open" },
+  { face: "square", hair: "beanie",   skin: "#f3d2b0", hairCol: "#7a4b2f", shirt: "#3b3f5c", eyes: "dot", hatCol: "#e8392e", hatCol2: "#f5c64c", beard: true },
+  { face: "heart",  hair: "ponytail", skin: "#c98d5e", hairCol: "#3b2a22", shirt: "#ff8a5c", eyes: "dot", brows: true },
+  { face: "wide",   hair: "crop",     skin: "#f6dcc2", hairCol: "#9a9a9a", shirt: "#3cc0a8", eyes: "dot", glasses: true, mouth: "w" },
+  { face: "round",  hair: "sidepart", skin: "#e8b48a", hairCol: "#d9b44a", shirt: "#f4a7b9", eyes: "closed", mouth: "open" },
+];
+const who = (i, extra = {}) => Object.assign({}, CAST[i % CAST.length], extra);
+
+/* ---------- scenes ---------- */
+function openPlan(W, H) {
+  const P = { bg: "#fff4cf", wl: "#f6e6a8", wr: "#efd788", floor: "#fffaea", grid: "#eadb9a", lime: "#c3cf4a", pink: "#f4a7b9", teal: "#3fb3a3", ink: "#2b2622" };
+  INK = P.ink; C.fillStyle = P.bg; C.fillRect(0, 0, W, H);
+  const X = 18, Y = 13, Hh = 7;
+  fitIso(W, H, X, Y, Hh, 37, 10);
+  const t = { top: "#fffdf5", side: "#e8d9a6", leg: "#b8a46a", dark: P.ink, metal: "#c9ccd2", chair: "#5a6170", chair2: "#424855" };
+  shell(X, Y, Hh, P.wl, P.wr); gridFloor(X, Y, P.floor, P.grid);
+  checkerY(0, X, Hh - .8, Hh, P.lime, "#e3ea8f"); checkerX(0, Y, Hh - .8, Hh, P.lime, "#e3ea8f");
+  // back wall: windows, whiteboard, poster, clock
+  windowY(1.0, 4.4, 3.2, 5.8, "#ffffff", "#bfe6ec"); windowY(13.4, 16.8, 3.2, 5.8, "#ffffff", "#bfe6ec");
+  shape(quadY(.02, 5.2, 9.6, 3.0, 5.8), "#ffffff", { w: 2 });
+  ink([PJ(5.6, .03, 5.2), PJ(7.0, .03, 5.4), PJ(7.6, .03, 4.6)], false, 1.8, P.teal); ink([PJ(5.8, .03, 4.2), PJ(8.8, .03, 4.2)], false, 1.6, P.pink); ink([PJ(5.8, .03, 3.7), PJ(8.0, .03, 3.7)], false, 1.6, P.ink);
+  const hp = PJ(8.9, .03, 4.9); heartAt(hp[0], hp[1], 1.3, P.pink);
+  poster(quadY(.02, 10.4, 12.6, 3.0, 5.8), P.teal, () => { const q = PJ(11.5, .03, 4.6); text("DRINK", q[0], q[1] + 16, 13, "#ffffff", -.46); text("WATER", q[0], q[1] + 30, 13, "#ffffff", -.46); shape([[q[0] - 7, q[1] - 12], [q[0], q[1] - 22], [q[0] + 7, q[1] - 12], [q[0], q[1] - 2]], "#bfe6ec", { w: 1.6 }); });
+  const ck = PJ(10.0, .03, 6.3); shape(octo2(ck[0], ck[1], 13), "#ffffff", { w: 2 }); ink([[ck[0], ck[1]], [ck[0], ck[1] - 8]], false, 1.8); ink([[ck[0], ck[1]], [ck[0] + 6, ck[1] + 2]], false, 1.8);
+  // left wall: cork board and a tall shelf
+  shape(quadX(.02, 3.2, 7.6, 3.0, 5.6), "#d9a066", { w: 2 });
+  [[3.6, 4.6, P.pink], [4.9, 4.2, "#ffffff"], [6.2, 4.7, P.lime], [5.4, 3.3, "#ffffff"]].forEach(([y, z, c]) => shape(quadX(.03, y, y + .9, z, z + .8), c, { w: 1.4 }));
+  box(0, 8.6, 0, .9, 11.6, 4.4, { top: "#e8d9a6", left: "#fffdf5", right: "#e8d9a6" });
+  for (let z = .4; z < 4.2; z += 1.0) for (let y = 8.8; y < 11.3; y += .4) if (R() < .75) box(.75, y, z, .95, y + .3, z + .55 + R() * .25, { top: INK, left: [P.pink, P.teal, P.lime, "#f5c64c", "#ffffff"][Math.floor(R() * 5)], right: INK });
+  plant(1.0, 1.0, "#e8513f", "#7dbb4a", "#4f9a3a", 1.2);
+  // back row: desks against the wall, people facing them
+  wallDesk(5.4, .2, { who: who(0), mug: P.pink }, t, "#bfe6ec");
+  wallDesk(9.0, .2, { who: who(3) }, t, "#e3ea8f");
+  // low partition, then the middle pod: people on the far side face their laptops and you
+  partition(2.4, 4.2, 15.6, 4.35, 1.5, "#cfe3b8", "#a9c48f");
+  openDesk(3.0, 5.6, { who: who(2), mug: "#f5c64c" }, t);
+  openDesk(6.6, 5.6, { who: who(4) }, t);
+  openDesk(10.2, 5.6, { who: who(1), mug: P.teal }, t);
+  chair(15.4, 4.75, "y", t); openDesk(13.8, 5.6, {}, t);
+  // front row: a second pod
+  openDesk(3.0, 9.4, { who: who(5) }, t);
+  openDesk(6.6, 9.4, { who: who(6), mug: P.pink }, t);
+  // right side: someone at the printer (facing it), the water cooler, plants
+  printer(15.4, 8.2, "#d9dde3");
+  lp([16.1, 10.2, 0], "standback", who(7, { scale: 1.25 }));
+  cooler(16.6, 1.0, "#ffffff", "#9fd8e6");
+  plant(17.0, 12.2, "#3fb3a3", "#7dbb4a", "#4f9a3a", 1.3);
+  // lounge corner: a coffee break on the beanbag
+  beanbag(11.4, 11.2, "#f5c64c"); lp([11.4, 11.0, .8], "lounge", who(8, { cup: "#f5a623", scale: 1.25 }));
+  cutEdges(X, Y, Hh, P.ink);
+  paper(W, H, .035);
+}
+function octo2(x, y, r) { const p = []; for (let k = 0; k < 8; k++) { const a = (k + .5) * Math.PI / 4; p.push([x + Math.cos(a) * r, y + Math.sin(a) * r * .9]); } return p; }
+
+function breakRoom(W, H) {
+  const P = { bg: "#eef2e6", wall: "#dfead6", pat: "#b9d3ae", floor: "#d9b083", plank: "#b8885a", pink: "#f29bb0", yellow: "#f5c84c", teal: "#3fa7a0", red: "#e2574c", ink: "#2a2622" };
+  INK = P.ink; C.fillStyle = P.bg; C.fillRect(0, 0, W, H);
+  const X = 15, Y = 11, Hh = 7.2;
+  fitIso(W, H, X, Y, Hh, 33, 8);
+  const t = { top: "#fffaf0", side: "#e2cfae", leg: "#a3845d", dark: P.ink, metal: "#c9ccd2", chair: P.red, chair2: "#b8433a" };
+  shell(X, Y, Hh, P.wall, "#d2e2c8");
+  // wallpaper: little faceted diamonds and hearts
+  for (let y = .8; y < Y; y += 1.6) for (let z = 1.4; z < Hh - .4; z += 1.5) { const q = PJ(.02, y + ((z * 2) % 2 ? .8 : 0), z); shape([[q[0], q[1] - 6], [q[0] + 4, q[1]], [q[0], q[1] + 6], [q[0] - 4, q[1]]], P.pat, { w: 1.2 }); }
+  for (let x = .8; x < X; x += 1.6) for (let z = 1.4; z < Hh - .4; z += 1.5) { const q = PJ(x + ((z * 2) % 2 ? .8 : 0), .02, z); heartAt(q[0], q[1], .7, P.pat); }
+  // wood floor
+  shape([PJ(0, 0, 0), PJ(X, 0, 0), PJ(X, Y, 0), PJ(0, Y, 0)], P.floor, { w: 2 });
+  for (let k = 1; k < Y; k++) ink([PJ(0, k, 0), PJ(X, k, 0)], false, 1.1, P.plank);
+  for (let k = 0; k < 30; k++) { const x = R() * X, y = Math.floor(R() * Y); ink([PJ(x, y, 0), PJ(x, y + 1, 0)], false, 1, P.plank); }
+  // kitchen run on the back wall: counter, sink, coffee machine, fridge, open shelves
+  box(3.0, 0, 0, 10.4, 1.3, 2.4, { top: "#fffaf0", left: P.teal, right: "#2f8580" });
+  for (let x = 3.6; x < 10.4; x += 1.85) shape(quadY(1.32, x, x + 1.5, .3, 2.1), "#57bdb5", { w: 1.4 });
+  box(4.0, .2, 2.4, 5.2, 1.0, 3.6, { top: P.ink, left: P.red, right: "#b8433a" }); dot(...PJ(4.6, 1.0, 3.0), 3, "#fff");
+  mug(5.5, .6, P.yellow); mug(5.9, .7, P.pink);
+  shape(octo(7.6, .65, .45, 2.42), "#c9ccd2", { w: 1.6 }); ink([PJ(7.6, .3, 2.42), PJ(7.6, .2, 3.2), PJ(7.9, .2, 3.2)], false, 2.6);
+  box(10.8, 0, 0, 12.4, 1.4, 5.2, { top: "#ffffff", left: "#ffffff", right: "#dfe2e6" }); ink([PJ(11.0, 1.42, 2.6), PJ(12.2, 1.42, 2.6)], false, 1.8); ink([PJ(11.2, 1.42, 3.3), PJ(11.2, 1.42, 4.6)], false, 3);
+  [3.6, 4.6].forEach(z => { box(3.0, 0, z, 10.4, .5, z + .12, { top: "#fffaf0", left: "#e2cfae", right: "#e2cfae" }); for (let x = 3.3; x < 10; x += .7) if (R() < .6) box(x, .1, z + .12, x + .4, .4, z + .5, { top: INK, left: [P.pink, P.yellow, P.teal, "#ffffff"][Math.floor(R() * 4)], right: INK }); });
+  windowX(2.2, 5.4, 2.6, 5.6, "#ffffff", "#bfe6ec");
+  // sofa on the left wall with a bunny and a mug
+  box(0, 6.0, 0, 1.6, 10.2, 2.6, { top: P.pink, left: P.pink, right: "#d97f95" }); box(0, 6.0, 0, 2.8, 10.2, 1.3, { top: "#f8bccb", left: P.pink, right: "#d97f95" });
+  box(0, 5.7, 0, 2.8, 6.2, 1.9, { top: "#f8bccb", left: P.pink, right: "#d97f95" }); box(0, 10.0, 0, 2.8, 10.5, 1.9, { top: "#f8bccb", left: P.pink, right: "#d97f95" });
+  lp([1.4, 8.6, 1.3], "lounge", who(1, { cup: P.yellow, scale: 1.3 }));
+  // round table: three teammates on stools, all turned to the table
+  const T = [7.6, 6.2];
+  [[T[0] - 2.0, T[1], "front", 2], [T[0], T[1] - 2.0, "front", 4]].forEach(([x, y, v, i]) => { lp(stool(x, y, t), v, who(i)); });
+  ink([PJ(...T, 0), PJ(...T, 2.2)], false, 5); shape(octo(T[0], T[1], .8, 0), "#a3845d");
+  shape(octo(T[0], T[1], 1.5, 2.2), "#e2cfae", { w: 2 }); shape(octo(T[0], T[1], 1.5, 2.4), "#fffaf0", { w: 2 });
+  mug(T[0] - .3, T[1] - .2, P.teal); mug(T[0] + .3, T[1] + .2, P.pink);
+  lp(stool(T[0] + 2.0, T[1], t), "back", who(6));
+  // arcade-style snack machine and a plant
+  box(13.4, 3.2, 0, 14.9, 5.0, 5.0, { top: P.ink, left: P.yellow, right: "#d6a832" });
+  shape(quadX(13.39, 3.4, 4.8, 1.8, 4.6), "#bfe6ec", { w: 1.6 }); for (let z = 2.2; z < 4.6; z += .7) ink([PJ(13.38, 3.5, z), PJ(13.38, 4.7, z)], false, 1.3);
+  plant(13.8, 9.6, P.red, "#7dbb4a", "#4f9a3a", 1.4);
+  // checker rug under the table
+  for (let i = 0; i < 6; i++) for (let j = 0; j < 4; j++) if ((i + j) % 2) fill([PJ(4.6 + i * 1.0, 8.6 + j * .5, .01), PJ(5.6 + i * 1.0, 8.6 + j * .5, .01), PJ(5.6 + i * 1.0, 9.1 + j * .5, .01), PJ(4.6 + i * 1.0, 9.1 + j * .5, .01)], "#f6d982");
+  ink([PJ(4.6, 8.6, .01), PJ(10.6, 8.6, .01), PJ(10.6, 10.6, .01), PJ(4.6, 10.6, .01)], true, 1.6);
+  lp([9.2, 9.8, 0], "stand", who(7, { cup: P.teal, scale: 1.25 }));
+  cutEdges(X, Y, Hh, P.ink);
+  paper(W, H, .035);
+}
+
+function studio(W, H) {
+  const P = { bg: "#fff6e6", wall: "#e3a33a", wall2: "#d38f25", floor: "#c98a2a", sun: "#f7d27c", teal: "#2f8f8a", red: "#d9573b", cream: "#fff4dc", ink: "#2a1b0a" };
+  INK = P.ink; C.fillStyle = P.bg; C.fillRect(0, 0, W, H);
+  const X = 16, Y = 10, F = 6.2, Hh = 12.5;
+  fitIso(W, H, X, Y, Hh, 27, 12);
+  const t = { top: P.cream, side: "#e9cf9e", leg: "#9c6a1f", dark: P.ink, metal: "#d8d2c4", chair: P.teal, chair2: "#236e6a" };
+  shell(X, Y, Hh, P.wall, P.wall2);
+  shape([PJ(0, 0, 0), PJ(X, 0, 0), PJ(X, Y, 0), PJ(0, Y, 0)], P.floor, { w: 2 });
+  // tall windows on the left wall; their light falls across the floor
+  windowX(1.6, 4.4, 1.2, 5.2, P.cream, "#bfe6ec"); windowX(6.0, 8.8, 1.2, 5.2, P.cream, "#bfe6ec");
+  fill([PJ(0, 1.6, 0), PJ(0, 4.4, 0), PJ(6, 7.2, 0), PJ(6, 4.4, 0)], P.sun); fill([PJ(0, 6.0, 0), PJ(0, 8.8, 0), PJ(3.4, Y, 0), PJ(3.4, Y, 0), PJ(1.6, Y, 0)], P.sun);
+  for (let k = 1; k < Y; k++) ink([PJ(0, k, 0), PJ(X, k, 0)], false, 1, "#a9741f");
+  // under the mezzanine: kitchenette and a door
+  box(9.2, 0, 0, 13.4, 1.2, 2.4, { top: P.cream, left: P.red, right: "#b44630" }); box(10.0, .15, 2.4, 11.0, .9, 3.5, { top: INK, left: P.ink, right: P.ink }); mug(11.4, .5, P.teal); mug(11.8, .6, P.cream);
+  shape(quadY(.02, 6.2, 7.8, 0, 4.2), P.teal, { w: 2 }); dot(...PJ(7.5, .03, 2.0), 2.6, P.cream);
+  // ground floor: meeting table with four, two wall desks on the left wall facing it
+  meetingTable(5.6, 6.2, [who(4), who(6), who(0), who(2)], t, P.cream);
+  [[.2, 1.0], [.2, 3.0]].forEach(([x, y], i) => { box(x, y, 2.2, x + 1.6, y + 1.7, 2.4, { top: P.cream, left: "#e9cf9e", right: "#e9cf9e" }); box(x + .1, y + .2, 3.0, x + .25, y + 1.5, 4.0, { top: INK, left: INK, right: "#bfe6ec" }); const c = chair(x + 2.7, y + .85, "-x", t); lp([x + 2.7, y + .85, 1.25], "back", who(i ? 5 : 8)); c.drawBack(); });
+  // mezzanine: slab, railing, desks along the back wall and a beanbag corner
+  const MX = X * .62, MY = Y * .55;
+  box(0, 0, F - .45, MX, MY, F, { top: P.wall, left: P.wall2, right: P.ink });
+  shape([PJ(0, 0, F), PJ(MX, 0, F), PJ(MX, MY, F), PJ(0, MY, F)], "#d99a35", { w: 2 });
+  windowY(1.0, 8.8, F + 1.6, F + 5.4, P.cream, "#bfe6ec");
+  [[.6, 9], [4.2, 3]].forEach(([x, i]) => wallDesk(x, .2, { who: who(i), mug: P.red }, t, "#bfe6ec", F));
+  beanbag(8.6, 4.2, P.red);
+  { const P0 = PJ; PJ = (x, y, z = 0) => P0(x, y, z + F); lp([8.6, 4.0, .8], "lounge", who(7, { cup: P.cream, scale: 1.15 })); PJ = P0; }
+  for (let x = .35; x < MX; x += .7) ink([PJ(x, MY, F), PJ(x, MY, F + 1.8)], false, 1.2);
+  ink([PJ(0, MY, F + 1.8), PJ(MX, MY, F + 1.8)], false, 2.4);
+  // stairs up from the right
+  const steps = 9;
+  for (let k = steps - 1; k >= 0; k--) box(MX + 5 - (k + 1) * .55, MY + .1, 0, MX + 5 - k * .55, MY + 1.5, (k + 1) * F / steps, { top: k % 2 ? P.sun : P.cream, left: P.wall, right: P.wall2 });
+  ink([PJ(MX + 5, MY + 1.5, 1.4), PJ(MX, MY + 1.5, F + 1.4)], false, 2);
+  plant(15.0, 9.0, P.teal, "#7dbb4a", "#4f9a3a", 1.4); plant(.9, 9.0, P.red, "#7dbb4a", "#4f9a3a", 1.1);
+  lp([13.4, 8.6, 0], "stand", who(1, { scale: 1.15 }));
+  cutEdges(X, Y, Hh, P.ink);
+  paper(W, H, .03);
+}
+
+function fromAbove(W, H) {
+  const P = { navy: "#172433", floor: "#f0936a", meet: "#f4b183", tile: "#e9785a", rug: "#3aa7a3", door: "#c43b2c", desk: "#ffe9c9", yellow: "#f6c945", ink: "#3b160c" };
+  INK = P.ink; C.fillStyle = P.navy; C.fillRect(0, 0, W, H);
+  const fl = [[200, 150], [810, 140], [850, 560], [160, 580]], out = [[60, 30], [950, 20], [990, 680], [20, 690]];
+  for (let i = 0; i < 4; i++) shape([out[i], out[(i + 1) % 4], fl[(i + 1) % 4], fl[i]], P.floor, { wash: P.door });
+  for (let i = 0; i < 4; i++) ink([out[i], fl[i]], false, 1.6);
+  shape(fl, P.floor, { w: 2 });
+  const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t], fp = (u, v) => lerp(lerp(fl[0], fl[1], u), lerp(fl[3], fl[2], u), v);
+  const rect = (u0, v0, u1, v1, col, w = 2) => shape([fp(u0, v0), fp(u1, v0), fp(u1, v1), fp(u0, v1)], col, { w });
+  // rooms: meeting room top-left, kitchen top-right, lounge bottom-right, open desks across the middle
+  rect(0, 0, .3, .36, P.meet); rect(.72, 0, 1, .36, P.tile);
+  for (let k = 1; k < 6; k++) { ink([fp(.72 + k * .28 / 6, 0), fp(.72 + k * .28 / 6, .36)], false, 1, "#c9604a"); ink([fp(.72, k * .36 / 6), fp(1, k * .36 / 6)], false, 1, "#c9604a"); }
+  ink([fp(.3, 0), fp(.3, .3)], false, 5); ink([fp(.72, 0), fp(.72, .3)], false, 5); ink([fp(0, .36), fp(.24, .36)], false, 5); ink([fp(.78, .36), fp(1, .36)], false, 5);
+  // door in the top wall, window in the bottom wall
+  shape([lerp(out[0], out[1], .44), lerp(out[0], out[1], .56), lerp(fl[0], fl[1], .555), lerp(fl[0], fl[1], .445)], P.door, { w: 2 });
+  const wq = [lerp(out[3], out[2], .3), lerp(out[3], out[2], .5), lerp(fl[3], fl[2], .49), lerp(fl[3], fl[2], .32)]; shape(wq, P.navy, { w: 2 });
+  // top-down person: shoulders, arms toward the desk, faceted head with ears
+  const topPerson = (x, y, dir, c) => {
+    C.save(); C.translate(x, y); C.rotate(dir);
+    shape([[-17, -6], [-12, -12], [12, -12], [17, -6], [15, 8], [-15, 8]], c.shirt, { w: 2 });
+    shape([[-15, 2], [-13, 18], [-8, 18], [-9, 4]], c.shirt, { w: 1.8 }); shape([[15, 2], [13, 18], [8, 18], [9, 4]], c.shirt, { w: 1.8 });
+    shape([[-13, 18], [-8, 22], [-7, 18]], c.skin, { w: 1.4 }); shape([[13, 18], [8, 22], [7, 18]], c.skin, { w: 1.4 });
+    if (c.ears === "cat") { shape([[-10, -2], [-14, -16], [-3, -9]], c.skin, { w: 1.6 }); shape([[10, -2], [14, -16], [3, -9]], c.skin, { w: 1.6 }); }
+    if (c.ears === "bunny") { shape([[-7, -6], [-11, -26], [-4, -27], [-2, -8]], c.skin, { w: 1.6 }); shape([[7, -6], [11, -26], [4, -27], [2, -8]], c.skin, { w: 1.6 }); }
+    shape([[-11, -6], [-9, -13], [0, -16], [9, -13], [11, -6], [9, 3], [0, 6], [-9, 3]], (c.ears === "hair" || c.ears === "long") ? c.hair : c.skin, { w: 2 });
+    if (c.headphones) { ink([[-12, -4], [0, -9], [12, -4]], false, 4); }
+    C.restore();
+  };
+  const deskTop = (u, v, rot, c) => {
+    const p = fp(u, v);
+    C.save(); C.translate(p[0], p[1]); C.rotate(rot);
+    shape([[-34, -20], [34, -20], [34, 20], [-34, 20]], P.desk, { w: 2 });
+    shape([[-18, -16], [18, -16], [18, -10], [-18, -10]], INK); shape([[-12, -2], [12, -2], [12, 4], [-12, 4]], "#c9ccd2", { w: 1.2 });
+    if (c && c.mug) shape(octo2(24, 8, 4.5), c.mug, { w: 1.4 });
+    // chair under the sitter, both facing the desk
+    shape(octo2(0, 46, 17), "#5a6170", { w: 2 });
+    if (c) topPerson(0, 44, Math.PI, c); else shape([[-14, 54], [14, 54], [14, 62], [-14, 62]], "#424855", { w: 1.6 });
+    C.restore();
+  };
+  [[.36, .5, 0, who(0)], [.5, .5, 0, who(3, { mug: P.yellow })], [.64, .5, 0, who(2)], [.36, .72, Math.PI, who(4)], [.5, .72, Math.PI, null], [.64, .72, Math.PI, who(1, { mug: P.rug })], [.1, .62, -Math.PI / 2, who(6)], [.1, .86, -Math.PI / 2, who(9)]].forEach(([u, v, r, c]) => deskTop(u, v, r, c));
+  // meeting room: an octagon table and four turned to it
+  const mt = fp(.15, .18); shape(octo2(mt[0], mt[1], 40), P.desk, { w: 2 });
+  [[-62, 0, Math.PI / 2], [62, 0, -Math.PI / 2], [0, -50, Math.PI], [0, 50, 0]].forEach(([dx, dy, r], i) => topPerson(mt[0] + dx, mt[1] + dy, r + Math.PI, who([5, 7, 8, 1][i])));
+  // kitchen: counter and round table
+  rect(.74, .02, .98, .08, P.desk); const kt = fp(.86, .22); shape(octo2(kt[0], kt[1], 26), P.desk, { w: 2 }); topPerson(kt[0] - 44, kt[1], Math.PI / 2 + Math.PI, who(4)); topPerson(kt[0] + 44, kt[1], -Math.PI / 2 + Math.PI, who(0));
+  // lounge rug, beanbags, plants and a water cooler
+  const rg = [fp(.74, .74), fp(.98, .74), fp(.98, .98), fp(.74, .98)]; shape(rg, P.rug, { w: 2 });
+  [[.8, .82, P.yellow], [.92, .9, P.door]].forEach(([u, v, c]) => { const p = fp(u, v); shape(octo2(p[0], p[1], 24), c, { w: 2 }); });
+  topPerson(...fp(.8, .82), .6, who(1));
+  [[.02, .4], [.98, .42], [.02, .98]].forEach(([u, v]) => { const p = fp(u, v); for (let k = 0; k < 8; k++) { const a = k * .785; shape([[p[0], p[1]], [p[0] + Math.cos(a - .32) * 20, p[1] + Math.sin(a - .32) * 20], [p[0] + Math.cos(a) * 30, p[1] + Math.sin(a) * 30]], k % 2 ? "#7dbb4a" : "#4f9a3a", { w: 1.4 }); } });
+  const wc = fp(.97, .6); shape(octo2(wc[0], wc[1], 16), "#ffffff", { w: 2 }); shape(octo2(wc[0], wc[1], 9), "#9fd8e6", { w: 1.4 });
+  paper(W, H, .04);
+}
+
+function inkWash(W, H) {
+  const G = { paper: "#ffffff", l: "#fffbdc", m: "#ece6a6", d: "#b0bd3a", ink: "#2e2e2e" };
+  INK = G.ink; C.fillStyle = G.paper; C.fillRect(0, 0, W, H);
+  const X = 17, Y = 12, Hh = 7.4;
+  fitIso(W, H, X, Y, Hh, 30, 8);
+  const t = { top: G.paper, side: G.l, leg: G.m, dark: G.ink, metal: G.l, chair: G.d, chair2: G.ink };
+  shape(quadX(0, 0, Y, 0, Hh), "#d3dc6a"); shape(quadY(0, 0, X, 0, Hh), "#c3cf4a");
+  gridFloor(X, Y, G.l, "#efe7a6");
+  checkerY(0, X, Hh - .9, Hh, "#c3cf4a", "#e3ea8f"); checkerX(0, Y, Hh - .9, Hh, "#c3cf4a", "#e3ea8f");
+  windowX(2.0, 5.4, 2.6, 6.0, G.paper, "#bfe6ec"); windowX(7.0, 10.4, 2.6, 6.0, G.paper, "#bfe6ec");
+  fill([PJ(0, 2.0, 0), PJ(0, 5.4, 0), PJ(4.2, 7.4, 0), PJ(4.2, 4.0, 0)], G.paper); fill([PJ(0, 7.0, 0), PJ(0, 10.4, 0), PJ(3.4, Y, 0), PJ(1.4, Y, 0)], G.paper);
+  // colour pops: posters, plants, mugs and the people; the room stays grey
+  poster(quadY(.02, 9.8, 12.4, 3.0, 6.0), "#f4a7b9", () => { const q = PJ(11.1, .03, 4.6); heartAt(q[0], q[1], 1.6, "#e8513f"); });
+  poster(quadY(.02, 13.0, 15.6, 3.0, 6.0), "#c3cf4a", () => { const q = PJ(14.3, .03, 4.2); text("move!", q[0], q[1] + 6, 15, G.ink, -.46); });
+  SHADOW = [.7, .25];
+  plant(1.0, 1.0, "#e8513f", "#7dbb4a", "#4f9a3a", 1.2);
+  [[2.4, .2, 0], [6.0, .2, 3]].forEach(([x, y, i]) => { castShadow(x, y, x + 3.2, y + 1.5, 2.4, G.m); wallDesk(x, y, { who: who(i), mug: "#f5c64c" }, t, G.l); });
+  [[3.0, 5.4, 2], [6.8, 5.4, 4], [10.6, 5.4, 1], [3.0, 9.2, 6], [6.8, 9.2, 9]].forEach(([x, y, i]) => { castShadow(x, y, x + 3.2, y + 1.5, 2.4, G.m); openDesk(x, y, { who: who(i), mug: i % 2 ? "#3fb3a3" : "#f4a7b9" }, t); });
+  castShadow(14.4, 1.0, 15.2, 1.8, 3, G.m); cooler(14.4, 1.0, G.paper, "#9fd8e6");
+  printer(15.0, 4.6, G.l); lp([15.6, 7.0, 0], "stand", who(7, { scale: 1.2 }));
+  plant(16.2, 11.0, "#3fb3a3", "#7dbb4a", "#4f9a3a", 1.4);
+  meetingTable(13.4, 9.6, [who(8), who(5), null, null], t, G.paper);
+  cutEdges(X, Y, Hh, G.ink);
+  paper(W, H, .06);
+}
+
+const SCENES = [
+  { n: 16, name: "Open plan", ref: "people, not animals", draw: openPlan,
+    note: "Back row at wall desks with monitors facing the people using them. Two pods where everyone sits on the far side, facing their laptop and you: the laptop screens face them, so you see the backs of the lids. Someone at the printer faces it, the empty desk has its chair tucked in, and a coffee break happens on the beanbag." },
+];
+/* ---------- build the page ---------- */
+const host = document.getElementById("scenes");
+const cards = SCENES.map(s => {
+  const el = document.createElement("article");
+  el.className = "scene";
+  el.innerHTML = `<div class="scene-head"><span class="num">${s.n}</span><h2>${s.name}</h2><span class="swatches"><small>${s.ref}</small></span><p>${s.note}</p></div><canvas></canvas>`;
+  host.appendChild(el);
+  return el.querySelector("canvas");
+});
+function drawAll() {
+  SCENES.forEach((s, i) => {
+    const W = 1200, H = 860, cv = cards[i];
+    cv.width = W * DPR; cv.height = H * DPR; cv.style.aspectRatio = `${W} / ${H}`;
+    C = cv.getContext("2d"); C.setTransform(DPR, 0, 0, DPR, 0, 0);
+    R = rng(31 + i * 97);
+    s.draw(W, H);
+  });
+}
+drawAll();
+document.fonts && document.fonts.ready.then(drawAll);
+})();
+</script>
+</body>
+</html>
