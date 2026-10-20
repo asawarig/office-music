@@ -1993,6 +1993,12 @@ function glassWallX(c, x, y0, y1, gap) {
     for (let y = a + 12; y < b; y += 12) seg(c, iso(x + 1, y, 16), iso(x + 1, y, WH - 6), INK_LINE, .3);
   });
 }
+// a full-height plastered partition along x, with an open doorway
+function solidWallX(c, x, y0, y1, gap) {
+  const runs = gap ? [[y0, gap[0]], [gap[1], y1]] : [[y0, y1]];
+  runs.forEach(([a, b]) => box(c, x, a, 0, x + 2, b, WH - 6, { top: "#ffffff", left: PAL.wallShade, right: "#ffffff" }));
+  if (gap) box(c, x, gap[0], WH - 22, x + 2, gap[1], WH - 6, { top: "#ffffff", left: PAL.wallShade, right: "#ffffff" });   // the wall over the door
+}
 function windowOnX(c, y0, y1, z0, z1) {
   poly(c, quadX(.2, y0, y1, z0, z1), PAL.sky); poly(c, quadX(.3, y0 + 2, y1 - 2, z0 + 2, z1 - 2), null);
   seg(c, iso(.3, (y0 + y1) / 2, z0 + 2), iso(.3, (y0 + y1) / 2, z1 - 2)); seg(c, iso(.3, y0 + 2, (z0 + z1) / 2), iso(.3, y1 - 2, (z0 + z1) / 2));
@@ -2084,8 +2090,8 @@ function drawStatic() {
   box(c, 230.5, 5, 0, 235.5, 12, 6, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
   cylinder(c, 233, 11, 6, 8.2, 4.6, "#ffffff", .45); ellipseFloor(c, 233, 11, 3.2, 8.25, "#e8eef9");
   box(c, 236, 1, 16, 237.4, 2.4, 16.8, { top: "#d8d8d6", left: "#d8d8d6", right: "#c8c8c6" }, .3);
-  // washroom partitions: frosted glass with a door gap
-  GLASS.washX.paint(c => glassWallX(c, 204, 0, 60, [36, 52])); GLASS.washY.paint(c => glassWallY(c, 60, 204, 240, null));
+  // washroom: a solid side wall with a doorway, and its front cut low like the outer walls so you can see in
+  GLASS.washX.paint(c => solidWallX(c, 204, 0, 60, [36, 52])); GLASS.washY.paint(c => lowWall(c, [[204, 60], [240, 60]]));
 
   // meeting room: glass walls with a doorway, a long table and four coral chairs facing it
 
