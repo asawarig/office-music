@@ -1,0 +1,1354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Office Pulse</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Hire a team, cover their health, and hear what a healthy office sounds like.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Silkscreen&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one column. Header with transport controls, the isometric pixel office as the hero,
+   a coverage strip that fills as roles are hired, then the hiring desk of nine role cards.
+   UI chrome borrows the pixel look: hard 2px outlines and offset shadows, no soft blur. */
+:root {
+  --bg: #e7eef5;
+  --surface: #ffffff;
+  --fg: #2a2b33;
+  --muted: #5e6475;
+  --edge: #2a2b33;
+  --accent: #7a2e6e;
+  --accent-soft: #f1e3ee;
+  --wood: #f3b46e;
+
+  /* office canvas palette */
+  --c-wall-l: #e8f5f8;
+  --c-wall-r: #a9bfdc;
+  --c-cap: #8c8f99;
+  --c-cap-dark: #5d606a;
+  --c-floor-a: #f8c98d;
+  --c-floor-b: #f2b672;
+  --c-floor-line: #fde2b6;
+  --c-outline: #3a3236;
+  --c-desk-top: #a5634f;
+  --c-desk-side: #7b4337;
+  --c-chair: #4a4d57;
+  --c-sky-a: #7fc6ec;
+  --c-sky-b: #d7f0fb;
+  --c-screen: #141019;
+  --c-ecg: #3ef0b4;
+  --c-plant: #3fae4f;
+  --c-pot: #2a9fa8;
+  --c-paper: #ffffff;
+  --c-cork: #e98a4a;
+  --c-coral: #ff6b5e;
+
+  --font-display: "Pixelify Sans", "Courier New", ui-monospace, monospace;
+  --font-label: "Silkscreen", "Courier New", ui-monospace, monospace;
+  --font-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #13151d; --surface: #1f2230; --fg: #eef0f6; --muted: #a2a8bb; --edge: #050608;
+    --accent: #e58bd2; --accent-soft: #3a2140; --wood: #c98a4c;
+    --c-wall-l: #3b4466; --c-wall-r: #2a3150; --c-cap: #5a5f72; --c-cap-dark: #3b3f4e;
+    --c-floor-a: #b17b4c; --c-floor-b: #9e6a3f; --c-floor-line: #c8925f; --c-outline: #0d0b10;
+    --c-desk-top: #7e4a3b; --c-desk-side: #57302a; --c-chair: #2a2c36;
+    --c-sky-a: #0d1636; --c-sky-b: #3a3170; --c-screen: #07060a; --c-ecg: #3ef0b4;
+    --c-plant: #2f8a3e; --c-pot: #1f7a82; --c-paper: #d9dce8; --c-cork: #b5683a; --c-coral: #ff7d71;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #13151d; --surface: #1f2230; --fg: #eef0f6; --muted: #a2a8bb; --edge: #050608;
+  --accent: #e58bd2; --accent-soft: #3a2140; --wood: #c98a4c;
+  --c-wall-l: #3b4466; --c-wall-r: #2a3150; --c-cap: #5a5f72; --c-cap-dark: #3b3f4e;
+  --c-floor-a: #b17b4c; --c-floor-b: #9e6a3f; --c-floor-line: #c8925f; --c-outline: #0d0b10;
+  --c-desk-top: #7e4a3b; --c-desk-side: #57302a; --c-chair: #2a2c36;
+  --c-sky-a: #0d1636; --c-sky-b: #3a3170; --c-screen: #07060a; --c-ecg: #3ef0b4;
+  --c-plant: #2f8a3e; --c-pot: #1f7a82; --c-paper: #d9dce8; --c-cork: #b5683a; --c-coral: #ff7d71;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+  display: grid;
+  gap: 22px;
+}
+
+/* Header */
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+.brand { min-width: 0; }
+.eyebrow {
+  font-family: var(--font-label);
+  font-size: 12px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.eyebrow .dot { width: 10px; height: 10px; background: var(--c-coral); box-shadow: 2px 2px 0 var(--edge); }
+.eyebrow .dot.beat { animation: beat .4s steps(3); }
+@keyframes beat { 0% { transform: scale(1.6); } 100% { transform: scale(1); } }
+h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(40px, 7vw, 68px);
+  line-height: .9;
+  letter-spacing: -.01em;
+  margin: 0;
+  text-wrap: balance;
+}
+h1 em { font-style: normal; color: var(--accent); }
+.lede { margin: 12px 0 0; color: var(--muted); max-width: 54ch; font-size: 16px; }
+
+.transport { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+button { font: inherit; color: inherit; }
+.btn {
+  border: 2px solid var(--edge);
+  background: var(--surface);
+  border-radius: 4px;
+  padding: 8px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 3px 3px 0 var(--edge);
+  transition: transform .06s steps(1), box-shadow .06s steps(1);
+}
+.btn:hover { background: var(--accent-soft); }
+.btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--edge); }
+.btn:focus-visible, .role:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.btn.play {
+  background: var(--accent);
+  color: var(--surface);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-label);
+  font-weight: 400;
+  padding: 9px 18px 9px 14px;
+}
+.btn.play svg { width: 14px; height: 14px; fill: currentColor; shape-rendering: crispEdges; }
+.tempo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-label);
+  font-size: 11px;
+  color: var(--muted);
+  padding: 0 4px;
+}
+.tempo input { width: 96px; accent-color: var(--accent); }
+.tempo output { color: var(--fg); min-width: 7ch; font-variant-numeric: tabular-nums; }
+
+/* Stage */
+.stage {
+  position: relative;
+  border: 2px solid var(--edge);
+  border-radius: 6px;
+  box-shadow: 5px 5px 0 var(--edge);
+  background: var(--bg);
+  overflow: hidden;
+}
+canvas#office {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 440 / 310;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.tags { position: absolute; inset: 0; pointer-events: none; }
+.tag {
+  position: absolute;
+  transform: translate(-50%, 0);
+  font-family: var(--font-label);
+  font-size: clamp(8px, 1.1vw, 11px);
+  line-height: 1;
+  padding: 3px 5px 2px;
+  background: var(--surface);
+  color: var(--fg);
+  border: 2px solid var(--edge);
+  white-space: nowrap;
+}
+.empty {
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  background: var(--surface);
+  border: 2px solid var(--edge);
+  box-shadow: 4px 4px 0 var(--edge);
+  padding: 10px 16px;
+  pointer-events: none;
+  max-width: 80%;
+}
+.empty b { font-family: var(--font-display); font-size: 20px; display: block; line-height: 1.1; }
+.empty span { color: var(--muted); font-size: 13px; }
+.tip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--surface);
+  color: var(--fg);
+  border: 2px solid var(--edge);
+  box-shadow: 3px 3px 0 var(--edge);
+  padding: 7px 10px;
+  font-size: 13px;
+  line-height: 1.35;
+  transform: translate(-50%, calc(-100% - 8px));
+  white-space: nowrap;
+  z-index: 2;
+}
+.tip small { display: block; color: var(--muted); font-size: 12px; }
+
+/* Coverage strip */
+.cover {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px 22px;
+  align-items: center;
+  background: var(--surface);
+  border: 2px solid var(--edge);
+  border-radius: 4px;
+  box-shadow: 4px 4px 0 var(--edge);
+  padding: 14px 18px;
+}
+.cover-head { min-width: 0; }
+.cover-label { font-family: var(--font-label); font-size: 11px; text-transform: uppercase; color: var(--muted); }
+.cover-num { font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1; font-variant-numeric: tabular-nums; }
+.cover-num span { color: var(--muted); font-weight: 500; font-size: 20px; }
+.cover-body { display: grid; gap: 10px; min-width: 0; }
+.bar {
+  height: 14px;
+  border: 2px solid var(--edge);
+  background: var(--accent-soft);
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 2px;
+  padding: 2px;
+}
+.bar i { background: transparent; transition: background .2s steps(2); }
+.bar i.on { background: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border: 2px dashed color-mix(in srgb, var(--muted) 45%, transparent);
+  color: var(--muted);
+}
+.chip.on { border: 2px solid var(--edge); background: var(--accent-soft); color: var(--fg); }
+.chip.on::before { content: "✓ "; color: var(--accent); }
+
+/* Hiring desk */
+.section-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin: 0; }
+.hint { color: var(--muted); font-size: 14px; margin: 0; }
+.roles { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.role {
+  position: relative;
+  text-align: left;
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 3px 12px;
+  align-items: start;
+  background: var(--surface);
+  border: 2px solid var(--edge);
+  border-radius: 4px;
+  box-shadow: 4px 4px 0 var(--edge);
+  padding: 12px;
+  cursor: grab;
+  transition: transform .06s steps(1), box-shadow .06s steps(1);
+}
+.role:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--c); }
+.role:active { cursor: grabbing; transform: translate(4px, 4px); box-shadow: 0 0 0 var(--edge); }
+.role canvas {
+  grid-row: span 3;
+  width: 44px; height: 44px;
+  image-rendering: pixelated;
+  background: color-mix(in srgb, var(--c) 22%, var(--surface));
+  border: 2px solid var(--edge);
+}
+.role .name { font-weight: 700; font-size: 15px; line-height: 1.25; padding-right: 30px; }
+.role .snd { font-family: var(--font-label); font-size: 11px; color: var(--fg); }
+.role .snd::before { content: ""; display: inline-block; width: 8px; height: 8px; background: var(--c); margin-right: 6px; border: 1px solid var(--edge); }
+.role .covers { font-size: 13px; color: var(--muted); }
+.role .count {
+  position: absolute;
+  top: 10px; right: 10px;
+  font-family: var(--font-label);
+  font-size: 11px;
+  padding: 2px 5px 1px;
+  background: var(--c);
+  color: #fff;
+  border: 2px solid var(--edge);
+}
+
+.foot {
+  color: var(--muted);
+  font-size: 13px;
+  border-top: 2px dashed color-mix(in srgb, var(--muted) 40%, transparent);
+  padding-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  justify-content: space-between;
+}
+
+/* Toasts */
+.toasts {
+  position: fixed;
+  left: 50%;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  display: grid;
+  gap: 8px;
+  z-index: 20;
+  width: min(92vw, 440px);
+  pointer-events: none;
+}
+@media (min-width: 900px) {
+  .toasts { left: auto; transform: none; right: max(20px, env(safe-area-inset-right, 0px)); width: 340px; }
+}
+.toast {
+  background: var(--fg);
+  color: var(--bg);
+  border: 2px solid var(--edge);
+  box-shadow: 4px 4px 0 var(--edge);
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  animation: toastIn .2s steps(3);
+}
+.toast.out { opacity: 0; transition: opacity .25s steps(3); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(10px); } }
+
+@media (max-width: 640px) {
+  .cover { grid-template-columns: 1fr; }
+  .transport { width: 100%; }
+  .tag { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <p class="eyebrow"><span class="dot" id="beatDot"></span>A group health jam</p>
+      <h1>Office <em>Pulse</em></h1>
+      <p class="lede">Every healthy habit has a sound. Hire teammates into the empty office and their habits stack into one groove. Cover all nine benefits to hear the full band.</p>
+    </div>
+    <div class="transport">
+      <button class="btn play" id="playBtn" aria-pressed="false">
+        <svg viewBox="0 0 14 14" aria-hidden="true"><path id="playIcon" d="M3 1h2v1h2v2h2v2h2v2h-2v2h-2v2h-2v1h-2z"/></svg>
+        <span id="playLabel">Play</span>
+      </button>
+      <label class="tempo" for="tempo">Tempo
+        <input type="range" id="tempo" min="70" max="120" value="88">
+        <output id="tempoOut">88 bpm</output>
+      </label>
+      <button class="btn" id="fillBtn">Cover everyone</button>
+      <button class="btn" id="clearBtn">Empty office</button>
+    </div>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="office" width="440" height="310" role="img" aria-label="An isometric pixel-art office with twelve desks. Hired employees sit at desks and bounce when they play their sound."></canvas>
+    <div class="tags" id="tags"></div>
+    <div class="empty" id="empty" hidden><b>The office is empty and quiet</b><span>Hire someone below to start the music</span></div>
+    <div class="tip" id="tip" hidden></div>
+  </div>
+
+  <section class="cover" aria-live="polite">
+    <div class="cover-head">
+      <div class="cover-label">Team cover</div>
+      <div class="cover-num" id="coverNum">0<span>/9</span></div>
+    </div>
+    <div class="cover-body">
+      <div class="bar" id="coverBar"></div>
+      <div class="chips" id="chips"></div>
+    </div>
+  </section>
+
+  <section style="display:grid;gap:14px">
+    <div class="section-head">
+      <h2>Hiring desk</h2>
+      <p class="hint">Click a card to hire, or drag it onto a desk. Click someone in the office to send them home.</p>
+    </div>
+    <div class="roles" id="roles"></div>
+  </section>
+
+  <footer class="foot">
+    <span>12 desks · 9 habits · 1 policy that covers the whole team.</span>
+    <span>Hire two of the same role and the second one plays a harmony part.</span>
+  </footer>
+</div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+(() => {
+"use strict";
+
+/* ---------- Music theory ---------- */
+// Four-bar lo-fi loop: Fmaj7 → Em7 → Dm7 → Cmaj7
+const CHORDS = [
+  [53, 57, 60, 64],
+  [52, 55, 59, 62],
+  [50, 53, 57, 60],
+  [48, 52, 55, 59],
+];
+const PENTA = [0, 2, 4, 7, 9];
+const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+function rng(seed) {
+  return () => {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const inRange = (lo, hi, pcs) => { const out = []; for (let n = lo; n <= hi; n++) if (pcs.includes(n % 12)) out.push(n); return out; };
+const pick = (arr, r) => arr[Math.floor(r() * arr.length)];
+
+/* ---------- Audio engine ---------- */
+const A = { ctx: null, master: null, rev: null, dly: null, analyser: null, noise: null,
+            playing: false, bpm: 88, step: 0, next: 0, timer: null };
+const visualQueue = [];
+
+function initAudio() {
+  if (A.ctx) return;
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  A.ctx = ctx;
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = -16; comp.ratio.value = 4; comp.attack.value = 0.005; comp.release.value = 0.2;
+  A.master = ctx.createGain(); A.master.gain.value = 0.85;
+  A.analyser = ctx.createAnalyser(); A.analyser.fftSize = 2048;
+  A.master.connect(comp); comp.connect(A.analyser); A.analyser.connect(ctx.destination);
+
+  // reverb from a generated impulse
+  const len = ctx.sampleRate * 2.6, imp = ctx.createBuffer(2, len, ctx.sampleRate);
+  for (let c = 0; c < 2; c++) {
+    const d = imp.getChannelData(c);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
+  }
+  A.rev = ctx.createConvolver(); A.rev.buffer = imp;
+  const revOut = ctx.createGain(); revOut.gain.value = 0.55;
+  A.rev.connect(revOut); revOut.connect(A.master);
+
+  // dotted-eighth delay
+  A.dly = ctx.createDelay(2);
+  const fb = ctx.createGain(); fb.gain.value = 0.33;
+  const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2400;
+  const dOut = ctx.createGain(); dOut.gain.value = 0.5;
+  A.dly.connect(lp); lp.connect(fb); fb.connect(A.dly); lp.connect(dOut); dOut.connect(A.master);
+  setDelayTime();
+
+  A.noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+  const nd = A.noise.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+
+  members.forEach(ensureNodes);
+}
+function setDelayTime() { if (A.dly) A.dly.delayTime.setTargetAtTime(60 / A.bpm * 0.75, A.ctx.currentTime, 0.05); }
+
+function ensureNodes(m) {
+  if (!A.ctx || m.out) return;
+  const ctx = A.ctx, role = ROLES[m.role];
+  const same = members.filter(o => o.role === m.role).indexOf(m);
+  m.out = ctx.createGain();
+  m.out.gain.value = role.gain * Math.pow(0.8, same);
+  const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
+  if (pan.pan) pan.pan.value = (DESKS[m.desk].sx - LW / 2) / (LW / 2) * 0.7;
+  const rs = ctx.createGain(); rs.gain.value = role.rev;
+  const ds = ctx.createGain(); ds.gain.value = role.dly;
+  m.out.connect(pan); pan.connect(A.master); pan.connect(rs); rs.connect(A.rev); pan.connect(ds); ds.connect(A.dly);
+  m.nodes = [pan, rs, ds];
+}
+function releaseNodes(m) {
+  if (!m.out) return;
+  const t = A.ctx.currentTime, out = m.out, nodes = m.nodes;
+  out.gain.setTargetAtTime(0, t, 0.08);
+  setTimeout(() => { out.disconnect(); nodes.forEach(n => n.disconnect()); }, 800);
+  m.out = null;
+}
+
+// --- voices ---
+function envGain(t, a, peak, d) {
+  const g = A.ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(peak, t + a);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + a + d);
+  return g;
+}
+function kick(dest, t, vel, f0 = 110, f1 = 42, dec = 0.32) {
+  const o = A.ctx.createOscillator(); o.type = "sine";
+  o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + 0.11);
+  const g = envGain(t, 0.004, vel, dec);
+  o.connect(g); g.connect(dest); o.start(t); o.stop(t + dec + 0.05);
+}
+function noiseHit(dest, t, vel, type, freq, q, dec, attack = 0.002) {
+  const s = A.ctx.createBufferSource(); s.buffer = A.noise;
+  const f = A.ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
+  const g = envGain(t, attack, vel, dec);
+  s.connect(f); f.connect(g); g.connect(dest);
+  s.start(t, Math.random() * 0.5); s.stop(t + attack + dec + 0.03);
+}
+function clap(dest, t, vel) {
+  noiseHit(dest, t, vel * 0.7, "bandpass", 1400, 1.1, 0.02);
+  noiseHit(dest, t + 0.011, vel * 0.7, "bandpass", 1500, 1.1, 0.02);
+  noiseHit(dest, t + 0.022, vel, "bandpass", 1300, 1.0, 0.16);
+}
+function tone(dest, t, freq, dur, o = {}) {
+  const ctx = A.ctx, osc = ctx.createOscillator();
+  osc.type = o.type || "sine"; osc.frequency.value = freq; if (o.detune) osc.detune.value = o.detune;
+  const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.Q.value = o.q || 0.7;
+  if (o.fenv) { f.frequency.setValueAtTime(o.fenv[0], t); f.frequency.exponentialRampToValueAtTime(o.fenv[1], t + o.fenv[2]); }
+  else f.frequency.value = o.cutoff || 8000;
+  const g = ctx.createGain(), a = o.attack || 0.005, v = o.vel || 0.3, r = o.release || 0.08;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(v, t + a);
+  g.gain.setValueAtTime(v, t + Math.max(a, dur - r));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur + r);
+  osc.connect(f); f.connect(g); g.connect(dest); osc.start(t); osc.stop(t + dur + r + 0.05);
+}
+function bell(dest, t, freq, vel, dur = 1.8, ratio = 3.01) {
+  const ctx = A.ctx, c = ctx.createOscillator(), m = ctx.createOscillator(), mg = ctx.createGain();
+  c.frequency.value = freq; m.frequency.value = freq * ratio;
+  mg.gain.setValueAtTime(freq * 1.6, t); mg.gain.exponentialRampToValueAtTime(1, t + dur * 0.6);
+  m.connect(mg); mg.connect(c.frequency);
+  const g = envGain(t, 0.004, vel, dur);
+  c.connect(g); g.connect(dest);
+  c.start(t); m.start(t); c.stop(t + dur + 0.1); m.stop(t + dur + 0.1);
+}
+function drop(dest, t, freq, vel) {
+  const o = A.ctx.createOscillator(); o.type = "sine";
+  o.frequency.setValueAtTime(freq * 0.55, t); o.frequency.exponentialRampToValueAtTime(freq, t + 0.05);
+  const g = envGain(t, 0.002, vel, 0.2);
+  o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.3);
+}
+function pad(dest, t, notes, dur, vel, wave = "sawtooth", cutoff = 900) {
+  notes.forEach(n => [-9, 9].forEach(dt =>
+    tone(dest, t, mtof(n), dur, { type: wave, detune: dt, vel: vel / notes.length, attack: dur * 0.4, release: dur * 0.5, cutoff })));
+}
+function breath(dest, t, dur, vel) {
+  const s = A.ctx.createBufferSource(); s.buffer = A.noise; s.loop = true;
+  const f = A.ctx.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 0.8;
+  f.frequency.setValueAtTime(500, t); f.frequency.linearRampToValueAtTime(1400, t + dur * 0.5); f.frequency.linearRampToValueAtTime(400, t + dur);
+  const g = A.ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vel, t + dur * 0.45); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+  s.connect(f); f.connect(g); g.connect(dest); s.start(t); s.stop(t + dur + 0.05);
+}
+
+/* ---------- Roles ----------
+   play(member, s, t, ctx) runs on every 16th note. s = step in bar (0-15), ctx = { bar, g, chord, sixteenth, barLen }.
+   Returns true when the member made a sound, so the canvas can make them bounce. */
+const ROLES = {
+  heart: {
+    title: "Marathon Runner", emoji: "❤️", sound: "Heartbeat kick", covers: "Annual heart check-ups", color: "#ff6b5e",
+    gain: 0.95, rev: 0.05, dly: 0,
+    play(m, s, t) {
+      const pats = [{ 0: 1, 1: 0.55, 8: 1, 9: 0.55 }, { 4: 0.45, 5: 0.25, 12: 0.45, 13: 0.25, 14: 0.2 }];
+      const v = pats[m.variant % 2][s];
+      if (!v) return false;
+      m.variant % 2 ? kick(m.out, t, v, 150, 60, 0.18) : kick(m.out, t, v);
+      return true;
+    },
+  },
+  steps: {
+    title: "10k-Steps Walker", emoji: "👟", sound: "Step-counter hats", covers: "Physiotherapy", color: "#f2a93b",
+    gain: 0.32, rev: 0.08, dly: 0,
+    play(m, s, t) {
+      if (m.variant % 2 === 0) {
+        if (s % 2) return false;
+        noiseHit(m.out, t, s % 4 === 0 ? 0.55 : 0.3, "highpass", 8000, 0.7, 0.035);
+      } else {
+        if (s % 4 !== 2) return false;
+        noiseHit(m.out, t, 0.28, "highpass", 7000, 0.7, 0.2);
+      }
+      return true;
+    },
+  },
+  water: {
+    title: "Hydration Hero", emoji: "💧", sound: "Water-drop plucks", covers: "Preventive care", color: "#3aa6e8",
+    gain: 0.5, rev: 0.45, dly: 0.35,
+    setup(m) {
+      const r = rng(m.seed);
+      m.pattern = [];
+      for (let g = 0; g < 64; g++) {
+        const chord = CHORDS[g >> 4];
+        const pcs = r() < 0.5 ? chord.map(n => n % 12) : PENTA;
+        m.pattern.push(r() < 0.2 ? pick(inRange(72 + (m.variant % 2) * 7, 88 + (m.variant % 2) * 7, pcs), r) : 0);
+      }
+    },
+    play(m, s, t, c) {
+      const n = m.pattern[c.g];
+      if (!n) return false;
+      drop(m.out, t, mtof(n), 0.5);
+      return true;
+    },
+  },
+  yoga: {
+    title: "Lunchtime Yogi", emoji: "🧘", sound: "Deep-breath pads", covers: "Mental wellness", color: "#9b6bd6",
+    gain: 0.5, rev: 0.6, dly: 0,
+    play(m, s, t, c) {
+      if (s !== 0) return false;
+      if (m.variant % 2 === 0) {
+        pad(m.out, t, c.chord, c.barLen, 0.32);
+        breath(m.out, t, c.barLen, 0.05);
+      } else {
+        pad(m.out, t, c.chord.slice(1).map(n => n + 12), c.barLen, 0.22, "triangle", 2200);
+      }
+      return true;
+    },
+  },
+  gym: {
+    title: "Gym Regular", emoji: "🏋️", sound: "Deadlift bass", covers: "Accident cover", color: "#2f9e6b",
+    gain: 0.55, rev: 0.02, dly: 0,
+    play(m, s, t, c) {
+      const root = c.chord[0] - 12, sx = c.sixteenth;
+      if (m.variant % 2 === 1) {
+        if (s !== 0) return false;
+        tone(m.out, t, mtof(root - 12), c.barLen * 0.95, { type: "sine", vel: 0.6, attack: 0.02, release: 0.2 });
+        return true;
+      }
+      const pat = { 0: [0, 3], 3: [0, 1], 6: [7, 2], 8: [0, 2], 11: [12, 1], 14: [7, 2] }[s];
+      if (!pat) return false;
+      tone(m.out, t, mtof(root + pat[0]), sx * pat[1] * 0.9, { type: "sawtooth", vel: 0.5, q: 5, fenv: [1400, 220, 0.18], release: 0.05 });
+      return true;
+    },
+  },
+  zen: {
+    title: "Meditation Buff", emoji: "🔔", sound: "Mindful bells", covers: "Therapy sessions", color: "#d65fa8",
+    gain: 0.3, rev: 0.7, dly: 0.25,
+    play(m, s, t, c) {
+      const steps = m.variant % 2 ? [2, 8, 14] : [0, 3, 6, 10, 12];
+      const i = steps.indexOf(s);
+      if (i < 0) return false;
+      const n = m.variant % 2 ? c.chord[(i + 2) % 4] + 24 : c.chord[i % 4] + 12;
+      bell(m.out, t, mtof(n), m.variant % 2 ? 0.22 : 0.3);
+      return true;
+    },
+  },
+  checkup: {
+    title: "Check-up Champ", emoji: "🩺", sound: "Heart-monitor melody", covers: "Hospitalisation", color: "#19b38a",
+    gain: 0.16, rev: 0.3, dly: 0.3,
+    setup(m) {
+      const r = rng(m.seed), shift = (m.variant % 2) * -12;
+      m.pattern = new Array(64).fill(null);
+      let g = 0;
+      while (g < 64) {
+        const s = g % 16, chord = CHORDS[g >> 4];
+        const strong = s % 4 === 0;
+        if (r() < (strong ? 0.75 : 0.3)) {
+          const pcs = strong ? chord.map(n => n % 12) : PENTA;
+          const len = pick([1, 1, 2, 2, 3], r);
+          m.pattern[g] = { n: pick(inRange(72 + shift, 84 + shift, pcs), r), len };
+          g += len;
+        } else g += 1;
+      }
+    },
+    play(m, s, t, c) {
+      const p = m.pattern[c.g];
+      if (!p) return false;
+      tone(m.out, t, mtof(p.n), c.sixteenth * p.len * 0.8, { type: "square", vel: 0.5, cutoff: 2600, release: 0.06 });
+      return true;
+    },
+  },
+  standup: {
+    title: "Standing-Desk Fan", emoji: "🙌", sound: "Good-posture claps", covers: "Doctor consults", color: "#e8794a",
+    gain: 0.5, rev: 0.3, dly: 0,
+    play(m, s, t) {
+      if (m.variant % 2 === 0) {
+        if (s !== 4 && s !== 12) return false;
+        clap(m.out, t, 0.8);
+      } else {
+        const v = { 7: 0.5, 10: 0.3, 15: 0.4 }[s];
+        if (!v) return false;
+        noiseHit(m.out, t, v, "bandpass", 3200, 6, 0.05);
+      }
+      return true;
+    },
+  },
+  vitamin: {
+    title: "Vitamin Stacker", emoji: "💊", sound: "Pill-bottle shaker", covers: "Pharmacy bills", color: "#c8a400",
+    gain: 0.3, rev: 0.12, dly: 0,
+    play(m, s, t) {
+      if (m.variant % 2 === 0) {
+        noiseHit(m.out, t, [0.35, 0.12, 0.25, 0.12][s % 4], "bandpass", 6000, 1.4, 0.05, 0.008);
+      } else {
+        if (s % 2 === 0) return false;
+        noiseHit(m.out, t, 0.25, "highpass", 9500, 1, 0.09, 0.004);
+      }
+      return s % 4 === 0 || m.variant % 2 === 1;
+    },
+  },
+};
+const ROLE_IDS = Object.keys(ROLES);
+
+/* ---------- Scheduler ---------- */
+function sixteenth() { return 60 / A.bpm / 4; }
+function scheduler() {
+  while (A.next < A.ctx.currentTime + 0.12) {
+    const g = A.step % 64, s = g % 16, bar = g >> 4;
+    const swing = s % 2 ? sixteenth() * 0.12 : 0;
+    const t = A.next + swing;
+    const c = { g, bar, chord: CHORDS[bar], sixteenth: sixteenth(), barLen: sixteenth() * 16 };
+    for (const m of members) {
+      if (!m.out) continue;
+      if (ROLES[m.role].play(m, s, t, c)) visualQueue.push({ id: m.id, t, beat: m.role === "heart" });
+    }
+    if (s % 4 === 0) visualQueue.push({ id: "beat", t });
+    A.next += sixteenth();
+    A.step++;
+  }
+}
+function start() {
+  initAudio();
+  A.ctx.resume();
+  if (A.playing) return;
+  A.playing = true;
+  A.step = 0;
+  A.next = A.ctx.currentTime + 0.06;
+  A.timer = setInterval(scheduler, 25);
+  scheduler();
+  syncPlayBtn();
+}
+function stop() {
+  if (!A.playing) return;
+  A.playing = false;
+  clearInterval(A.timer);
+  visualQueue.length = 0;
+  syncPlayBtn();
+}
+
+/* ---------- Pixel office geometry ----------
+   World units: the floor runs 0-200 on x and y. The left wall is the x=0 plane, the right wall is y=0.
+   iso() projects to a 440x310 low-res canvas that CSS scales up with nearest-neighbour. */
+const LW = 440, LH = 310, WH = 88, OX = 220, OY = 96;
+const iso = (x, y, z = 0) => [Math.round(OX + x - y), Math.round(OY + (x + y) / 2 - z)];
+const R = (x, z) => iso(x, 0, z);
+const L = (y, z) => iso(0, y, z);
+
+const DESKS = [];
+for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) {
+  const x0 = 22 + c * 44, y0 = 50 + r * 54, px = x0 + 18, py = y0 - 6;
+  const [sx, sy] = iso(px, py);
+  DESKS.push({
+    x0, y0, px, py, sx, sy, depth: x0 + y0,
+    box: [iso(x0, y0 + 14)[0] - 3, sy - 42, iso(x0 + 32, y0)[0] + 3, iso(x0 + 32, y0 + 14)[1] + 3],
+    tagY: iso(px, y0 + 14)[1] + 3,
+  });
+}
+const DRAW_ORDER = DESKS.map((_, i) => i).sort((a, b) => DESKS[a].depth - DESKS[b].depth);
+
+/* ---------- Pixel bitmaps ---------- */
+const ICONS = {
+  heart:   [".#.#.", "#####", "#####", ".###.", "..#.."],
+  steps:   ["##...", "##...", "###..", "#####", "#####"],
+  water:   ["..#..", ".###.", "#####", "#####", ".###."],
+  yoga:    ["..#..", ".###.", "#.#.#", "#####", "....."],
+  gym:     [".....", "#...#", "#####", "#...#", "....."],
+  zen:     ["..#..", ".###.", ".###.", "#####", "..#.."],
+  checkup: ["..#..", "..#..", "#####", "..#..", "..#.."],
+  standup: ["#.#.#", "#####", "#####", ".###.", ".###."],
+  vitamin: ["...##", "..###", ".###.", "###..", "##..."],
+  plus:    ["..#..", "..#..", "#####", "..#..", "..#.."],
+};
+const GLYPHS = {
+  0: "111101101101111", 1: "010110010010111", 2: "111001111100111", 3: "111001111001111", 4: "101101111001001",
+  5: "111100111001111", 6: "111100111101111", 7: "111001001001001", 8: "111101111101111", 9: "111101111001111",
+  "/": "001001010100100", B: "110101110101110", P: "110101110100100", M: "101111111101101", " ": "000000000000000",
+};
+const NOTE = ["0111", "0101", "0100", "0100", "1100", "1100"];
+
+/* ---------- Office state ---------- */
+const NAMES = ["Priya", "Arjun", "Meera", "Kabir", "Ananya", "Rohan", "Zoya", "Dev", "Isha", "Neel", "Sara", "Vikram",
+               "Tara", "Aman", "Leela", "Omar", "Nina", "Ravi", "Maya", "Jay", "Fatima", "Sam", "Kiran", "Aisha"];
+const SKINS = ["#f6d3b3", "#e8b48a", "#c98d5e", "#a46a3f", "#7a4b2a", "#f1c6a0"];
+const HAIRS = ["#2b1b14", "#4a2c1a", "#111111", "#7a4a22", "#c9a26a", "#5b2a4a", "#8a8a8a"];
+let members = [];
+let nextId = 1;
+const dist = (a, b) => Math.hypot(a.sx - b.sx, a.sy - b.sy);
+const coveredSet = () => new Set(members.map(m => m.role));
+
+function makeMember(roleId, desk, name, seed) {
+  const r = rng(seed);
+  const m = {
+    id: nextId++, role: roleId, desk, name, seed,
+    variant: members.filter(o => o.role === roleId).length,
+    skin: pick(SKINS, r), hair: pick(HAIRS, r), hairStyle: Math.floor(r() * 3),
+    memberNo: String(1000 + Math.floor(r() * 9000)),
+    pulse: 0, born: performance.now(), blink: r() * 4000,
+  };
+  if (ROLES[roleId].setup) ROLES[roleId].setup(m);
+  return m;
+}
+
+function hire(roleId, deskIndex) {
+  const taken = new Set(members.map(m => m.desk));
+  if (deskIndex == null || taken.has(deskIndex)) {
+    const free = DESKS.map((_, i) => i).filter(i => !taken.has(i));
+    if (!free.length) { toast("The office is full. Send someone home to make room."); return null; }
+    deskIndex = deskIndex == null ? free[Math.floor(Math.random() * free.length)]
+      : free.sort((a, b) => dist(DESKS[a], DESKS[deskIndex]) - dist(DESKS[b], DESKS[deskIndex]))[0];
+  }
+  const used = new Set(members.map(m => m.name));
+  const name = pick(NAMES.filter(n => !used.has(n)), Math.random) || "Alex";
+  const role = ROLES[roleId];
+  const wasCovered = coveredSet().has(roleId);
+  const m = makeMember(roleId, deskIndex, name, Math.floor(Math.random() * 1e9));
+  members.push(m);
+  ensureNodes(m);
+  render();
+  if (!wasCovered) toast(`${name} joined as ${role.title}. ${role.covers} now covered.`);
+  else toast(`${name} joined as a second ${role.title} and plays a harmony part.`);
+  if (coveredSet().size === ROLE_IDS.length && !wasCovered) celebrate();
+  return m;
+}
+function fire(m) {
+  members = members.filter(o => o !== m);
+  releaseNodes(m);
+  // re-number variants so remaining copies of a role keep distinct parts
+  ROLE_IDS.forEach(id => members.filter(o => o.role === id).forEach((o, i) => {
+    if (o.variant !== i) { o.variant = i; if (ROLES[id].setup) ROLES[id].setup(o); }
+  }));
+  burst(DESKS[m.desk].sx, DESKS[m.desk].sy - 20, ROLES[m.role].color, 12);
+  render();
+  toast(`${m.name} headed home to rest. Still covered, of course.`);
+}
+
+/* ---------- DOM ---------- */
+const $ = id => document.getElementById(id);
+const rolesEl = $("roles"), chipsEl = $("chips"), tagsEl = $("tags"), barEl = $("coverBar");
+const cardIcons = [];
+
+ROLE_IDS.forEach(id => {
+  const r = ROLES[id];
+  const b = document.createElement("button");
+  b.className = "role"; b.draggable = true; b.dataset.role = id;
+  b.style.setProperty("--c", r.color);
+  b.innerHTML = `<canvas width="11" height="11" aria-hidden="true"></canvas>
+    <span class="name">${r.title}</span>
+    <span class="snd">${r.sound}</span>
+    <span class="covers">Covers ${r.covers.toLowerCase()}</span>
+    <span class="count" hidden></span>`;
+  b.setAttribute("aria-label", `Hire a ${r.title}: plays ${r.sound}, covers ${r.covers}`);
+  b.addEventListener("click", () => { start(); hire(id); });
+  b.addEventListener("dragstart", e => { e.dataTransfer.setData("text/plain", id); e.dataTransfer.effectAllowed = "copy"; });
+  rolesEl.appendChild(b);
+  cardIcons.push({ id, c: b.querySelector("canvas").getContext("2d") });
+
+  const chip = document.createElement("span");
+  chip.className = "chip"; chip.dataset.role = id; chip.textContent = r.covers;
+  chipsEl.appendChild(chip);
+  barEl.appendChild(document.createElement("i"));
+});
+
+function render() {
+  const cov = coveredSet();
+  $("coverNum").innerHTML = `${cov.size}<span>/${ROLE_IDS.length}</span>`;
+  [...barEl.children].forEach((seg, i) => seg.classList.toggle("on", i < cov.size));
+  chipsEl.querySelectorAll(".chip").forEach(c => c.classList.toggle("on", cov.has(c.dataset.role)));
+  rolesEl.querySelectorAll(".role").forEach(b => {
+    const n = members.filter(m => m.role === b.dataset.role).length;
+    const badge = b.querySelector(".count");
+    badge.hidden = !n; badge.textContent = "×" + n;
+  });
+  tagsEl.replaceChildren(...members.map(m => {
+    const d = DESKS[m.desk], t = document.createElement("span");
+    t.className = "tag"; t.textContent = m.name;
+    t.style.left = (d.sx / LW * 100) + "%"; t.style.top = (d.tagY / LH * 100) + "%";
+    return t;
+  }));
+  $("empty").hidden = members.length > 0;
+}
+
+function syncPlayBtn() {
+  $("playLabel").textContent = A.playing ? "Pause" : "Play";
+  $("playIcon").setAttribute("d", A.playing ? "M3 2h3v10h-3zM8 2h3v10h-3z" : "M3 1h2v1h2v2h2v2h2v2h-2v2h-2v2h-2v1h-2z");
+  $("playBtn").setAttribute("aria-pressed", String(A.playing));
+}
+$("playBtn").addEventListener("click", () => A.playing ? stop() : start());
+$("tempo").addEventListener("input", e => {
+  A.bpm = +e.target.value; $("tempoOut").textContent = A.bpm + " bpm"; setDelayTime();
+});
+$("fillBtn").addEventListener("click", () => {
+  start();
+  const cov = coveredSet();
+  const missing = ROLE_IDS.filter(id => !cov.has(id));
+  if (!missing.length) { toast("Everyone is already covered. Add extras for harmonies."); return; }
+  missing.forEach((id, i) => setTimeout(() => hire(id), i * 260));
+});
+$("clearBtn").addEventListener("click", () => {
+  if (!members.length) return;
+  members.forEach(releaseNodes);
+  members = [];
+  render();
+  toast("The office is empty and quiet.");
+});
+
+function toast(msg) {
+  const el = document.createElement("div");
+  el.className = "toast"; el.textContent = msg;
+  const box = $("toasts");
+  box.appendChild(el);
+  while (box.children.length > 2) box.firstChild.remove();
+  setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 300); }, 2800);
+}
+
+/* ---------- Pixel raster helpers ---------- */
+function fillPoly(c, pts, col) {
+  c.fillStyle = col;
+  let y0 = Infinity, y1 = -Infinity;
+  for (const p of pts) { y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
+  for (let y = Math.floor(y0); y < Math.ceil(y1); y++) {
+    const yc = y + 0.5, xs = [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length];
+      if ((a[1] <= yc) !== (b[1] <= yc)) xs.push(a[0] + (yc - a[1]) / (b[1] - a[1]) * (b[0] - a[0]));
+    }
+    xs.sort((p, q) => p - q);
+    for (let k = 0; k + 1 < xs.length; k += 2) {
+      const a = Math.round(xs[k]), b = Math.round(xs[k + 1]);
+      if (b > a) c.fillRect(a, y, b - a, 1);
+    }
+  }
+}
+function line(c, x0, y0, x1, y1, col) {
+  c.fillStyle = col;
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  for (;;) {
+    c.fillRect(x0, y0, 1, 1);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy) { err += dy; x0 += sx; }
+    if (e2 <= dx) { err += dx; y0 += sy; }
+  }
+}
+function poly(c, pts, fill, stroke) {
+  if (fill) fillPoly(c, pts, fill);
+  if (stroke) for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length];
+    line(c, a[0], a[1], b[0], b[1], stroke);
+  }
+}
+// visible faces of an axis-aligned box: +y face (lower left), +x face (lower right), top
+function box(c, x0, y0, z0, x1, y1, z1, top, side, side2, stroke = T.outline) {
+  poly(c, [iso(x0, y1, z0), iso(x1, y1, z0), iso(x1, y1, z1), iso(x0, y1, z1)], side, stroke);
+  poly(c, [iso(x1, y0, z0), iso(x1, y1, z0), iso(x1, y1, z1), iso(x1, y0, z1)], side2, stroke);
+  poly(c, [iso(x0, y0, z1), iso(x1, y0, z1), iso(x1, y1, z1), iso(x0, y1, z1)], top, stroke);
+}
+const rectR = (c, x0, x1, z0, z1, f, s) => poly(c, [R(x0, z0), R(x1, z0), R(x1, z1), R(x0, z1)], f, s);
+const rectL = (c, y0, y1, z0, z1, f, s) => poly(c, [L(y0, z0), L(y1, z0), L(y1, z1), L(y0, z1)], f, s);
+function bitmap(c, x, y, rows, col, outline) {
+  const on = (i, j) => rows[j] && (rows[j][i] === "#" || rows[j][i] === "1");
+  if (outline) {
+    c.fillStyle = outline;
+    rows.forEach((row, j) => [...row].forEach((_, i) => {
+      if (on(i, j)) for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) if (!on(i + dx, j + dy)) c.fillRect(x + i + dx, y + j + dy, 1, 1);
+    }));
+  }
+  c.fillStyle = col;
+  rows.forEach((row, j) => [...row].forEach((_, i) => { if (on(i, j)) c.fillRect(x + i, y + j, 1, 1); }));
+}
+function shade(hex, f) {
+  if (!hex || hex[0] !== "#") return hex;
+  let h = hex.slice(1); if (h.length === 3) h = h.split("").map(c => c + c).join("");
+  const n = parseInt(h, 16);
+  const ch = v => Math.max(0, Math.min(255, Math.round(f < 1 ? v * f : v + (255 - v) * (f - 1))));
+  return "#" + [n >> 16 & 255, n >> 8 & 255, n & 255].map(v => ch(v).toString(16).padStart(2, "0")).join("");
+}
+
+/* ---------- Theme tokens for the canvas ---------- */
+let T = {};
+const TOKEN_KEYS = { wallL: "c-wall-l", wallR: "c-wall-r", cap: "c-cap", capDark: "c-cap-dark", floorA: "c-floor-a", floorB: "c-floor-b",
+  floorLine: "c-floor-line", outline: "c-outline", deskTop: "c-desk-top", deskSide: "c-desk-side", chair: "c-chair", skyA: "c-sky-a",
+  skyB: "c-sky-b", screen: "c-screen", ecg: "c-ecg", plant: "c-plant", pot: "c-pot", paper: "c-paper", cork: "c-cork", coral: "c-coral",
+  surface: "surface", edge: "edge" };
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  for (const k in TOKEN_KEYS) T[k] = cs.getPropertyValue("--" + TOKEN_KEYS[k]).trim();
+  drawStatic();
+  cardIcons.forEach(({ id, c }) => { c.clearRect(0, 0, 11, 11); bitmap(c, 3, 3, ICONS[id], ROLES[id].color, T.outline); });
+}
+
+/* ---------- Static room layer ---------- */
+const cv = $("office"), g = cv.getContext("2d");
+const stat = document.createElement("canvas"); stat.width = LW; stat.height = LH;
+const sctx = stat.getContext("2d");
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function drawStatic() {
+  const c = sctx, O = T.outline;
+  c.clearRect(0, 0, LW, LH);
+  // floor slab edges
+  poly(c, [iso(-5, 200, -6), iso(200, 200, -6), iso(200, 200, 0), iso(-5, 200, 0)], T.cap, O);
+  poly(c, [iso(200, -5, -6), iso(200, 200, -6), iso(200, 200, 0), iso(200, -5, 0)], T.capDark, O);
+  // wooden planks
+  for (let k = 0; k < 20; k++) {
+    const y0 = k * 10, y1 = y0 + 10, r = rng(k * 31 + 7);
+    poly(c, [iso(0, y0), iso(200, y0), iso(200, y1), iso(0, y1)], k % 2 ? T.floorA : T.floorB);
+    line(c, ...iso(0, y0), ...iso(200, y0), T.floorLine);
+    let x = -r() * 60;
+    while ((x += 46 + r() * 50) < 194) line(c, ...iso(Math.round(x), y0), ...iso(Math.round(x), y1), T.floorLine);
+  }
+  // walls
+  rectL(c, 0, 200, 0, WH, T.wallL);
+  rectL(c, 0, 200, 0, 4, shade(T.wallL, .86));
+  rectR(c, 0, 200, 0, WH, T.wallR);
+  rectR(c, 0, 200, 0, 4, shade(T.wallR, .86));
+  line(c, ...iso(0, 0, 0), ...iso(0, 0, WH), shade(T.wallR, .8));
+  poly(c, [iso(-5, 200, -6), iso(0, 200, -6), iso(0, 200, WH), iso(-5, 200, WH)], T.cap, O);
+  poly(c, [iso(200, -5, -6), iso(200, 0, -6), iso(200, 0, WH), iso(200, -5, WH)], T.capDark, O);
+  poly(c, [iso(-5, -5, WH), iso(200, -5, WH), iso(200, 0, WH), iso(0, 0, WH), iso(0, 200, WH), iso(-5, 200, WH)], T.cap, O);
+
+  // right wall: window
+  rectR(c, 18, 86, 30, 33, T.cap, O);
+  rectR(c, 22, 82, 33, 78, T.cap, O);
+  rectR(c, 25, 79, 36, 75, T.skyA);
+  rectR(c, 25, 79, 36, 50, T.skyB);
+  rectR(c, 25, 79, 50, 58, shade(T.skyB, .92));
+  for (const x of [30, 58]) for (let i = 0; i < 4; i++) {
+    const a = R(x + i, 44 + i * 6), b = R(x + i + 8, 60 + i * 6);
+    line(c, a[0], a[1], b[0], b[1], T.paper);
+  }
+  rectR(c, 51, 53, 36, 75, T.cap);
+  // right wall: vitals monitor frame (contents drawn per frame)
+  rectR(c, 100, 180, 28, 80, T.outline, O);
+  rectR(c, 104, 176, 32, 76, T.screen);
+  rectR(c, 136, 144, 22, 28, T.cap, O);
+
+  // left wall: calendar
+  rectL(c, 22, 46, 34, 72, T.paper, O);
+  rectL(c, 23, 45, 62, 71, T.coral);
+  for (let row = 0; row < 4; row++) for (let col = 0; col < 4; col++) {
+    const p = L(42 - col * 5, 56 - row * 6); c.fillStyle = T.outline; c.fillRect(p[0], p[1], 2, 1);
+  }
+  const ring = L(34, 74); c.fillStyle = O; c.fillRect(ring[0], ring[1], 1, 3);
+  // left wall: health chart in a frame
+  rectL(c, 56, 92, 44, 72, T.pot, O);
+  rectL(c, 59, 89, 47, 69, shade(T.screen, 1.6));
+  [[86, 8, "#ff6b5e"], [81, 13, "#f2a93b"], [76, 10, "#3aa6e8"], [71, 17, "#3fae4f"], [66, 14, "#d65fa8"]].forEach(([y, h, col]) =>
+    rectL(c, y - 3, y, 49, 49 + h, col));
+  // left wall: cork board with notes
+  rectL(c, 104, 142, 36, 74, T.cork, O);
+  [[110, 62], [122, 66], [134, 58], [112, 46], [128, 44]].forEach(([y, z], i) => rectL(c, y, y + 7, z, z + 7, i % 2 ? T.paper : "#fff6b3"));
+  // bookshelf against the left wall
+  box(c, 0, 152, 0, 12, 182, 52, shade(T.deskSide, 1.1), T.deskSide, shade(T.deskTop, 1.05));
+  for (const z of [14, 28, 42]) poly(c, [iso(12, 153, z), iso(12, 181, z), iso(12, 181, z + 1), iso(12, 153, z + 1)], T.outline);
+  const books = ["#e84a5f", "#3aa6e8", "#f2a93b", "#ffffff", "#2a9fa8", "#7a2e6e", "#3fae4f"];
+  const br = rng(91);
+  for (const z of [1, 15, 29, 43]) {
+    let y = 155;
+    while (y < 177) {
+      const w = 2 + Math.floor(br() * 2), h = 7 + Math.floor(br() * 4);
+      if (br() > 0.15) poly(c, [iso(12, y, z), iso(12, y + w, z), iso(12, y + w, z + h), iso(12, y, z + h)], pick(books, br));
+      y += w + 1;
+    }
+  }
+  // plants and water cooler
+  plant(c, ...iso(10, 10), 0);
+  plant(c, ...iso(12, 192), 1);
+  plant(c, ...iso(192, 30), 2);
+  box(c, 184, 4, 0, 196, 16, 22, T.paper, shade(T.paper, .85), shade(T.paper, .75));
+  box(c, 187, 7, 22, 193, 13, 32, "#bfe7fb", "#7cc7f2", "#5fb3e3");
+}
+function plant(c, sx, sy, seed) {
+  const r = rng(seed * 13 + 5);
+  for (let s = 0; s < 4; s++) {
+    const base = -4 + s * 3, h = 14 + Math.floor(r() * 10), ph = r() * 6;
+    for (let i = 0; i < h; i++) {
+      const x = sx + base + Math.round(Math.sin(i * 0.45 + ph) * 1.6), y = sy - 7 - i;
+      c.fillStyle = T.outline; c.fillRect(x - 1, y, 4, 1);
+      c.fillStyle = i % 5 === 0 ? shade(T.plant, 1.25) : T.plant; c.fillRect(x, y, 2, 1);
+    }
+  }
+  c.fillStyle = T.outline; c.fillRect(sx - 7, sy - 8, 14, 9);
+  c.fillStyle = T.pot; c.fillRect(sx - 6, sy - 7, 12, 7);
+  c.fillStyle = shade(T.pot, 1.3); c.fillRect(sx - 6, sy - 7, 12, 1);
+}
+
+/* ---------- Per-frame drawing ---------- */
+const particles = [];
+let glow = 0, hoverDesk = -1, dragDesk = -1;
+function burst(x, y, color, n = 6) {
+  if (reduceMotion) return;
+  for (let i = 0; i < n; i++) particles.push({ x, y, vx: (Math.random() - .5) * 1.6, vy: -Math.random() * 1.6 - .4, life: 1, color, kind: "dot" });
+}
+function note(x, y, color) {
+  if (reduceMotion) return;
+  particles.push({ x: x + (Math.random() - .5) * 10, y, vx: (Math.random() - .5) * .25, vy: -.45 - Math.random() * .25, life: 1, color, kind: "note" });
+}
+function celebrate() {
+  toast("All nine benefits covered. This is what a healthy office sounds like.");
+  if (reduceMotion) return;
+  const cols = ROLE_IDS.map(id => ROLES[id].color);
+  for (let i = 0; i < 120; i++) particles.push({ x: Math.random() * LW, y: -Math.random() * 120, vx: (Math.random() - .5) * .6, vy: Math.random() * .8 + .5, life: 2, color: pick(cols, Math.random), kind: "confetti" });
+}
+
+const waveBuf = new Uint8Array(2048);
+function wallPx(u, v, col) { const p = iso(104 + u, 0, 76 - v); g.fillStyle = col; g.fillRect(p[0], p[1], 1, 1); }
+// glyphs stay upright; only each glyph's origin follows the wall slope, so digits remain legible
+function wallGlyph(rows, u0, v0, col) {
+  const o = iso(104 + u0, 0, 76 - v0);
+  g.fillStyle = col;
+  rows.forEach((row, j) => [...row].forEach((ch, i) => { if (ch === "1" || ch === "#") g.fillRect(o[0] + i, o[1] + j, 1, 1); }));
+}
+function wallText(str, u0, v0, col) {
+  [...str].forEach((ch, k) => {
+    const bits = GLYPHS[ch]; if (!bits) return;
+    wallGlyph([0, 1, 2, 3, 4].map(r => bits.slice(r * 3, r * 3 + 3)), u0 + k * 4, v0, col);
+  });
+}
+function drawVitals(now) {
+  const dim = shade(T.ecg, .55);
+  // heart icon blinks with the heartbeat
+  wallGlyph(ICONS.heart, 3, 3, glow > .3 ? T.coral : shade(T.coral, .6));
+  wallText(String(A.bpm), 11, 3, T.ecg);
+  wallText("BPM", 24, 3, dim);
+  wallText(`${members.length}/12`, 3, 37, dim);
+  let prev = null;
+  for (let u = 2; u < 70; u++) {
+    let w = 0;
+    if (A.playing && A.analyser && members.length) {
+      if (u === 2) {
+        A.analyser.getByteTimeDomainData(waveBuf);
+        drawVitals.start = 0;
+        for (let i = 1; i < 1024; i++) if (waveBuf[i - 1] < 128 && waveBuf[i] >= 128) { drawVitals.start = i; break; }
+      }
+      w = (waveBuf[drawVitals.start + u * 12] - 128) / 128 * 1.6;
+    } else {
+      const p = (u * 2 + now / 25) % 70;
+      if (p > 30 && p < 33) w = 0.15; else if (p >= 33 && p < 35) w = -0.25;
+      else if (p >= 35 && p < 38) w = 0.95 * (1 - Math.abs(p - 36.5) / 1.5); else if (p >= 38 && p < 40) w = -0.35;
+      w *= members.length ? 0.8 : 0.2;
+    }
+    const v = Math.max(12, Math.min(34, Math.round(23 - w * 11)));
+    const a = prev == null ? v : prev;
+    for (let k = Math.min(a, v); k <= Math.max(a, v); k++) wallPx(u, k, T.ecg);
+    prev = v;
+  }
+}
+
+function drawChair(sx, sy) {
+  const c = g;
+  c.fillStyle = T.outline; c.fillRect(sx - 6, sy - 26, 12, 12);
+  c.fillStyle = T.chair; c.fillRect(sx - 5, sy - 25, 10, 10);
+  c.fillStyle = shade(T.chair, 1.5); c.fillRect(sx - 4, sy - 24, 8, 1); c.fillRect(sx - 4, sy - 24, 1, 7);
+  c.fillStyle = T.outline; c.fillRect(sx - 7, sy - 12, 14, 4); c.fillRect(sx - 1, sy - 8, 2, 5); c.fillRect(sx - 6, sy - 3, 12, 1);
+  c.fillRect(sx - 7, sy - 2, 2, 2); c.fillRect(sx + 5, sy - 2, 2, 2);
+  c.fillStyle = T.chair; c.fillRect(sx - 6, sy - 11, 12, 2);
+}
+
+function drawPerson(m, sx, sy, now) {
+  const c = g, role = ROLES[m.role], O = T.outline;
+  const age = (now - m.born) / 260;
+  const drop = reduceMotion || age >= 1 ? 0 : Math.round((1 - age) * (1 - age) * 30);
+  const bob = Math.round(m.pulse * 2);
+  const by = sy - 10 - bob - drop;
+  const dark = shade(role.color, .72);
+  // body
+  c.fillStyle = O; c.fillRect(sx - 6, by - 11, 12, 11 + bob + drop);
+  c.fillStyle = role.color; c.fillRect(sx - 5, by - 10, 10, 10 + bob + drop);
+  c.fillStyle = dark; c.fillRect(sx + 3, by - 10, 2, 10 + bob + drop);
+  c.fillStyle = shade(role.color, 1.3); c.fillRect(sx - 5, by - 10, 10, 1);
+  // arms, raised on the beat
+  const up = m.pulse > 0.45;
+  c.fillStyle = O;
+  c.fillRect(sx - 8, by - (up ? 15 : 9), 3, 7); c.fillRect(sx + 5, by - (up ? 15 : 9), 3, 7);
+  c.fillStyle = dark;
+  c.fillRect(sx - 7, by - (up ? 14 : 8), 1, 5); c.fillRect(sx + 6, by - (up ? 14 : 8), 1, 5);
+  c.fillStyle = m.skin;
+  c.fillRect(sx - 7, by - (up ? 15 : 3), 1, 1); c.fillRect(sx + 6, by - (up ? 15 : 3), 1, 1);
+  // head
+  const hy = by - 21;
+  c.fillStyle = O; c.fillRect(sx - 5, hy, 10, 10);
+  c.fillStyle = m.skin; c.fillRect(sx - 4, hy + 1, 8, 8);
+  c.fillStyle = m.hair;
+  c.fillRect(sx - 4, hy + 1, 8, 2);
+  if (m.hairStyle === 0) { c.fillRect(sx - 4, hy + 3, 1, 2); c.fillRect(sx + 3, hy + 3, 1, 2); }
+  else if (m.hairStyle === 1) { c.fillRect(sx - 4, hy + 3, 1, 6); c.fillRect(sx + 3, hy + 3, 1, 6); c.fillRect(sx - 1, hy + 3, 4, 1); }
+  else { c.fillStyle = O; c.fillRect(sx - 3, hy - 4, 6, 5); c.fillStyle = m.hair; c.fillRect(sx - 2, hy - 3, 4, 4); }
+  // face
+  const blinking = ((now + m.blink) % 4200) < 140;
+  c.fillStyle = O;
+  if (blinking) { c.fillRect(sx - 3, hy + 5, 2, 1); c.fillRect(sx + 1, hy + 5, 2, 1); }
+  else { c.fillRect(sx - 2, hy + 4, 1, 2); c.fillRect(sx + 1, hy + 4, 1, 2); }
+  if (m.pulse > 0.3) c.fillRect(sx - 1, hy + 7, 2, 1);
+  c.fillStyle = "#ff8f8f"; c.fillRect(sx - 4, hy + 6, 1, 1); c.fillRect(sx + 3, hy + 6, 1, 1);
+  // role bubble: flashes in the role colour when they play
+  const bx = sx + 4, bY = hy - 10;
+  const lit = m.pulse > 0.35;
+  c.fillStyle = O; c.fillRect(bx, bY, 9, 9); c.fillRect(bx, bY + 9, 2, 2);
+  c.fillStyle = lit ? role.color : T.surface; c.fillRect(bx + 1, bY + 1, 7, 7); c.fillRect(bx + 1, bY + 9, 1, 1);
+  bitmap(c, bx + 2, bY + 2, ICONS[m.role], lit ? T.surface : role.color);
+}
+
+function drawDesk(i, now) {
+  const d = DESKS[i], m = members.find(o => o.desk === i), { x0, y0 } = d, x1 = x0 + 32, y1 = y0 + 14;
+  const O = T.outline;
+  drawChair(d.sx, d.sy);
+  if (m) drawPerson(m, d.sx, d.sy, now);
+  else if (i === hoverDesk || i === dragDesk) {
+    if (Math.floor(now / 260) % 2 || dragDesk === i) {
+      const bx = d.sx - 5, bY = d.sy - 34;
+      g.fillStyle = O; g.fillRect(bx, bY, 11, 11);
+      g.fillStyle = T.surface; g.fillRect(bx + 1, bY + 1, 9, 9);
+      bitmap(g, bx + 3, bY + 3, ICONS.plus, "#7a2e6e");
+    }
+  }
+  // legs then top slab
+  const leg = T.deskSide, leg2 = shade(T.deskSide, .8);
+  box(g, x0, y0, 0, x0 + 3, y0 + 3, 10, leg, leg, leg2);
+  box(g, x1 - 3, y0, 0, x1, y0 + 3, 10, leg, leg, leg2);
+  box(g, x0, y1 - 3, 0, x0 + 3, y1, 10, leg, leg, leg2);
+  box(g, x1 - 3, y1 - 3, 0, x1, y1, 10, leg, leg, leg2);
+  box(g, x0 - 1, y0 - 1, 10, x1 + 1, y1 + 1, 13, T.deskTop, T.deskSide, shade(T.deskSide, .82));
+  // monitor, facing the seat
+  const glowCol = m && A.playing ? (m.pulse > 0.35 ? shade(ROLES[m.role].color, 1.25) : shade(ROLES[m.role].color, .65)) : T.screen;
+  box(g, x0 + 5, y0 + 5, 13, x0 + 8, y0 + 8, 16, T.capDark, T.capDark, T.capDark);
+  box(g, x0 + 3, y0 + 1, 16, x0 + 6, y0 + 12, 28, T.cap, T.capDark, T.capDark);
+  poly(g, [iso(x0 + 6, y0 + 2, 18), iso(x0 + 6, y0 + 11, 18), iso(x0 + 6, y0 + 11, 27), iso(x0 + 6, y0 + 2, 27)], glowCol);
+  // keyboard and mug
+  poly(g, [iso(x0 + 13, y0 + 3, 13), iso(x0 + 26, y0 + 3, 13), iso(x0 + 26, y0 + 8, 13), iso(x0 + 13, y0 + 8, 13)], shade(T.paper, .82), O);
+  box(g, x1 - 5, y0 + 8, 13, x1 - 2, y0 + 11, 17, T.paper, shade(T.paper, .85), shade(T.paper, .7));
+  if (m) poly(g, [iso(x1 - 5, y0 + 11, 14), iso(x1 - 2, y0 + 11, 14), iso(x1 - 2, y0 + 11, 15), iso(x1 - 5, y0 + 11, 15)], ROLES[m.role].color);
+}
+
+function frame(now) {
+  if (A.ctx) {
+    const ct = A.ctx.currentTime;
+    while (visualQueue.length && visualQueue[0].t <= ct) {
+      const ev = visualQueue.shift();
+      if (ev.id === "beat") { const dot = $("beatDot"); dot.classList.remove("beat"); void dot.offsetWidth; dot.classList.add("beat"); continue; }
+      const m = members.find(o => o.id === ev.id);
+      if (!m) continue;
+      m.pulse = 1;
+      if (ev.beat) glow = 1;
+      if (Math.random() < 0.3) note(DESKS[m.desk].sx, DESKS[m.desk].sy - 44, ROLES[m.role].color);
+    }
+  }
+  members.forEach(m => m.pulse *= 0.85);
+  glow *= 0.9;
+
+  g.clearRect(0, 0, LW, LH);
+  g.drawImage(stat, 0, 0);
+  if (glow > 0.05) {
+    g.globalAlpha = 0.14 * glow;
+    fillPoly(g, [iso(0, 0), iso(200, 0), iso(200, 200), iso(0, 200)], T.coral);
+    g.globalAlpha = 1;
+  }
+  drawVitals(now);
+  for (const i of DRAW_ORDER) drawDesk(i, now);
+
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy;
+    p.life -= p.kind === "note" ? 0.012 : p.kind === "confetti" ? 0.006 : 0.03;
+    if (p.life <= 0 || p.y > LH) { particles.splice(i, 1); continue; }
+    const x = Math.round(p.x), y = Math.round(p.y);
+    if (p.kind === "note") bitmap(g, x, y, NOTE, p.color, T.outline);
+    else { g.fillStyle = p.color; g.fillRect(x, y, 2, 2); }
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- Canvas interaction ---------- */
+function toLogical(e) {
+  const r = cv.getBoundingClientRect();
+  return { x: (e.clientX - r.left) / r.width * LW, y: (e.clientY - r.top) / r.height * LH };
+}
+function deskAt(p) {
+  let hit = -1;
+  for (const i of DRAW_ORDER) { const [a, b, c, d] = DESKS[i].box; if (p.x >= a && p.x <= c && p.y >= b && p.y <= d) hit = i; }
+  return hit;
+}
+function nearestDesk(p) {
+  let best = 0;
+  DESKS.forEach((d, i) => { if (Math.hypot(d.sx - p.x, d.sy - 8 - p.y) < Math.hypot(DESKS[best].sx - p.x, DESKS[best].sy - 8 - p.y)) best = i; });
+  return best;
+}
+const tip = $("tip");
+cv.addEventListener("pointermove", e => {
+  const i = deskAt(toLogical(e));
+  hoverDesk = i;
+  const m = members.find(o => o.desk === i);
+  if (m && e.pointerType !== "touch") {
+    const r = ROLES[m.role], d = DESKS[i];
+    tip.innerHTML = `<b>${m.name}</b> · ${r.title}<small>Member #${m.memberNo} · covers ${r.covers.toLowerCase()}</small><small>Click to send home</small>`;
+    tip.style.left = (d.sx / LW * 100) + "%"; tip.style.top = ((d.sy - 42) / LH * 100) + "%";
+    tip.hidden = false;
+  } else tip.hidden = true;
+});
+cv.addEventListener("pointerleave", () => { hoverDesk = -1; tip.hidden = true; });
+cv.addEventListener("click", e => {
+  const i = deskAt(toLogical(e));
+  if (i < 0) return;
+  const m = members.find(o => o.desk === i);
+  tip.hidden = true;
+  if (m) { fire(m); return; }
+  // empty desk: hire whoever fills the biggest coverage gap
+  start();
+  const cov = coveredSet();
+  const missing = ROLE_IDS.filter(id => !cov.has(id));
+  hire(pick(missing.length ? missing : ROLE_IDS, Math.random), i);
+});
+cv.addEventListener("dragover", e => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; dragDesk = nearestDesk(toLogical(e)); });
+cv.addEventListener("dragleave", () => { dragDesk = -1; });
+cv.addEventListener("drop", e => {
+  e.preventDefault();
+  const id = e.dataTransfer.getData("text/plain");
+  const i = nearestDesk(toLogical(e));
+  dragDesk = -1;
+  if (ROLES[id]) { start(); hire(id, i); }
+});
+document.addEventListener("keydown", e => {
+  if (e.code === "Space" && e.target === document.body) { e.preventDefault(); A.playing ? stop() : start(); }
+});
+
+/* ---------- Boot with a starter team so the office isn't empty ---------- */
+readTokens();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", readTokens);
+new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+document.fonts && document.fonts.ready.then(render);
+[["heart", 5, "Priya"], ["yoga", 2, "Kabir"], ["gym", 9, "Meera"]].forEach(([id, desk, name], i) => {
+  const m = makeMember(id, desk, name, 1234 + i * 99);
+  m.born = -1e4;
+  members.push(m);
+});
+render();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
