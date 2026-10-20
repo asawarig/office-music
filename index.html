@@ -1252,6 +1252,10 @@ const DRAW_ORDER = [
   ...SEATS.map((s, i) => ({ depth: s.depth, seat: i })),
   ...LAYOUT.plants.map(([x, y, k]) => ({ depth: x + y, plant: [x, y, k] })),
   { depth: 420, draw: () => wallShelf(...LAYOUT.wallShelf) },
+  ...[["meet", 51], ["washX", 210], ["washY", 300]].map(([k, depth]) => ({ depth, draw: () => { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(GLASS[k].cv, 0, 0); g.restore(); } })),
+  { depth: 86, draw: () => drawCopier(g) },
+  // the kitchen's round table and its two stools, clear of the coffee machine
+  { depth: 179, draw: () => stool(149, 30) }, { depth: 190, draw: () => kitchenTable(160, 30) }, { depth: 201, draw: () => stool(171, 30) },
   ...LAYOUT.beanbags.map(([x, y, col]) => ({ depth: x + y, draw: () => beanbag(x, y, PAL[col]) })),
 ].sort((a, b) => a.depth - b.depth);
 
@@ -1609,6 +1613,13 @@ const cv = $("office"), g = cv.getContext("2d");
 cv.width = LW * SC; cv.height = LH * SC;
 const stat = document.createElement("canvas"); stat.width = LW * SC; stat.height = LH * SC;
 const sctx = stat.getContext("2d");
+// glass partitions are drawn on layers of their own, slotted into the depth order:
+// over what stands behind them, under what stands in front
+function glassLayer() {
+  const cv = document.createElement("canvas"); cv.width = LW * SC; cv.height = LH * SC; const c = cv.getContext("2d");
+  return { cv, paint(fn) { c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, cv.width, cv.height); c.setTransform(SC, 0, 0, SC, 0, 0); fn(c); } };
+}
+const GLASS = { meet: glassLayer(), washX: glassLayer(), washY: glassLayer() };
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function plant(c, x, y, z = 0, size = 1) {
@@ -1715,31 +1726,36 @@ function drawStatic() {
   box(c, 104, 0, 0, 182, 14, 22, { top: "#ffffff", left: PAL.mint, right: PAL.mintDark });
   for (let x = 106; x < 180; x += 13) poly(c, quadY(14.05, x, x + 11, 3, 19), null, INK_LINE, .35);
   [44, 54].forEach(z => box(c, 106, 0, z, 180, 7, z + 1.4, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }));
-  [[110, 45.4, PAL.coral], [118, 45.4, PAL.yellow], [126, 45.4, PAL.cobalt], [150, 55.4, PAL.mint], [160, 55.4, PAL.coral]].forEach(([x, z, col]) => box(c, x, 2, z, x + 5, 6, z + 7, { top: col, left: col, right: shade(col, .85) }));
+  [[110, 45.4, PAL.coral], [118, 45.4, PAL.yellow], [126, 45.4, PAL.cobalt], [150, 55.4, PAL.mint], [160, 55.4, PAL.coral]].forEach(([x, z, col]) => box(c, x, 1, z, x + 5, 5.4, z + 7, { top: col, left: col, right: shade(col, .85) }));
+  [44, 54].forEach(z => poly(c, quadY(7, 106, 180, z, z + 1.4), "#ffffff"));
   box(c, 184, 0, 0, 202, 16, 52, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); seg(c, iso(186, 16.1, 30), iso(186, 16.1, 46), INK_LINE, .8); seg(c, iso(186, 16.1, 12), iso(186, 16.1, 26), INK_LINE, .8); seg(c, iso(184, 16.1, 28), iso(202, 16.1, 28));
   box(c, 120, 3, 22, 130, 11, 34, { top: "#2b2b2e", left: PAL.coral, right: shade(PAL.coral, .85) });
   ellipseFloor(c, 160, 7, 3.5, 22.2, "#e4e4e2"); seg(c, iso(160, 3, 22), iso(160, 3, 30)); seg(c, iso(160, 3, 30), iso(164, 3, 30));
   [[136, PAL.yellow], [141, PAL.cobalt]].forEach(([x, col]) => box(c, x, 6, 22, x + 3, 9, 26, { top: "#ffffff", left: col, right: shade(col, .85) }));
-  // a little round table for the kitchen, with two stools
-  ellipseFloor(c, 150, 30, 7, 20, "#ffffff"); seg(c, iso(150, 30, 0), iso(150, 30, 20), INK_LINE, .7); ellipseFloor(c, 150, 30, 3.5, 0, null);
-  [[139, 30], [161, 30]].forEach(([x, y]) => { seg(c, iso(x, y, 0), iso(x, y, 12), INK_LINE, .5); ellipseFloor(c, x, y, 3, 12, PAL.yellow); });
   // washroom: blue grid tiles up the walls, a sink, a WC and a round mirror
   poly(c, quadY(.25, 206, 240, 0, WH - 10), "#ffffff");
   onWallY(c, 206, WH - 10, () => { c.strokeStyle = PAL.cobalt; c.lineWidth = .3; for (let u = 0; u <= 34; u += 3) { c.beginPath(); c.moveTo(u, 0); c.lineTo(u, WH - 10); c.stroke(); } for (let v = 0; v <= WH - 10; v += 3) { c.beginPath(); c.moveTo(0, v); c.lineTo(34, v); c.stroke(); } });
   onWallY(c, 206, 52, () => { c.fillStyle = "#ffffff"; c.strokeStyle = INK_LINE; c.lineWidth = .4; c.beginPath(); c.arc(9, 8, 6, 0, Math.PI * 2); c.fill(); c.stroke(); });
-  box(c, 210, 0, 18, 222, 9, 22, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); ellipseFloor(c, 216, 5, 3, 22.1, "#e8eef9");
-  box(c, 228, 0, 0, 238, 6, 14, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); ellipseFloor(c, 233, 11, 5, 8, "#ffffff");
+  box(c, 211, 0, 0, 221, 8, 18, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
+  poly(c, quadY(8.05, 212.5, 219.5, 3, 15), null, INK_LINE, .35); seg(c, iso(216, 8.1, 3), iso(216, 8.1, 15), INK_LINE, .35);
+  box(c, 210, 0, 18, 222, 9, 21, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); ellipseFloor(c, 216, 4.6, 3, 21.1, "#e8eef9");
+  box(c, 215.4, 0, 21, 216.6, 1.4, 24, { top: "#d8d8d6", left: "#d8d8d6", right: "#c8c8c6" }, .3);
+  box(c, 228, 0, 0, 238, 5, 16, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
+  box(c, 230.5, 5, 0, 235.5, 12, 6, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
+  cylinder(c, 233, 11, 6, 8.2, 4.6, "#ffffff", .45); ellipseFloor(c, 233, 11, 3.2, 8.25, "#e8eef9");
+  box(c, 236, 1, 16, 237.4, 2.4, 16.8, { top: "#d8d8d6", left: "#d8d8d6", right: "#c8c8c6" }, .3);
   // washroom partitions: frosted glass with a door gap
-  glassWallX(c, 204, 0, 60, [36, 52]); glassWallY(c, 60, 204, 240, null);
+  GLASS.washX.paint(c => glassWallX(c, 204, 0, 60, [36, 52])); GLASS.washY.paint(c => glassWallY(c, 60, 204, 240, null));
 
   // meeting room: glass walls with a doorway, a long table and four coral chairs facing it
-  glassWallX(c, 64, 0, 78, [50, 66]);
+
   chairSimple(c, 22, 30, PAL.coral, "y"); chairSimple(c, 42, 30, PAL.coral, "y");
   box(c, 14, 36, 14.5, 50, 52, 16, { top: "#ffffff", left: PAL.wallShade, right: PAL.wallShade });
   [[16, 38], [48, 38], [16, 50], [48, 50]].forEach(([x, y]) => seg(c, iso(x, y, 0), iso(x, y, 14.5), INK_LINE, .5));
   plant(c, 32, 44, 16, .5);
   chairSimple(c, 22, 58, PAL.coral, "-y"); chairSimple(c, 42, 58, PAL.coral, "-y");
-  glassWallY(c, 78, 0, 66, [44, 60]);
+  // the meeting room's glass goes on its own layer, over whoever sits inside
+  GLASS.meet.paint(c => { glassWallX(c, 64, 0, 78, [50, 66]); glassWallY(c, 78, 0, 66, [44, 60]); });
   plant(c, 8, 70, 0, 1.1);
 
   // lounge: a coral sofa against the wall, a cobalt armchair turned to it, side table and plants
@@ -1751,12 +1767,6 @@ function drawStatic() {
   box(c, 44, 160, 0, 60, 176, 9, { top: shade(PAL.cobalt, 1.25), left: PAL.cobalt, right: shade(PAL.cobalt, .85) }); box(c, 56, 160, 0, 60, 176, 18, { top: shade(PAL.cobalt, 1.25), left: PAL.cobalt, right: shade(PAL.cobalt, .85) });
   ellipseFloor(c, 34, 140, 5, 14, "#ffffff"); seg(c, iso(34, 140, 0), iso(34, 140, 14), INK_LINE, .6); plant(c, 34, 140, 14, .55);
   plant(c, 6, 204, 0, 1.3);
-  // photocopier against the back wall, with its control panel at the front
-  box(c, 70, 1, 0, 88, 14, 20, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
-  poly(c, floorRect(71, 2, 87, 12, 20.05), PAL.sky, INK_LINE, .35);
-  box(c, 72, 11, 20, 78, 14, 21, { top: PAL.coral, left: PAL.coral, right: shade(PAL.coral, .85) });
-  poly(c, quadY(14.05, 72, 86, 4, 8), "#ffffff", INK_LINE, .35); poly(c, quadY(14.05, 72, 86, 10, 14), "#ffffff", INK_LINE, .35);
-  box(c, 88, 4, 9, 91, 11, 10, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
   // knock box for the espresso grounds
   box(c, 119, 11, 22, 123.5, 14, 24.6, { top: "#2b2b2e", left: "#3a3a3c", right: "#2b2b2e" });
   // water cooler by the kitchen
@@ -2218,6 +2228,23 @@ function wallShelf(x0, y0, x1, y1, h) {
   seg(g, iso((x0 + x1) / 2, y0 + 6, h), iso((x0 + x1) / 2, y0 + 6, h + 13), INK_LINE, .5);
   box(g, (x0 + x1) / 2 - 2.5, y0 + 3.5, h + 11, (x0 + x1) / 2 + 2.5, y0 + 8.5, h + 15, { top: PAL.yellow, left: PAL.yellow, right: shade(PAL.yellow, .85) }, .3);
 }
+function drawCopier(c) {
+  box(c, 70, 1, 0, 88, 14, 20, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
+  poly(c, floorRect(71, 2, 87, 12, 20.05), PAL.sky, INK_LINE, .35);
+  box(c, 72, 11, 20, 78, 14, 21, { top: PAL.coral, left: PAL.coral, right: shade(PAL.coral, .85) });
+  poly(c, quadY(14.05, 72, 86, 4, 8), "#ffffff", INK_LINE, .35); poly(c, quadY(14.05, 72, 86, 10, 14), "#ffffff", INK_LINE, .35);
+  box(c, 88, 4, 9, 91, 11, 10, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
+}
+function kitchenTable(x, y) { ellipseFloor(g, x, y, 3.5, 0, null); seg(g, iso(x, y, 0), iso(x, y, 20), INK_LINE, .7); ellipseFloor(g, x, y, 7, 20, "#ffffff"); }
+function stool(x, y) { ellipseFloor(g, x, y, 2.4, 0, null); seg(g, iso(x, y, 0), iso(x, y, 12), INK_LINE, .5); cylinder(g, x, y, 10.8, 12, 3, PAL.yellow); }
+// an upright cylinder: bottom, the two side edges and a lid, so cups and stools read as solid
+function cylinder(c, x, y, z0, z1, r, fill, lw = HAIR) {
+  const k = r / Math.SQRT2, l0 = iso(x - k, y + k, z0), r0 = iso(x + k, y - k, z0), l1 = iso(x - k, y + k, z1), r1 = iso(x + k, y - k, z1);
+  ellipseFloor(c, x, y, r, z0, fill);
+  poly(c, [l0, r0, r1, l1], fill, null);
+  seg(c, l0, l1, INK_LINE, lw); seg(c, r0, r1, INK_LINE, lw);
+  ellipseFloor(c, x, y, r, z1, fill === "#ffffff" ? "#f3f3f1" : shade(fill, 1.08));
+}
 // a slouchy beanbag: a soft lump, taller at the back where it props you up, with a dent where you sit
 function beanbag(x, y, col, sat) {
   const [cx, cy] = iso(x, y, 0), rx = 9, ry = 4.4, h = sat ? 6.2 : 8.4;
@@ -2242,7 +2269,7 @@ function hotDesk(s, i) {
   poly(g, [p(-4.4, -20.2, 21.4), p(4.4, -20.2, 21.4), p(4.8, -19.6, 13), p(1, -19.4, 11.5), p(-4.8, -19.6, 13)], col, INK_LINE, .35);
   const [bx, by] = L(7, -13);
   box(g, bx - 2.5, by - 2, 0, bx + 2.5, by + 2, 6, { top: shade(PAL.yellow, .9), left: PAL.yellow, right: shade(PAL.yellow, .85) }, .35);
-  const [mx, my] = L(-10, 1); ellipseFloor(g, mx, my, 1.5, 15.7, "#ffffff"); ellipseFloor(g, mx, my, 1.5, 18.2, "#ffffff");
+
 }
 // a laptop open on someone's lap, lid toward them, in their own space
 function lapLaptop(F, lap, col) {
@@ -2278,7 +2305,7 @@ function drawDeskTop(i, s, m, col, lit, F) {
     poly(g, [iso(...L(lu - 5, 2, 16.2)), iso(...L(lu + 5, 2, 16.2)), iso(...L(lu + 5, 3.5, 23.5)), iso(...L(lu - 5, 3.5, 23.5))], lidCol);
   }
   const [mx, my] = L(12, 3);
-  if (act !== "stamp") { ellipseFloor(g, mx, my, 1.6, 15.7, col || "#ffffff"); seg(g, iso(mx - 1.6, my, 15.7), iso(mx - 1.6, my, 18.5), INK_LINE, .4); seg(g, iso(mx + 1.6, my, 15.7), iso(mx + 1.6, my, 18.5), INK_LINE, .4); ellipseFloor(g, mx, my, 1.6, 18.5, col || "#ffffff"); }
+  if (act !== "stamp") cylinder(g, mx, my, 15.6, 18.5, 1.6, col || "#ffffff", .4);
   if (act !== "clicking" && act !== "stamp") poly(g, [L(-13, -3), L(-7, -3), L(-7, 4), L(-13, 4)].map(([x, y]) => iso(x, y, 15.7)), i % 2 ? PAL.yellow : PAL.mint, INK_LINE, .35);
   if (!F) return;
   const W = F.W;
