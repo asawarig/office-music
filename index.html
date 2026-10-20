@@ -8,7 +8,7 @@
 <meta name="description" content="Hire a team, cover their health, and hear what a healthy office sounds like.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Figtree:wght@400;500;600;700&family=Poppins:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Figtree:wght@400;500;600;700&family=Poppins:wght@400;500&family=Caveat:wght@400&display=swap">
 <style>
 /* Layout: one column. Header with transport controls, the axonometric office plan as the hero,
    a coverage strip that fills as roles are hired, then the hiring desk of nine role cards.
@@ -1718,8 +1718,7 @@ function drawStatic() {
   windowOnX(c, 150, 196, 22, 54);
 
   // back wall: meeting-room whiteboard, the vitals screen frame, kitchen run, washroom tiles
-  poly(c, quadY(.2, 8, 54, 26, 50), "#ffffff");
-  onWallY(c, 8, 50, () => { c.strokeStyle = PAL.cobalt; c.lineWidth = .7; c.beginPath(); c.moveTo(6, 8); c.lineTo(18, 12); c.lineTo(26, 6); c.stroke(); c.strokeStyle = PAL.coral; c.beginPath(); c.moveTo(6, 16); c.lineTo(34, 16); c.stroke(); });
+  drawWhiteboard(c);
   poly(c, quadY(.2, 66, 100, 24, 56), "#2b2b2e");
   // kitchen: coral splashback, mint base cabinets, open shelves, fridge, coffee machine
   poly(c, quadY(.25, 104, 182, 22, 36), PAL.coral);
@@ -2810,7 +2809,7 @@ function openSnack(b) {
 }
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeSnack(); });
 // clicking the empty page around the office closes any open popup
-document.getElementById("stage").addEventListener("click", e => { if (e.target === e.currentTarget || e.target.classList.contains("board")) { closeSnack(); closeCal(); } });
+document.getElementById("stage").addEventListener("click", e => { if (e.target === e.currentTarget || e.target.classList.contains("board")) { closeSnack(); closeCal(); closeWB(); } });
 const SNACK_CSS = `
 .snack { position: absolute; z-index: 4; width: 288px; font-family: var(--font-body); color: #23296b; }
 .snack .lbl { position: relative; background: var(--box-tint); border-radius: 20px; padding: 20px 20px 16px; transform: rotate(-2deg); box-shadow: inset 0 0 0 8px var(--box-tint), inset 0 0 0 9.5px #23296b, 5px 6px 0 rgba(35,41,107,.16); display: grid; gap: 0; }
@@ -2833,8 +2832,112 @@ const SNACK_CSS = `
 .snack .brand { margin: 8px 0 0; font: 400 16px/1 var(--font-display); }
 .snack a:focus-visible, .snack button:focus-visible { outline: 3px solid #d6545a; outline-offset: 2px; }
 `;
+
+/* ---------- The meeting-room whiteboard: stats from Plum's Standard of Employee Benefits ---------- */
+// drawn in the wall's own coordinates: u along the wall from x = 8, v down from z = 50
+function drawWhiteboard(c) {
+  poly(c, quadY(.15, 7, 55, 24.6, 51.4), "#c9ccd1");
+  poly(c, quadY(.2, 8, 54, 26, 50), "#ffffff");
+  box(c, 12, 0, 24, 50, 2.2, 25, { top: "#d8d8d6", left: "#c9ccd1", right: "#c9ccd1" }, .3);   // marker tray
+  [[18, "#23296b"], [23, PAL.coral], [27, "#2f7f57"]].forEach(([x, col]) => box(c, x, .6, 25, x + 3.4, 1.6, 25.8, { top: col, left: col, right: shade(col, .8) }, .25));
+  box(c, 40, .4, 25, 45, 1.9, 26.4, { top: "#3a3a3c", left: "#2b2b2e", right: "#2b2b2e" }, .25);
+  onWallY(c, 8, 50, () => {
+    const ink = "#23296b", red = "#d6545a", hand = n => `400 ${n}px Caveat, "Comic Sans MS", cursive`;
+    c.lineCap = "round"; c.lineJoin = "round";
+    c.fillStyle = ink; c.font = hand(3.6); c.fillText("SOEB 2026", 2.2, 4.4);
+    c.strokeStyle = ink; c.lineWidth = .35; c.beginPath(); c.moveTo(2, 5.3); c.quadraticCurveTo(9, 4.9, 15.5, 5.4); c.stroke();
+    // bars: comprehensive health cover, 5% then 23%
+    c.beginPath(); c.moveTo(3, 7.5); c.lineTo(3, 20.5); c.lineTo(19, 20.6); c.stroke();
+    [[6, 5, "5%"], [12.5, 23, "23%"]].forEach(([u, v, t]) => {
+      const h = v / 23 * 10.5;
+      c.fillStyle = hexA(t === "23%" ? red : "#9fb4e6", .55); c.fillRect(u, 20.5 - h, 4, h);
+      c.strokeStyle = t === "23%" ? red : ink; c.lineWidth = .4; c.strokeRect(u, 20.5 - h, 4, h);
+      c.fillStyle = ink; c.font = hand(2.4); c.fillText(t, u + .2, 19.6 - h);
+    });
+    c.strokeStyle = red; c.lineWidth = .4; c.beginPath(); c.moveTo(10, 15); c.quadraticCurveTo(11, 11, 13, 9.4); c.stroke();
+    c.beginPath(); c.moveTo(12, 9.2); c.lineTo(13.2, 9.3); c.lineTo(12.9, 10.4); c.stroke();
+    // 88% of claims from 5% of people
+    c.fillStyle = red; c.font = hand(6.2); c.fillText("88%", 23, 13);
+    c.fillStyle = ink; c.font = hand(2.2); c.fillText("of claims spend", 23.4, 16); c.fillText("from 5% of people", 23.4, 18.6);
+    for (let k = 0; k < 10; k++) { c.beginPath(); c.arc(24 + k * 1.75, 21.3, .5, 0, 7); c.fillStyle = k === 0 ? red : hexA(ink, .45); c.fill(); }
+    // a little circle round the big number
+    c.strokeStyle = hexA(red, .8); c.lineWidth = .3; c.beginPath(); c.ellipse(28.5, 10.6, 7.2, 4.4, -.08, .3, Math.PI * 2 + .1); c.stroke();
+    c.fillStyle = "#2f7f57"; c.font = hand(2.6); c.fillText("+155% maternity", 2.5, 23.4);
+  });
+}
+const WB_BOX = () => { const pts = [iso(7, 0, 51.4), iso(55, 0, 51.4), iso(55, 0, 24.6), iso(7, 0, 24.6)]; const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
+function whiteboardAt(p) { const [a, b, c2, d] = WB_BOX(); return p.x >= a && p.x <= c2 && p.y >= b && p.y <= d; }
+let wbEl = null;
+function closeWB() { if (wbEl) { wbEl.remove(); wbEl = null; } }
+function openWB() {
+  closeWB(); closeSnack(); closeCal();
+  const board = cv.parentElement, people = [...Array(20)].map((_, k) => `<i class="${k === 0 ? "hot" : ""}"></i>`).join("");
+  wbEl = document.createElement("div"); wbEl.className = "wbpop"; wbEl.setAttribute("role", "dialog"); wbEl.setAttribute("aria-label", "Whiteboard: Standard of Employee Benefits 2026–27");
+  wbEl.innerHTML = `<div class="wbf"><button class="cx" aria-label="Close">×</button>
+    <p class="wh">Standard of Employee Benefits <span>2026–27</span></p>
+    <div class="wgrid">
+      <figure class="wbar"><svg viewBox="0 0 150 120" aria-hidden="true">
+        <path d="M14 8 C13 40 15 80 14 100 L140 101" fill="none" stroke="#23296b" stroke-width="2" stroke-linecap="round"/>
+        <path d="M30 100 L31 93 L57 92.5 L56 100" fill="rgba(159,180,230,.55)" stroke="#23296b" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M84 100 L85 22 L113 21 L112 100" fill="rgba(214,84,90,.35)" stroke="#d6545a" stroke-width="2.2" stroke-linejoin="round"/>
+        <path d="M86 40 l24 -12 M86 58 l24 -12 M86 76 l24 -12 M86 94 l24 -12" stroke="#d6545a" stroke-width="1.2" opacity=".6"/>
+        <text x="34" y="86" font-family="Caveat, cursive" font-size="20" fill="#23296b">5%</text>
+        <text x="84" y="15" font-family="Caveat, cursive" font-size="22" fill="#d6545a">23%</text>
+        <path d="M58 80 C66 54 72 40 80 30 M73 30 l8 -1 -1 8" fill="none" stroke="#2f7f57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="20" y="116" font-family="Caveat, cursive" font-size="15" fill="#6b6b6e">before</text><text x="88" y="116" font-family="Caveat, cursive" font-size="15" fill="#6b6b6e">now</text>
+      </svg><figcaption>Employers offering comprehensive health benefits</figcaption></figure>
+      <figure class="wbig"><p><b>88%</b></p><p class="sub">of claims spend comes from just <u>5% of employees</u></p><div class="dots">${people}</div></figure>
+    </div>
+    <div class="notes">
+      <span class="n1"><b>+53%</b> more companies give cover above ₹5 lakh</span>
+      <span class="n2"><b>+155%</b> more offer maternity cover above ₹75,000</span>
+      <span class="n3"><b>34%</b> of claims spend is chronic illness, up 22% in two years</span>
+      <span class="n4"><b>−13%</b> chronic claims where preventive care is in place</span>
+    </div>
+    <p class="wsrc">From 15,312 benefit plans and 5.2 lakh claims. Source: <a href="https://www.plumhq.com/standard-of-employee-benefits" target="_blank" rel="noopener">Plum, The Standard of Employee Benefits 2026–27</a></p>
+    <div class="tray"><i class="m1"></i><i class="m2"></i><i class="m3"></i><i class="er"></i></div></div>`;
+  board.appendChild(wbEl);
+  wbEl.querySelector(".cx").onclick = closeWB;
+  wbEl.addEventListener("click", e => e.stopPropagation());
+  const bw = board.clientWidth, bh = board.clientHeight, fit = Math.min(1, (bw - 16) / wbEl.offsetWidth, (bh - 16) / wbEl.offsetHeight);
+  if (fit < 1) { wbEl.style.transform = `scale(${fit})`; wbEl.style.transformOrigin = "0 0"; }
+  const [ax, ay] = iso(31, 0, 26), w = wbEl.offsetWidth * fit, h = wbEl.offsetHeight * fit;
+  wbEl.style.left = Math.max(8, Math.min(bw - w - 8, ax / LW * bw - w / 2)) + "px";
+  wbEl.style.top = Math.max(8, Math.min(bh - h - 8, ay / LH * bh - h / 3)) + "px";
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeWB(); });
+const WB_CSS = `
+.wbpop { position: absolute; z-index: 5; width: 470px; color: #23296b; font-family: var(--font-body); }
+.wbpop .wbf { position: relative; background: #fff linear-gradient(115deg, rgba(220,228,240,.0) 40%, rgba(220,228,240,.55) 48%, rgba(220,228,240,0) 56%); border: 9px solid #c9ccd1; outline: 1px solid #3a3a3c; outline-offset: 0; border-radius: 6px; padding: 16px 20px 34px; box-shadow: inset 0 0 0 1px #3a3a3c, 5px 7px 0 rgba(58,58,60,.14); }
+.wbpop .cx { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border: 1px solid #3a3a3c; border-radius: 4px; background: #fff; font-size: 16px; line-height: 1; cursor: pointer; color: #3a3a3c; }
+.wbpop .wh { margin: 0 30px 8px 0; font: 400 30px/1 Caveat, cursive; }
+.wbpop .wh span { color: #d6545a; }
+.wbpop .wgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+.wbpop figure { margin: 0; }
+.wbpop .wbar svg { width: 100%; height: auto; display: block; }
+.wbpop figcaption { font: 400 19px/1.05 Caveat, cursive; margin-top: 2px; }
+.wbpop .wbig p { margin: 0; }
+.wbpop .wbig b { font: 400 76px/.9 Caveat, cursive; color: #d6545a; display: inline-block; padding: 4px 14px 0; border: 2.5px solid #d6545a; border-radius: 52% 48% 55% 45% / 60% 50% 50% 40%; transform: rotate(-3deg); }
+.wbpop .wbig .sub { font: 400 21px/1.05 Caveat, cursive; margin-top: 10px; }
+.wbpop .wbig u { text-decoration-color: #d6545a; text-decoration-thickness: 2px; }
+.wbpop .dots { display: grid; grid-template-columns: repeat(10, 12px); gap: 6px 5px; margin-top: 10px; }
+.wbpop .dots i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid rgba(35,41,107,.55); }
+.wbpop .dots i.hot { background: #d6545a; border-color: #d6545a; }
+.wbpop .notes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-top: 14px; }
+.wbpop .notes span { padding: 8px 10px 10px; font: 400 17px/1.05 Caveat, cursive; color: #2b2b2e; box-shadow: 2px 3px 0 rgba(58,58,60,.12); border: 1px solid rgba(58,58,60,.35); }
+.wbpop .notes b { display: block; font: 400 27px/1 Caveat, cursive; color: #23296b; }
+.wbpop .n1 { background: #ffe78a; transform: rotate(-2deg); } .wbpop .n2 { background: #f8c9d0; transform: rotate(1.5deg); }
+.wbpop .n3 { background: #c9ecdc; transform: rotate(1deg); } .wbpop .n4 { background: #d6e6f8; transform: rotate(-1.5deg); }
+.wbpop .wsrc { margin: 14px 0 0; font-size: 12px; line-height: 1.35; color: #6b6b6e; }
+.wbpop .wsrc a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.wbpop .tray { position: absolute; left: 40px; right: 40px; bottom: -9px; height: 14px; background: #d8d8d6; border: 1px solid #3a3a3c; border-radius: 0 0 4px 4px; display: flex; gap: 8px; align-items: center; padding: 0 14px; }
+.wbpop .tray i { height: 7px; width: 38px; border-radius: 3px; border: 1px solid #3a3a3c; }
+.wbpop .tray .m1 { background: #23296b; } .wbpop .tray .m2 { background: #d6545a; } .wbpop .tray .m3 { background: #2f7f57; }
+.wbpop .tray .er { margin-left: auto; width: 46px; height: 10px; background: #3a3a3c; }
+.wbpop a:focus-visible, .wbpop button:focus-visible { outline: 3px solid #d6545a; outline-offset: 2px; }
+`;
 // the popup styles go last in the page so nothing else overrides them
-document.body.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOARD_CSS}${SNACK_CSS}
+document.body.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOARD_CSS}${SNACK_CSS}${WB_CSS}
 /* nothing on the page is bold */
 *, *::before, *::after { font-weight: 400 !important; }</style>`);
 // each free desk has its own board; ?cal=1..20 shows one look on every desk instead
@@ -2865,6 +2968,11 @@ function openCal(i) {
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeCal(); });
 const tip = $("tip");
 cv.addEventListener("pointermove", e => {
+  if (whiteboardAt(toLogical(e)) && e.pointerType !== "touch") {
+    const q = iso(31, 0, 51); cv.style.cursor = "pointer";
+    tip.innerHTML = `<b>Whiteboard</b><small>Click for the Standard of Employee Benefits 2026–27</small>`;
+    tip.style.left = (q[0] / LW * 100) + "%"; tip.style.top = (q[1] / LH * 100) + "%"; tip.hidden = false; hoverDesk = -1; return;
+  }
   const sb = snackBoxAt(toLogical(e));
   cv.style.cursor = sb >= 0 ? "pointer" : "";
   if (sb >= 0 && e.pointerType !== "touch") {
@@ -2884,6 +2992,8 @@ cv.addEventListener("pointermove", e => {
 });
 cv.addEventListener("pointerleave", () => { hoverDesk = -1; tip.hidden = true; });
 cv.addEventListener("click", e => {
+  if (whiteboardAt(toLogical(e))) { tip.hidden = true; openWB(); return; }
+  closeWB();
   const sb = snackBoxAt(toLogical(e));
   if (sb >= 0) { tip.hidden = true; openSnack(sb); return; }
   closeSnack();
@@ -2905,7 +3015,7 @@ document.addEventListener("keydown", e => {
 readTokens();
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", readTokens);
 new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-document.fonts && document.fonts.ready.then(render);
+document.fonts && document.fonts.ready.then(() => { drawStatic(); render(); });
 [DESK_COUNT + 3, 0, DESK_COUNT, 1].forEach(i => { const c = CAST[i]; members.push(Object.assign(makeMember(c.role, i, c.name, c.seed, c.variant), { born: -1e4 })); });
 render();
 requestAnimationFrame(frame);
