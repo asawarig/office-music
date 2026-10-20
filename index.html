@@ -1254,6 +1254,7 @@ const DRAW_ORDER = [
   { depth: 420, draw: () => wallShelf(...LAYOUT.wallShelf) },
   ...[["meet", 51], ["washX", 210], ["washY", 300]].map(([k, depth]) => ({ depth, draw: () => { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(GLASS[k].cv, 0, 0); g.restore(); } })),
   { depth: 86, draw: () => drawCopier(g) },
+  { depth: 220, draw: () => drawSink(g) },   // in front of the washroom's glass wall, behind whoever washes up
   // the kitchen's round table and its two stools, clear of the coffee machine
   { depth: 179, draw: () => stool(149, 30) }, { depth: 190, draw: () => kitchenTable(160, 30) }, { depth: 201, draw: () => stool(171, 30) },
   ...LAYOUT.beanbags.map(([x, y, col]) => ({ depth: x + y, draw: () => beanbag(x, y, PAL[col]) })),
@@ -1735,12 +1736,6 @@ function drawStatic() {
   poly(c, quadY(.25, 206, 240, 0, WH - 10), "#ffffff");
   onWallY(c, 206, WH - 10, () => { c.strokeStyle = PAL.cobalt; c.lineWidth = .3; for (let u = 0; u <= 34; u += 3) { c.beginPath(); c.moveTo(u, 0); c.lineTo(u, WH - 10); c.stroke(); } for (let v = 0; v <= WH - 10; v += 3) { c.beginPath(); c.moveTo(0, v); c.lineTo(34, v); c.stroke(); } });
   onWallY(c, 206, 52, () => { c.fillStyle = "#ffffff"; c.strokeStyle = INK_LINE; c.lineWidth = .4; c.beginPath(); c.arc(9, 8, 6, 0, Math.PI * 2); c.fill(); c.stroke(); });
-  box(c, 211, 0, 0, 221, 8, 18, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
-  poly(c, quadY(8.05, 212.5, 219.5, 3, 15), null, INK_LINE, .35); seg(c, iso(216, 8.1, 3), iso(216, 8.1, 15), INK_LINE, .35);
-  box(c, 210, 0, 18, 222, 9, 21, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); ellipseFloor(c, 216, 4.8, 3.4, 21.05, "#ffffff"); ellipseFloor(c, 216, 4.8, 2.5, 21.06, "#dfe7f2", INK_LINE);
-  ellipseFloor(c, 216, 4.8, .45, 21.07, "#9a9a9c", null);
-  { const tap = [iso(216, 1, 21), iso(216, 1, 25), iso(216, 1.8, 25.6), iso(216, 3, 25.2), iso(216, 3.2, 24.2)];
-    c.beginPath(); tap.forEach((q, i) => i ? c.lineTo(...q) : c.moveTo(...q)); c.strokeStyle = INK_LINE; c.lineWidth = 1.5; c.lineCap = "round"; c.lineJoin = "round"; c.stroke(); c.strokeStyle = "#d8d8d6"; c.lineWidth = .8; c.stroke(); }
   box(c, 228, 0, 0, 238, 5, 16, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
   box(c, 230.5, 5, 0, 235.5, 12, 6, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
   cylinder(c, 233, 11, 6, 8.2, 4.6, "#ffffff", .45); ellipseFloor(c, 233, 11, 3.2, 8.25, "#e8eef9");
@@ -2228,6 +2223,15 @@ function wallShelf(x0, y0, x1, y1, h) {
   plant(g, (x0 + x1) / 2, y0 + 20, h, .45); plant(g, (x0 + x1) / 2, y1 - 10, h, .55);
   seg(g, iso((x0 + x1) / 2, y0 + 6, h), iso((x0 + x1) / 2, y0 + 6, h + 13), INK_LINE, .5);
   box(g, (x0 + x1) / 2 - 2.5, y0 + 3.5, h + 11, (x0 + x1) / 2 + 2.5, y0 + 8.5, h + 15, { top: PAL.yellow, left: PAL.yellow, right: shade(PAL.yellow, .85) }, .3);
+}
+// the washroom sink: a vanity with doors, a counter, a recessed basin and a tap
+function drawSink(c) {
+  box(c, 211, 0, 0, 221, 8, 18, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
+  poly(c, quadY(8.05, 212.5, 219.5, 3, 15), null, INK_LINE, .35); seg(c, iso(216, 8.1, 3), iso(216, 8.1, 15), INK_LINE, .35);
+  box(c, 210, 0, 18, 222, 9, 21, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); ellipseFloor(c, 216, 4.8, 3.4, 21.05, "#ffffff"); ellipseFloor(c, 216, 4.8, 2.5, 21.06, "#dfe7f2", INK_LINE);
+  ellipseFloor(c, 216, 4.8, .45, 21.07, "#9a9a9c", null);
+  { const tap = [iso(216, 1, 21), iso(216, 1, 25), iso(216, 1.8, 25.6), iso(216, 3, 25.2), iso(216, 3.2, 24.2)];
+    c.beginPath(); tap.forEach((q, i) => i ? c.lineTo(...q) : c.moveTo(...q)); c.strokeStyle = INK_LINE; c.lineWidth = 1.5; c.lineCap = "round"; c.lineJoin = "round"; c.stroke(); c.strokeStyle = "#d8d8d6"; c.lineWidth = .8; c.stroke(); }
 }
 function drawCopier(c) {
   box(c, 70, 1, 0, 88, 14, 20, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
