@@ -940,7 +940,8 @@ const pod4x = (x, y) => [[x - 7, y - 16, "E"], [x - 7, y + 16, "E"], [x + 7, y -
 const LAYOUT = {
   desks: [...pod4(108, 106), ...pod4(196, 106), ...pod4x(150, 172)],
   rugs: [[66, 74, 150, 138, "mint"], [154, 74, 238, 138, "sky"], [112, 144, 188, 202, "coralLight"]],
-  plants: [[152, 80, 1], [152, 132, .9], [92, 160, 1.1], [196, 158, .9]],
+  plants: [[152, 80, 1], [152, 132, .9], [110, 196, 1], [196, 158, .9]],
+  hot: [2, 5, 6, 7, 9, 10],   // free desks that still look used: a jacket on the chair, a bag, a mug
 };
 // room spots: the role that plays there, where the person stands or sits, and the way they face
 const SPOTS = [
@@ -949,6 +950,8 @@ const SPOTS = [
   { place: "cooler", label: "the water cooler", x: 96, y: 19, f: "S", roles: ["glass"] },
   { place: "kitchen", label: "the kitchen", x: 125, y: 20.5, f: "N", roles: ["coffee"] },
   { place: "washroom", label: "the washroom", x: 216, y: 17.5, f: "N", roles: ["flush"] },
+  { place: "beanbag", label: "the reading corner", x: 86, y: 172, f: "S", seated: true, roles: ["typing"] },
+  { place: "couch", label: "the sofa", x: 14, y: 174, f: "E", seated: true, roles: ["clicking"] },
 ];
 // a point in a desk's own space: u across the desk (-16..16), v from the sitter's edge (-7) to the far edge (7)
 function deskSpace(x, y, f) { const [fx, fy] = FACE[f]; return (u, v, z = 0) => [x - u * fy + v * fx, y + u * fx + v * fy, z]; }
@@ -977,6 +980,7 @@ const DESK_COUNT = LAYOUT.desks.length;
 const DRAW_ORDER = [
   ...SEATS.map((s, i) => ({ depth: s.depth, seat: i })),
   ...LAYOUT.plants.map(([x, y, k]) => ({ depth: x + y, plant: [x, y, k] })),
+  { depth: 150, draw: () => bookshelf(64, 140, 106, 146, 20) },
 ].sort((a, b) => a.depth - b.depth);
 
 /* ---------- Role icons (5 x 5) ---------- */
@@ -1191,13 +1195,13 @@ function makeMember(roleId, desk, name, seed, variant = 0) {
 }
 
 /* Everyone has one seat of their own: the same person, sound and look every time they come in. */
-// thirteen people: eight at desks (four desks stay free) and five in the rooms
+// thirteen people: six at desks (the other six are hot desks) and seven around the rooms
 const DESK_CAST = [
   ["typing", "Kabir"], ["clicking", "Arjun"], null, ["cough", "Isha"],
-  ["stamp", "Omar"], null, ["typing", "Neel"], ["clicking", "Sara"],
+  ["stamp", "Omar"], null, null, null,
   ["cough", "Vikram"], null, null, ["stamp", "Zoya"],
 ];
-const SPOT_CAST = [["phone", "Meera"], ["copier", "Jay"], ["glass", "Tara"], ["coffee", "Priya"], ["flush", "Nina"]];
+const SPOT_CAST = [["phone", "Meera"], ["copier", "Jay"], ["glass", "Tara"], ["coffee", "Priya"], ["flush", "Nina"], ["typing", "Neel"], ["clicking", "Sara"]];
 const CAST = [...DESK_CAST, ...SPOT_CAST].map((c, i, all) => c && ({ role: c[0], name: c[1], seed: 4099 + i * 131, variant: all.slice(0, i).filter(o => o && o[0] === c[0]).length }));
 const CAST_SIZE = CAST.filter(Boolean).length;
 function callIn(seat) {
@@ -1577,7 +1581,8 @@ function pose(m, seat, T) {
   const t = T.t, hit = T.hit, soon = T.soon, idle = (m.seed % 97) / 13;
   const strike = Math.max(soon * soon, hit < .06 ? 1 : 0), back = hit < .06 ? 1 : Math.max(0, 1 - smooth((hit - .06) / .32));
   let lean = standing ? .05 : .12, nod = 0, turn = 0, tilt = 0, mouth = "smile";
-  const hip = standing ? [0, Math.sin(t * .7 + idle) * .25, 19.6] : [0, 0, 11.6];
+  const low = place === "beanbag";
+  const hip = standing ? [0, Math.sin(t * .7 + idle) * .25, 19.6] : [0, 0, low ? 5.5 : 11.6];
   let R = null, L = null;            // hand targets in person space: R on the -y side, L on +y
   let headR = null, headL = null;    // hand targets given relative to the head, resolved after the torso
   const props = [];
@@ -1680,6 +1685,18 @@ function pose(m, seat, T) {
     L = [8.2, 1.1 - Math.sin(w) * .55, 23.6 - Math.cos(w) * .3];
     const look = Math.max(soon, back);
     lean = .2; nod = .25 - look * .15; turn = look * .5;
+  } else if (act === "beanbag") {
+    // sunk into the beanbag, typing on a laptop resting on the knees
+    const side = m.hits % 2 ? 1 : -1, tap = Math.max(soon, Math.exp(-hit * 18));
+    R = [6.4, -2.2, 10.4 - (side < 0 ? tap * .4 : 0)]; L = [6.4, 2.2, 10.4 - (side > 0 ? tap * .4 : 0)];
+    lean = .3; nod = .28 + Math.sin(t * 1.1 + idle) * .03;
+    props.push({ kind: "lapLaptop", z: 9.6, x0: 4, x1: 9 });
+  } else if (act === "couch") {
+    // on the sofa with the laptop on the lap, clicking the trackpad
+    const press = Math.max(soon, Math.exp(-hit * 22));
+    R = [5.6, -.8, 13.9 - press * .3]; L = [7.2, 2.2, 13.9];
+    lean = .02; nod = .26;
+    props.push({ kind: "lapLaptop", z: 13.1, x0: 3.6, x1: 8.6 });
   } else if (act === "queue") {
     R = [5.2, -1, 25.6]; L = [5.2, 1, 25.6]; nod = .38;
     props.push({ kind: "mobile" });
@@ -1705,6 +1722,9 @@ function pose(m, seat, T) {
   if (standing) {
     knR = v3.add(hipR, [.5, -.2, -9.2]); knL = v3.add(hipL, [.5, .2, -9.2]);
     anR = [hipR[0] + .1, hipR[1] - .3, 1.1]; anL = [hipL[0] + .1, hipL[1] + .3, 1.1];
+  } else if (low) {
+    knR = v3.add(hipR, [5.6, -.8, 3.2]); knL = v3.add(hipL, [5.6, .8, 3.2]);
+    anR = v3.add(knR, [3.4, 0, -7.4]); anL = v3.add(knL, [3.4, 0, -7.4]);
   } else {
     knR = v3.add(hipR, [8.2, -.4, .6]); knL = v3.add(hipL, [8.2, .4, .6]);
     anR = v3.add(knR, [1.2, 0, -10.6]); anL = v3.add(knL, [1.2, 0, -10.6]);
@@ -1870,16 +1890,44 @@ function drawSeat(i, now) {
     if (m) shadowAt(cx, cy, 6);
     if (chairBehind) { backrest(); base(); lower(); drawDeskTop(i, s, m, col, lit, F); upper(); }
     else { drawDeskTop(i, s, m, col, lit, F); lower(); base(); upper(); backrest(); }   // the seat hides the legs running away under the desk
+    if (!m && LAYOUT.hot.includes(i)) hotDesk(s, i);
     if (!m) hoverHint(i, cx, cy, now);
   } else {
+    if (s.place === "beanbag") beanbag(s.x - 1, s.y, PAL.yellow);
     if (m) {
-      shadowAt(s.x, s.y, 5);
+      if (s.place !== "beanbag" && s.place !== "couch") shadowAt(s.x, s.y, 5);
       lower();
       if (s.place === "meeting") meetingTableTop();
+      const lap = F.P.props.find(p => p.kind === "lapLaptop");
+      if (lap) lapLaptop(F, lap, col);
       upper();
       roomFx(s, m, F);
     } else hoverHint(i, s.x, s.y, now);
   }
+}
+function bookshelf(x0, y0, x1, y1, h) {
+  box(g, x0, y0, 0, x1, y1, h, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
+  const cols = [PAL.coral, PAL.yellow, PAL.cobalt, PAL.mintDark, PAL.sky, PAL.coralLight], r = mulberry(5);
+  [2, 11].forEach(z => { for (let x = x0 + 2; x < x1 - 3;) { const w = 1.4 + r() * 1.8, hh = 5 + r() * 2.5; poly(g, quadY(y1 + .05, x, x + w, z, z + hh), cols[Math.floor(r() * cols.length)], INK_LINE, .25); x += w + .3 + (r() < .15 ? 3 : 0); } });
+  plant(g, x1 - 6, (y0 + y1) / 2, h, .5);
+}
+function beanbag(x, y, col) {
+  ellipseFloor(g, x, y, 6, 0, shade(col, .85)); ellipseFloor(g, x, y, 6.4, 2.5, col); ellipseFloor(g, x - .5, y - .5, 4.8, 5.5, shade(col, 1.08));
+}
+// a free desk that is clearly someone's: a jacket over the chair, a bag on the floor, a closed laptop
+function hotDesk(s, i) {
+  const L = s.L, cols = [PAL.cobalt, PAL.coral, "#2f7f57", "#2c3a66"], col = cols[i % 4];
+  const p = (u, v, z) => iso(...L(u, v, z));
+  poly(g, [p(-4.4, -20.2, 21.4), p(4.4, -20.2, 21.4), p(4.8, -19.6, 13), p(1, -19.4, 11.5), p(-4.8, -19.6, 13)], col, INK_LINE, .35);
+  const [bx, by] = L(7, -13);
+  box(g, bx - 2.5, by - 2, 0, bx + 2.5, by + 2, 6, { top: shade(PAL.yellow, .9), left: PAL.yellow, right: shade(PAL.yellow, .85) }, .35);
+  const [mx, my] = L(-10, 1); ellipseFloor(g, mx, my, 1.5, 15.7, "#ffffff"); ellipseFloor(g, mx, my, 1.5, 18.2, "#ffffff");
+}
+// a laptop open on someone's lap, lid toward them, in their own space
+function lapLaptop(F, lap, col) {
+  const W = F.W, q = (a, b, z) => iso(...W([a, b, z]));
+  poly(g, [q(lap.x0, -3.4, lap.z), q(lap.x1, -3.4, lap.z), q(lap.x1, 3.4, lap.z), q(lap.x0, 3.4, lap.z)], "#eeeeec", INK_LINE, .35);
+  poly(g, [q(lap.x1, -3.4, lap.z), q(lap.x1, 3.4, lap.z), q(lap.x1 + 1, 3.4, lap.z + 6), q(lap.x1 + 1, -3.4, lap.z + 6)], col || "#ffffff", INK_LINE, .35);
 }
 function hoverHint(i, x, y, now) {
   if (!CAST[i] || !((i === hoverDesk || i === dragDesk) && (Math.floor(now / 260) % 2 || dragDesk === i))) return;
@@ -1968,7 +2016,7 @@ function frame(now) {
   g.setTransform(SC, 0, 0, SC, 0, 0);
   if (glow > 0.05) { g.globalAlpha = 0.12 * glow; poly(g, PLAN.map(([x, y]) => iso(x, y)), PAL.coral, null); g.globalAlpha = 1; }
   drawVitals(now);
-  for (const it of DRAW_ORDER) it.plant ? plant(g, it.plant[0], it.plant[1], 0, it.plant[2]) : drawSeat(it.seat, now);
+  for (const it of DRAW_ORDER) it.draw ? it.draw() : it.plant ? plant(g, it.plant[0], it.plant[1], 0, it.plant[2]) : drawSeat(it.seat, now);
 
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
