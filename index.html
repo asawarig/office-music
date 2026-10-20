@@ -1155,7 +1155,7 @@ function fire(m) {
   ROLE_IDS.forEach(id => members.filter(o => o.role === id).forEach((o, i) => {
     if (o.variant !== i) { o.variant = i; if (ROLES[id].setup) ROLES[id].setup(o); }
   }));
-  burst(DESKS[m.desk].sx, DESKS[m.desk].sy - 20, ROLES[m.role].color, 12);
+  burst(DESKS[m.desk].sx, DESKS[m.desk].sy - 20, PAL.coral, 12);
   render();
   toast(`${m.name} headed home to rest. Still covered, of course.`);
 }
@@ -1241,7 +1241,7 @@ function toast(msg) {
 }
 
 /* ---------- Drawing helpers: thin architectural lines, flat fills ---------- */
-const INK_LINE = "#3a3a3c", HAIR = 0.42;
+const INK_LINE = "#1d3fbf", HAIR = 0.42;
 function poly(c, pts, fill, stroke = INK_LINE, lw = HAIR) {
   c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath();
   if (fill) { c.fillStyle = fill; c.fill(); }
@@ -1285,15 +1285,16 @@ function shade(hex, f) {
 function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
 
 /* ---------- Palette: white walls, pale wood, and a few flat accents ---------- */
+// blue line plus one colour: everything is cobalt on white and pale blue; coral marks what matters
 const PAL = {
-  wall: "#ffffff", wallShade: "#f1f1ef", floor: "#fbe7a3", plank: "#f1d27c", tile: "#ffffff", cobalt: "#1d3fbf", coral: "#f2897b",
-  coralLight: "#f7b3a8", yellow: "#f6cf4a", mint: "#cfe9e1", mintDark: "#a9d4c8", sky: "#cfe6f5", grey: "#d8d8d6", dot: "#b9b9b6",
-  leaf: "#3aa55a", leafDark: "#23803f", screen: "#1d2b4f", ecg: "#5fe0b4", pink: "#f4b6c2", paper: "#ffffff",
+  wall: "#ffffff", wallShade: "#f4f6fd", floor: "#f4f6fd", plank: "#dfe5f8", tile: "#ffffff", cobalt: "#1d3fbf", coral: "#f26b5b",
+  coralLight: "#f9c2ba", yellow: "#ffffff", mint: "#eef1fc", mintDark: "#d3dbf7", sky: "#e4e9fb", grey: "#e9edf9", dot: "#b9c4ef",
+  leaf: "#1d3fbf", leafDark: "#0f2a99", screen: "#14298a", ecg: "#ffffff", pink: "#f9c2ba", paper: "#ffffff", hired: "#f26b5b",
 };
 let T = { outline: INK_LINE };
 function readTokens() {
   drawStatic();
-  cardIcons.forEach(({ id, c }) => { c.clearRect(0, 0, 11, 11); bitmap(c, 3, 3, ICONS[id], ROLES[id].color, INK_LINE); });
+  cardIcons.forEach(({ id, c }) => { c.clearRect(0, 0, 11, 11); bitmap(c, 3, 3, ICONS[id], PAL.coral, INK_LINE); });
 }
 
 /* ---------- Static layer: the plan, walls, rooms and fixed furniture ---------- */
@@ -1391,33 +1392,33 @@ function drawStatic() {
 
   // left wall: meeting-room window, a framed print, the lounge window
   windowOnX(c, 14, 54, 22, 52);
-  poly(c, quadX(.2, 92, 118, 26, 48), "#ffffff"); poly(c, quadX(.3, 95, 115, 29, 45), PAL.yellow);
+  poly(c, quadX(.2, 92, 118, 26, 48), "#ffffff"); poly(c, quadX(.3, 95, 115, 29, 45), PAL.sky);
   onWallX(c, 95, 45, () => { c.fillStyle = PAL.coral; c.beginPath(); c.arc(10, 8, 5, 0, Math.PI * 2); c.fill(); });
   windowOnX(c, 150, 196, 22, 54);
 
   // back wall: meeting-room whiteboard, the vitals screen frame, kitchen run, washroom tiles
   poly(c, quadY(.2, 8, 54, 26, 50), "#ffffff");
   onWallY(c, 8, 50, () => { c.strokeStyle = PAL.cobalt; c.lineWidth = .7; c.beginPath(); c.moveTo(6, 8); c.lineTo(18, 12); c.lineTo(26, 6); c.stroke(); c.strokeStyle = PAL.coral; c.beginPath(); c.moveTo(6, 16); c.lineTo(34, 16); c.stroke(); });
-  poly(c, quadY(.2, 66, 100, 24, 56), "#2b2b2e");
+  poly(c, quadY(.2, 66, 100, 24, 56), PAL.cobalt);
   // kitchen: coral splashback, mint base cabinets, open shelves, fridge, coffee machine
   poly(c, quadY(.25, 104, 182, 22, 36), PAL.coral);
   onWallY(c, 104, 36, () => { c.strokeStyle = "#ffffff"; c.lineWidth = .35; for (let u = 0; u < 78; u += 4) { c.beginPath(); c.moveTo(u, 0); c.lineTo(u, 14); c.stroke(); } for (let v = 0; v < 14; v += 4) { c.beginPath(); c.moveTo(0, v); c.lineTo(78, v); c.stroke(); } });
   box(c, 104, 0, 0, 182, 14, 22, { top: "#ffffff", left: PAL.mint, right: PAL.mintDark });
   for (let x = 106; x < 180; x += 13) poly(c, quadY(14.05, x, x + 11, 3, 19), null, INK_LINE, .35);
   [44, 54].forEach(z => box(c, 106, 0, z, 180, 7, z + 1.4, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }));
-  [[110, 45.4, PAL.coral], [118, 45.4, PAL.yellow], [126, 45.4, PAL.cobalt], [150, 55.4, PAL.mint], [160, 55.4, PAL.coral]].forEach(([x, z, col]) => box(c, x, 2, z, x + 5, 6, z + 7, { top: col, left: col, right: shade(col, .85) }));
+  [[110, 45.4, PAL.coral], [118, 45.4, PAL.sky], [126, 45.4, PAL.cobalt], [150, 55.4, PAL.sky], [160, 55.4, PAL.coral]].forEach(([x, z, col]) => box(c, x, 2, z, x + 5, 6, z + 7, { top: col, left: col, right: shade(col, .85) }));
   box(c, 184, 0, 0, 202, 16, 52, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); seg(c, iso(186, 16.1, 30), iso(186, 16.1, 46), INK_LINE, .8); seg(c, iso(186, 16.1, 12), iso(186, 16.1, 26), INK_LINE, .8); seg(c, iso(184, 16.1, 28), iso(202, 16.1, 28));
-  box(c, 120, 3, 22, 130, 11, 34, { top: "#2b2b2e", left: PAL.coral, right: shade(PAL.coral, .85) });
-  ellipseFloor(c, 160, 7, 3.5, 22.2, "#e4e4e2"); seg(c, iso(160, 3, 22), iso(160, 3, 30)); seg(c, iso(160, 3, 30), iso(164, 3, 30));
-  [[136, PAL.yellow], [141, PAL.cobalt]].forEach(([x, col]) => box(c, x, 6, 22, x + 3, 9, 26, { top: "#ffffff", left: col, right: shade(col, .85) }));
+  box(c, 120, 3, 22, 130, 11, 34, { top: PAL.cobalt, left: PAL.coral, right: shade(PAL.coral, .85) });
+  ellipseFloor(c, 160, 7, 3.5, 22.2, PAL.sky); seg(c, iso(160, 3, 22), iso(160, 3, 30)); seg(c, iso(160, 3, 30), iso(164, 3, 30));
+  [[136, PAL.coral], [141, PAL.cobalt]].forEach(([x, col]) => box(c, x, 6, 22, x + 3, 9, 26, { top: "#ffffff", left: col, right: shade(col, .85) }));
   // a little round table for the kitchen, with two stools
   ellipseFloor(c, 150, 30, 7, 20, "#ffffff"); seg(c, iso(150, 30, 0), iso(150, 30, 20), INK_LINE, .7); ellipseFloor(c, 150, 30, 3.5, 0, null);
-  [[139, 30], [161, 30]].forEach(([x, y]) => { seg(c, iso(x, y, 0), iso(x, y, 12), INK_LINE, .5); ellipseFloor(c, x, y, 3, 12, PAL.yellow); });
+  [[139, 30], [161, 30]].forEach(([x, y]) => { seg(c, iso(x, y, 0), iso(x, y, 12), INK_LINE, .5); ellipseFloor(c, x, y, 3, 12, PAL.coral); });
   // washroom: blue grid tiles up the walls, a sink, a WC and a round mirror
   poly(c, quadY(.25, 206, 240, 0, WH - 10), "#ffffff");
   onWallY(c, 206, WH - 10, () => { c.strokeStyle = PAL.cobalt; c.lineWidth = .3; for (let u = 0; u <= 34; u += 3) { c.beginPath(); c.moveTo(u, 0); c.lineTo(u, WH - 10); c.stroke(); } for (let v = 0; v <= WH - 10; v += 3) { c.beginPath(); c.moveTo(0, v); c.lineTo(34, v); c.stroke(); } });
   onWallY(c, 206, 52, () => { c.fillStyle = "#ffffff"; c.strokeStyle = INK_LINE; c.lineWidth = .4; c.beginPath(); c.arc(9, 8, 6, 0, Math.PI * 2); c.fill(); c.stroke(); });
-  box(c, 210, 0, 18, 222, 9, 22, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); ellipseFloor(c, 216, 5, 3, 22.1, "#e8eef9");
+  box(c, 210, 0, 18, 222, 9, 22, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); ellipseFloor(c, 216, 5, 3, 22.1, PAL.sky);
   box(c, 228, 0, 0, 238, 6, 14, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); ellipseFloor(c, 233, 11, 5, 8, "#ffffff");
   // washroom partitions: frosted glass with a door gap
   glassWallX(c, 204, 0, 60, [36, 52]); glassWallY(c, 60, 204, 240, null);
@@ -1443,7 +1444,7 @@ function drawStatic() {
   plant(c, 6, 204, 0, 1.3);
   // water cooler by the kitchen
   box(c, 92, 2, 0, 100, 10, 26, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
-  const wb = iso(96, 6, 31); poly(c, [[wb[0] - 3.4, wb[1] + 4.5], [wb[0] - 3.8, wb[1] - 2], [wb[0] - 1.6, wb[1] - 5], [wb[0] + 1.6, wb[1] - 5], [wb[0] + 3.8, wb[1] - 2], [wb[0] + 3.4, wb[1] + 4.5]], hexA("#7cc7f2", .7));
+  const wb = iso(96, 6, 31); poly(c, [[wb[0] - 3.4, wb[1] + 4.5], [wb[0] - 3.8, wb[1] - 2], [wb[0] - 1.6, wb[1] - 5], [wb[0] + 1.6, wb[1] - 5], [wb[0] + 3.8, wb[1] - 2], [wb[0] + 3.4, wb[1] + 4.5]], hexA("#1d3fbf", .25));
 
   // front cut walls: low white slabs along the open edges of the plan
   lowWall(c, [[0, 210], [200, 210]]); lowWall(c, [[200, 150], [200, 210]]); lowWall(c, [[200, 150], [240, 150]]); lowWall(c, [[240, 0], [240, 150]]);
@@ -1464,7 +1465,7 @@ function note(x, y, color) {
 function celebrate() {
   toast("All eight benefits covered. This is what a healthy office sounds like.");
   if (reduceMotion) return;
-  const cols = ROLE_IDS.map(id => ROLES[id].color);
+  const cols = [PAL.coral, PAL.cobalt];
   for (let i = 0; i < 120; i++) particles.push({ x: Math.random() * LW, y: -Math.random() * 120, vx: (Math.random() - .5) * .6, vy: Math.random() * .8 + .5, life: 2, color: pick(cols, Math.random), kind: "confetti" });
 }
 
@@ -1500,7 +1501,7 @@ function drawVitals(now) {
 // one desk: the chair sits on the far side facing the desk; a hired seat lights up in the role colour
 function drawDesk(i, now) {
   const d = DESKS[i], m = members.find(o => o.desk === i), { x0, y0 } = d, x1 = x0 + 32, y1 = y0 + 14;
-  const col = m ? ROLES[m.role].color : null, lit = m && m.pulse > .35;
+  const col = m ? PAL.hired : null, lit = m && m.pulse > .35;
   const cx = d.px, cy = d.py - 1, bob = m ? m.pulse * 1.6 : 0;
   // chair: back on the far side, seat, star base
   for (let k = 0; k < 5; k++) { const a = k * 1.2566 + .3; seg(g, iso(cx, cy, 2), iso(cx + Math.cos(a) * 5, cy + Math.sin(a) * 5, .5), INK_LINE, .5); }
@@ -1517,12 +1518,12 @@ function drawDesk(i, now) {
   [[x0 + 1, y0 + 1], [x1 - 1, y0 + 1], [x0 + 1, y1 - 1], [x1 - 1, y1 - 1]].forEach(([x, y]) => seg(g, iso(x, y, 0), iso(x, y, 14), INK_LINE, .55));
   box(g, x0, y0, 14, x1, y1, 15.6, { top: "#ffffff", left: PAL.wallShade, right: PAL.wallShade });
   // laptop with its screen toward the chair; the lid you see takes the role colour
-  box(g, cx - 5, y0 + 2, 15.6, cx + 5, y0 + 9, 16.2, { top: "#eeeeec", left: "#e2e2e0", right: "#e2e2e0" });
+  box(g, cx - 5, y0 + 2, 15.6, cx + 5, y0 + 9, 16.2, { top: PAL.wallShade, left: PAL.mintDark, right: PAL.mintDark });
   const lidCol = col ? (lit ? shade(col, 1.25) : col) : "#ffffff";
   poly(g, [iso(cx - 5, y0 + 9, 16.2), iso(cx + 5, y0 + 9, 16.2), iso(cx + 5, y0 + 10.5, 23.5), iso(cx - 5, y0 + 10.5, 23.5)], lidCol);
   // a mug and a notebook
   ellipseFloor(g, x1 - 4, y0 + 10, 1.6, 15.7, col || "#ffffff"); seg(g, iso(x1 - 5.6, y0 + 10, 15.7), iso(x1 - 5.6, y0 + 10, 18.5), INK_LINE, .4); seg(g, iso(x1 - 2.4, y0 + 10, 15.7), iso(x1 - 2.4, y0 + 10, 18.5), INK_LINE, .4); ellipseFloor(g, x1 - 4, y0 + 10, 1.6, 18.5, col || "#ffffff");
-  poly(g, floorRect(x0 + 3, y0 + 4, x0 + 9, y0 + 11, 15.7), i % 2 ? PAL.yellow : PAL.mint, INK_LINE, .35);
+  poly(g, floorRect(x0 + 3, y0 + 4, x0 + 9, y0 + 11, 15.7), PAL.sky, INK_LINE, .35);
   // role badge over the seat, flashing on the beat
   if (m) {
     const p = iso(cx, cy, 34 + bob), r = 5.2;
@@ -1542,7 +1543,7 @@ function frame(now) {
       if (!m) continue;
       m.pulse = 1;
       if (ev.beat) glow = 1;
-      if (Math.random() < 0.3) note(DESKS[m.desk].sx, DESKS[m.desk].sy - 38, ROLES[m.role].color);
+      if (Math.random() < 0.3) note(DESKS[m.desk].sx, DESKS[m.desk].sy - 38, PAL.coral);
     }
   }
   members.forEach(m => m.pulse *= 0.85);
