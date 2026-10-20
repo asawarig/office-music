@@ -761,7 +761,7 @@ const ROLES = {
     },
   },
   coffee: {
-    title: "Espresso Addict", sound: "Coffee machine buzz", covers: "Annual heart check-ups", color: "#9a5b3c",
+    title: "Espresso Addict", sound: "Coffee machine buzz", covers: "Annual heart check-ups", color: "#c2407a",
     gain: 0.5, rev: 0.06, dly: 0,
     play(m, s, t, c) {
       const root = c.chord[0] - 12;
@@ -941,29 +941,28 @@ const NOTE = ["0111", "0101", "0100", "0100", "1100", "1100"];
 const NAMES = ["Priya", "Arjun", "Meera", "Kabir", "Ananya", "Rohan", "Zoya", "Dev", "Isha", "Neel", "Sara", "Vikram",
                "Tara", "Aman", "Leela", "Omar", "Nina", "Ravi", "Maya", "Jay", "Fatima", "Sam", "Kiran", "Aisha"];
 /* ---------- People: faces read pixel for pixel from the reference sheet ----------
-   o = ink, s = light (skin, or light hair). The faces turn toward the viewer's right, so the bodies
+   o = ink, s = light (skin, or light hair), w = hair shine (white). The faces turn toward the viewer's right, so the bodies
    below are built facing the same way. A flipped person turns left: head, body, arms and legs together. */
 const FACES = [
   [".....oooooooo...", "....oooooooooo..", "...oooossooosoo.", "..oooossssoossoo", "..ooosssssssssso", "..ooossssoosooso", "..ooosssosssssoo", ".oooosssssssssso", "ossoossssosssoso", "osososssssssssso", ".ossssssssssssso", "..oossssossssoso", "....ossssoooosso", "....osssssssssso", ".....osssssssso.", "......oooooooo.."],
   ["...ooooooooo....", "..ooooooooooo...", ".ooooooooooooo..", ".oooossssssssoo.", ".ooosssssssssso.", ".ooosssssssssso.", "ossossooossoooo.", "osossssossssoso.", "ossssssossssoso.", ".oossssssssssso.", "..ossssosssossso", "...ossssooosssso", "....ossssssssso.", ".....ooooooooo.."],
-  ["...ooooooo.oooo.", "..oooooooooooo..", ".oooosooooooo...", "ooossooosoooooo.", "oooooossssoooooo", "ooooossssssooo..", "oooossssssssoo..", "oooossosssosso..", "ossossosssosso..", "ossossosssossso.", ".oossssssssssso.", "..osssssoosssso.", "...ossssssssso..", "....ooooooooo..."],
+  ["...ooooooo.oooo.", "..oooooooooooo..", ".oooowooooooo...", "ooowwooosoooooo.", "oooooossssoooooo", "ooooossssssooo..", "oooossssssssoo..", "oooossosssosso..", "ossossosssosso..", "ossossosssossso.", ".oossssssssssso.", "..osssssoosssso.", "...ossssssssso..", "....ooooooooo..."],
   ["...oooooooooo...", "..osssssssssso..", ".osssssssssssso.", "osssssosssssssso", "osssssoossssssso", "osssssososssssso", "osssssossoooooo.", "ossssossssssso..", "ossoossoossooo..", "osososssossoso..", "ososssssssssso..", ".osoossssoosso..", "..ossosssssso...", "...ooooooooo...."],
   ["....ooooooo.....", "...ossssssso....", "..ossssssssso...", ".ossssssssssso..", ".osssssssssssso.", ".osssooosssoooo.", ".oooosssooossso.", "osssossoosossoo.", "osssosssosossso.", ".osssooosssoooo.", "..ossssssssssso.", "..osssssssssssso", "...osssssoosssso", "....ossssssssso.", ".....ooooooooo.."],
   ["..oo............", ".ossooooooooo...", "ossossssssssso..", "osossssssssssso.", ".ossssssssssssso", ".ossssoossssssso", ".osssossoossssso", ".ossosssssoossso", ".oooossosssooooo", ".ossossosssosso.", ".ossossosssosso.", "..osssssssssssso", "..osssssssoossso", "...osssssssssso.", "....oooooooooo.."],
-  ["...oooooooooo...", "..oooooooooooo..", ".oooooooooooooo.", "oooosoooooooosoo", "ooooossssssssooo", "oooooooooooooooo", "oooooooooooooooo", "oooooosssssssoo.", "ooooossoossooo..", "ooososssssssso..", "ooossssssoosso..", ".oooosssssssso..", "..oooosssssso...", "...ooooooooo...."],
+  ["...oooooooooo...", "..oooooooooooo..", ".oooooooooooooo.", "oooowoooooooowoo", "ooooowwwwwwwwooo", "oooooooooooooooo", "oooooooooooooooo", "oooooosssssssoo.", "ooooossoossooo..", "ooososssssssso..", "ooossssssoosso..", ".oooosssssssso..", "..oooosssssso...", "...ooooooooo...."],
   ["....oooooooo...", "...osssssssso..", "..osssssssssso.", ".osssssssssssso", ".osssssssssssso", ".ossssoosssooso", ".oossossosossoo", "ossssosssssssso", "osossossosossoo", ".ossssosssssoso", "..ossssssssssso", "..osssssossosso", "..ossssssoossso", "...ossssssssso.", "....ooooooooo.."],
   ["...ooooooooo...", "..ossssssssso..", ".ossssssssssso.", "ossssssssssssso", "ossssoossssssso", "osssossoossssso", "osssossssooosso", "ooososssssssoo.", "ossoossossoso..", "ossssssossoso..", ".ossssssssssso.", ".ossssssooosso.", "..ossssssssso..", "...ooooooooo..."],
   ["...ooooooooo....", "..ooooooooooo...", ".oooooosoooooo..", "oooooosssoooooo.", "ooooossssssssso.", "ooooossossossso.", "ooooossossosssso", "ooooosssssssssso", "ooooossossosssso", ".ooossssoosssso.", "..osssssssssso..", "...osssssssso...", "....osssssso....", ".....oooooo....."],
-  ["...oooooooooo...", "..osooooooooso..", ".ooossssssssooo.", ".ooooooooooooooo", ".oooossooooooooo", ".ooossssooooooo.", ".ooosssssssssso.", "ossosssoosssooo.", "osossssossssoso.", "ossssssossssoso.", ".oossssssssssso.", "..ossssosssossso", "...ossssooosssso", "....ossssssssso.", ".....ooooooooo.."],
+  ["...oooooooooo...", "..owoooooooowo..", ".ooowwwwwwwwooo.", ".ooooooooooooooo", ".oooossooooooooo", ".ooossssooooooo.", ".ooosssssssssso.", "ossosssoosssooo.", "osossssossssoso.", "ossssssossssoso.", ".oossssssssssso.", "..ossssosssossso", "...ossssooosssso", "....ossssssssso.", ".....ooooooooo.."],
   ["...oooooooooo...", "..oooooooooooo.o", ".oooooooooooooo.", "oooooooooooooooo", "oooooooooooooooo", "oooosssssssooooo", "ooosssssssssoooo", ".osooosssooosooo", ".ossoosssoossoso", ".ossssssssssssso", ".osssooooosssso.", ".osssosssosssso.", "..osssooosssso..", "...osssssssso...", "....oooooooo...."],
-  [".....ooooo......", "....ooooooo.....", "...oooooooooo...", "..oooooooooooo..", "..oooooooooooo..", ".oooooooooooooo.", ".oooooooooooooo.", "oooooossssssooo.", "ossoossssssssoso", "ossoosoossoososo", ".osoossssosssoso", "..ooooossssoooo.", "..ooooosoooooo..", "...oooossssooo..", "....ooooooooo...", ".....ooooooo...."],
   ["....ooooooooo...", "...ooooooooooo..", "..ooooooooooooo.", ".oooooossssssoo.", ".oooosssssssssoo", ".oooooosssssoooo", "osoosssosssossso", "ossossososososso", "oososssssssssso.", ".ooossssoooooso.", ".oooossoosssooo.", ".ooooooooooooooo", "..oooooooooooooo", "...ooooooooooooo", "....oooooooooooo", ".....oooooooooo."],
-  ["......ooooo.....", "....ooooooooo...", "...oooosoooooo..", "..oooooosoooooo.", ".ooooooossssoooo", ".oooooossssssooo", "oooooossssssssoo", "ooosoosooosooooo", "ooosoossssssssoo", "ooosoossssssssoo", "oooooossooosssoo", ".ooooossossssooo", ".ooooossssssooo.", "..ooooossssooo..", ".......oooo....."],
+  ["......ooooo.....", "....ooooooooo...", "...oooowoooooo..", "..oooooosoooooo.", ".ooooooossssoooo", ".oooooossssssooo", "oooooossssssssoo", "ooosoosooosooooo", "ooosoossssssssoo", "ooosoossssssssoo", "oooooossooosssoo", ".ooooossossssooo", ".ooooossssssooo.", "..ooooossssooo..", ".......oooo....."],
   ["...oooooooooo...", "..oooooooooooo..", ".oooooooooooooo.", "oooooooosoooooo.", "ooooooossooooooo", "oooooossssssoooo", "oooosssssssssooo", "oooossooossoooo.", "oososssossssoso.", ".osssssssssssso.", "..osssssoooosso.", "..oosssoossooso.", "..ooooooooooooo.", "...oooooooooooo.", "....oooooooooo..", ".....oooooooo..."],
 ];
 // rows of light hair on the light-haired faces, so skin tones don't paint their hair
 const LIGHT_HAIR = { 3: 6, 5: 4, 8: 6 };
-const FACE_SKIN = [0, 1, 5, 0, 2, 0, 3, 5, 1, 4, 2, 0, 4, 3, 1, 2];
+const FACE_SKIN = [0, 1, 5, 0, 2, 0, 3, 5, 1, 4, 2, 0, 3, 1, 2];
 const PEOPLE_SKINS = ["#f6d3b3", "#e8b48a", "#c98d5e", "#a46a3f", "#7a4b2a", "#f1c6a0"];
 const INK = "#2b2730", BLONDE = "#f2d28a";
 
@@ -1087,7 +1086,7 @@ function buildSprite(face, build, outfit, lower, shoe, color, skinOverride) {
   body.grid.forEach((r, y) => r.forEach((v, x) => { if (v) { c.fillStyle = pal[v]; c.fillRect(x - minX, y - minY, 1, 1); } }));
   f.forEach((r, j) => [...r].forEach((ch, i) => {
     if (ch === ".") return;
-    let col = ch === "o" ? INK : skin;
+    let col = ch === "o" ? INK : ch === "w" ? "#ffffff" : skin;
     if (ch === "s" && !skinOverride && LIGHT_HAIR[face] != null && j <= LIGHT_HAIR[face]) col = BLONDE;
     c.fillStyle = col; c.fillRect(headX + i - minX, headY + j - minY, 1, 1);
   }));
