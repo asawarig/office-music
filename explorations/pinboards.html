@@ -283,7 +283,7 @@ const BOARD_VARIANTS = [
     torn(b.list, 12, 148, -3, 86) + `<span class="scissors" style="left:288px;top:186px">✂</span>`) } },
   { name: "Desk screen", board: true, html: (D, k = 2) => { const b = BITS[k % 4]; return boardHead(D) + scene("felt",
     boardCal(D, 86, 18, 1, PIC.vitals(D), "mint") + pinSvg("#ee6f6a", 100, 16) + pinSvg("#ee6f6a", 238, 16) +
-    `<span class="postcard" style="left:240px;top:34px">${PHOTOS[b.photo]}<i>wish you were here</i></span>` + tape(250, 28, 12, "rgba(238,111,106,.55)") +
+    `<span class="postcard" style="left:240px;top:34px">${PHOTOS[b.photo]}<i>${b.caption}</i></span>` + tape(250, 28, 12, "rgba(238,111,106,.55)") +
     sticky(b.sticky, "#ffd95c", 14, 34, -6, 76) + torn(b.list, 248, 140, 4, 82) + pinSvg("#5b6ee1", 282, 136) +
     sticky("call amma", "#f6c9cf", 16, 148, 4, 66) + plantSvg(6, 196, .95)) } },
   { name: "Whiteboard", board: true, html: (D, k = 3) => { const b = BITS[k % 4]; return boardHead(D) + scene("white",
