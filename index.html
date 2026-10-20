@@ -152,6 +152,12 @@ button { font: inherit; color: inherit; }
 .btn:hover { background: var(--accent-soft); }
 .btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--edge); }
 .btn:focus-visible, .role:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+/* musical / ambient switch: two halves of one button */
+.mode { display: inline-flex; border: 1px solid var(--edge); border-radius: 4px; overflow: hidden; background: var(--surface); }
+.mode button { border: 0; background: transparent; padding: 8px 12px; font: 700 13px/1 var(--font-label); cursor: pointer; color: var(--fg); }
+.mode button + button { border-left: 1px solid var(--edge); }
+.mode button.on { background: var(--fg); color: var(--surface); }
+.mode button:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
 .btn.play {
   background: var(--accent);
   color: var(--surface);
@@ -378,6 +384,9 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
     <svg viewBox="0 0 14 14" aria-hidden="true"><path id="playIcon" d="M3 1h2v1h2v2h2v2h2v2h-2v2h-2v2h-2v1h-2z"/></svg>
     <span id="playLabel">Play</span>
   </button>
+  <div class="mode" role="radiogroup" aria-label="Sound">
+    <button type="button" role="radio" data-mode="musical">Musical</button><button type="button" role="radio" data-mode="ambient">Ambient</button>
+  </div>
 </div>
 <aside class="menu" id="menu" hidden>
   <button class="close" id="menuClose" aria-label="Close menu">×</button>
@@ -385,10 +394,13 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
     <div class="brand">
       <p class="eyebrow"><span class="dot" id="beatDot"></span>A group health jam</p>
       <h1>Office <em>Pulse</em></h1>
-      <p class="lede">Every teammate makes one office noise: ringing phones, papers knocked into neat stacks, the coffee machine, typing, clicking, the claims stamp, a pen on a glass, the photocopier and the washroom flush. Thirteen people, each with their own seat. Call them in and their noises lock into one groove.</p>
+      <p class="lede">Every teammate makes one office noise: ringing phones, papers knocked into neat stacks, the coffee machine, typing, clicking, the claims stamp, a pen on a glass, the photocopier and the washroom flush. Thirteen people, each with their own seat. Call them in and their noises lock into one groove, or switch to Ambient and let the office hum along at its own pace.</p>
     </div>
     <div class="transport">
-      <label class="tempo" for="tempo">Tempo
+      <div class="mode" role="radiogroup" aria-label="Sound">
+        <button type="button" role="radio" data-mode="musical">Musical</button><button type="button" role="radio" data-mode="ambient">Ambient</button>
+      </div>
+      <label class="tempo" for="tempo"><span id="tempoName">Tempo</span>
         <input type="range" id="tempo" min="70" max="120" value="88">
         <output id="tempoOut">88 bpm</output>
       </label>
@@ -429,7 +441,8 @@ const pick = (arr, r) => arr[Math.floor(r() * arr.length)];
 
 /* ---------- Audio engine ---------- */
 const A = { ctx: null, master: null, rev: null, dly: null, analyser: null, noise: null,
-            playing: false, bpm: 88, step: 0, next: 0, timer: null };
+            playing: false, bpm: 88, step: 0, next: 0, timer: null,
+            mode: "musical", busy: .5, chordIdx: 0, chordAt: 0 };
 const visualQueue = [];
 
 function initAudio() {
@@ -450,7 +463,7 @@ function initAudio() {
   }
   A.rev = ctx.createConvolver(); A.rev.buffer = imp;
   const revOut = ctx.createGain(); revOut.gain.value = 0.55;
-  A.rev.connect(revOut); revOut.connect(A.master);
+  A.rev.connect(revOut); revOut.connect(A.master); A.revOut = revOut;
 
   // dotted-eighth delay
   A.dly = ctx.createDelay(2);
@@ -464,10 +477,12 @@ function initAudio() {
   A.noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
   const nd = A.noise.getChannelData(0);
   for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  roomTone(ctx);
 
   members.forEach(ensureNodes);
+  applyMix(0);
 }
-function setDelayTime() { if (A.dly) A.dly.delayTime.setTargetAtTime(60 / A.bpm * 0.75, A.ctx.currentTime, 0.05); }
+function setDelayTime() { if (A.dly && A.mode !== "ambient") A.dly.delayTime.setTargetAtTime(60 / A.bpm * 0.75, A.ctx.currentTime, 0.05); }
 
 function ensureNodes(m) {
   if (!A.ctx || m.out) return;
@@ -476,7 +491,7 @@ function ensureNodes(m) {
   m.out = ctx.createGain();
   m.out.gain.value = role.gain * Math.pow(0.8, same);
   const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
-  if (pan.pan) pan.pan.value = (SEATS[m.desk].sx - LW / 2) / (LW / 2) * 0.7;
+  if (pan.pan) pan.pan.value = Math.max(-1, Math.min(1, (SEATS[m.desk].sx - LW / 2) / (LW / 2) * (A.mode === "ambient" ? .95 : .7)));
   const rs = ctx.createGain(); rs.gain.value = role.rev;
   const ds = ctx.createGain(); ds.gain.value = role.dly;
   m.out.connect(pan); pan.connect(A.master); pan.connect(rs); rs.connect(A.rev); pan.connect(ds); ds.connect(A.dly);
@@ -487,7 +502,7 @@ function releaseNodes(m) {
   const t = A.ctx.currentTime, out = m.out, nodes = m.nodes;
   out.gain.setTargetAtTime(0, t, 0.08);
   setTimeout(() => { out.disconnect(); nodes.forEach(n => n.disconnect()); }, 800);
-  m.out = null;
+  m.out = null; m.amb = null;
 }
 
 // --- voices ---
@@ -889,6 +904,7 @@ const ROLE_IDS = Object.keys(ROLES);
 /* ---------- Scheduler ---------- */
 function sixteenth() { return 60 / A.bpm / 4; }
 function scheduler() {
+  if (A.mode === "ambient") { ambientTick(); return; }
   while (A.next < A.ctx.currentTime + 0.12) {
     const g = A.step % 64, s = g % 16, bar = g >> 4;
     const swing = s % 2 ? sixteenth() * 0.12 : 0;
@@ -910,6 +926,9 @@ function start() {
   A.playing = true;
   A.step = 0;
   A.next = A.ctx.currentTime + 0.06;
+  A.chordAt = A.ctx.currentTime + rand(15, 25);
+  members.forEach(m => { m.amb = null; });
+  applyMix(1);
   A.timer = setInterval(scheduler, 25);
   scheduler();
   syncPlayBtn();
@@ -919,7 +938,150 @@ function stop() {
   A.playing = false;
   clearInterval(A.timer);
   visualQueue.length = 0;
+  members.forEach(m => { m.amb = null; });
+  applyMix(.4);
   syncPlayBtn();
+}
+
+/* ---------- Ambient mode ----------
+   No grid: each person makes their sound at random moments, at their own pace, softer and further
+   away, with notes taken from one slow-drifting chord over a quiet room tone. A person's sound is a
+   short list of steps; steps are played as they come within the lookahead, then a random gap follows. */
+const rand = (a, b) => a + Math.random() * (b - a);
+const chance = p => Math.random() < p;
+const ambNote = (c, off = 24) => c.chord[Math.floor(Math.random() * c.chord.length)] + off;
+const AMBIENT = {
+  typing(m, c) {
+    // a burst of keys at an uneven pace, sometimes finished with Enter
+    const steps = [], n = Math.floor(rand(5, 20));
+    let at = 0;
+    for (let i = 0; i < n; i++) { at += chance(.12) ? rand(.3, .6) : rand(.07, .2); const v = rand(.18, .32); steps.push([at, t => (SND.key(m.out, t, v), true)]); }
+    if (chance(.35)) steps.push([at + rand(.25, .5), t => (SND.enter(m.out, t, .4), true)]);
+    return { steps, gap: [3, 9] };
+  },
+  clicking(m, c) {
+    if (chance(.15)) return { steps: [[0, t => { for (let k = 0; k < 5; k++) SND.wheel(m.out, t + k * .045, .3); return true; }]], gap: [2, 6] };
+    const steps = [[0, t => (SND.mouse(m.out, t, .4), true)]];
+    if (chance(.4)) steps.push([rand(.11, .16), t => (SND.mouse(m.out, t, .32), true)]);
+    return { steps, gap: [2, 6] };
+  },
+  cough(m, c) {
+    // squaring up a stack: two or three knocks on the desk
+    const steps = [], n = chance(.5) ? 2 : 3;
+    let at = 0;
+    for (let i = 0; i < n; i++) { steps.push([at, t => (SND.cough(m.out, t, rand(.32, .45), rand(140, 180)), true)]); at += rand(.18, .3); }
+    return { steps, gap: [10, 20] };
+  },
+  stamp(m, c) {
+    const one = t => (m.variant % 2 ? SND.stapler(m.out, t, rand(.35, .5)) : SND.stamp(m.out, t, rand(.35, .5)), true);
+    return { steps: chance(.25) ? [[0, one], [rand(.35, .5), one]] : [[0, one]], gap: [5, 12] };
+  },
+  phone(m, c) {
+    // two or three rings, then the call is picked up
+    const steps = [], n = chance(.5) ? 2 : 3, f = mtof(ambNote(c, 24));
+    for (let i = 0; i < n; i++) steps.push([i * 1.9, t => (m.variant % 2 ? SND.beep(m.out, t, f, .45, .12) : SND.ring(m.out, t, f, 1, .26), true)]);
+    return { steps, gap: [30, 60] };
+  },
+  copier(m, c) {
+    const steps = [], n = chance(.3) ? Math.floor(rand(2, 4)) : 1, root = mtof(c.chord[0] - 24);
+    for (let i = 0; i < n; i++) steps.push([i * 2.9, t => (m.variant % 2 ? SND.printer(m.out, t, root * 3, .5, .08) : SND.copier(m.out, t, 2.6, root, .3), true)]);
+    return { steps, gap: [20, 40] };
+  },
+  glass(m, c) {
+    const steps = [[0, t => (SND.glass(m.out, t, mtof(ambNote(c, 24)), rand(.14, .2)), true)]];
+    if (chance(.3)) steps.push([rand(.4, .9), t => (SND.glass(m.out, t, mtof(ambNote(c, 24)), rand(.1, .15)), true)]);
+    return { steps, gap: [4, 10] };
+  },
+  coffee(m, c) {
+    // grind, pump, a few drips into the cup, a little steam
+    const root = mtof(c.chord[0] - 12), steps = [
+      [0, t => (SND.grinder(m.out, t, 1.2, .25), true)],
+      [1.6, t => (SND.pump(m.out, t, root, 2.4, .18), true)],
+    ];
+    const drips = Math.floor(rand(3, 6));
+    for (let i = 0; i < drips; i++) steps.push([4.2 + i * rand(.35, .6), t => (SND.drip(m.out, t, mtof(ambNote(c, 24)), .22), true)]);
+    if (chance(.6)) steps.push([7.4, t => (SND.steam(m.out, t, 2, .08), true)]);
+    return { steps, gap: [40, 70] };
+  },
+  flush(m, c) {
+    if (m.variant % 2) {
+      const steps = [], n = Math.floor(rand(2, 5));
+      for (let i = 0; i < n; i++) steps.push([i * rand(.5, 1.1), t => (SND.drip(m.out, t, mtof(ambNote(c, 12)), .25), true)]);
+      return { steps, gap: [12, 25] };
+    }
+    return { steps: [[0, t => (SND.flush(m.out, t, 2.4, .42), true)], [3, t => (SND.refill(m.out, t, mtof(c.chord[2] + 24), 3, .035), false)]], gap: [60, 90] };
+  },
+};
+// busyness 0..1 shortens the gaps between sounds
+const busyScale = () => 1.8 - A.busy * 1.25;
+function ambientTick() {
+  const ct = A.ctx.currentTime;
+  if (ct >= A.chordAt) { A.chordIdx = (A.chordIdx + (chance(.5) ? 1 : 3)) % CHORDS.length; A.chordAt = ct + rand(15, 25); }
+  const c = { chord: CHORDS[A.chordIdx] };
+  for (const m of members) {
+    if (!m.out) continue;
+    if (!m.amb) m.amb = { q: [], next: ct + rand(.3, 6) };
+    const a = m.amb;
+    if (!a.q.length && a.next < ct + 0.12) {
+      const ev = AMBIENT[m.role](m, c), t0 = Math.max(a.next, ct + 0.03);
+      a.q = ev.steps.map(([dt, fn]) => ({ t: t0 + dt, fn }));
+      const last = a.q[a.q.length - 1].t;
+      a.next = last + rand(ev.gap[0], ev.gap[1]) * busyScale();
+    }
+    while (a.q.length && a.q[0].t < ct + 0.12) {
+      const s = a.q.shift();
+      if (s.fn(s.t)) queueVisual({ id: m.id, t: s.t });
+    }
+  }
+}
+// the visual queue stays sorted by time: ambient steps arrive out of order across people
+function queueVisual(ev) {
+  let i = visualQueue.length;
+  while (i > 0 && visualQueue[i - 1].t > ev.t) i--;
+  visualQueue.splice(i, 0, ev);
+}
+// the mix for each mode: ambient is softer, wetter, wider, over a quiet room tone
+function applyMix(fade = .8) {
+  if (!A.ctx) return;
+  const t = A.ctx.currentTime, amb = A.mode === "ambient";
+  A.revOut.gain.setTargetAtTime(amb ? .95 : .55, t, fade / 3);
+  A.dly.delayTime.setTargetAtTime(amb ? .55 : 60 / A.bpm * 0.75, t, .05);
+  A.room.gain.setTargetAtTime(amb && A.playing ? 1 : 0, t, fade);
+  members.forEach(m => { const pan = m.nodes && m.nodes[0]; if (pan && pan.pan) pan.pan.setTargetAtTime(Math.max(-1, Math.min(1, (SEATS[m.desk].sx - LW / 2) / (LW / 2) * (amb ? .95 : .7))), t, fade / 3); });
+}
+function roomTone(ctx) {
+  // air conditioning: soft low noise, and the faint hum of the lights
+  A.room = ctx.createGain(); A.room.gain.value = 0; A.room.connect(A.master);
+  const n = ctx.createBufferSource(); n.buffer = A.noise; n.loop = true;
+  const lp = filt("lowpass", 420, .5), ng = ctx.createGain(); ng.gain.value = .045;
+  n.connect(lp); lp.connect(ng); ng.connect(A.room); n.start();
+  [[100, .006], [200, .003]].forEach(([f, v]) => { const o = ctx.createOscillator(), og = ctx.createGain(); o.frequency.value = f; og.gain.value = v; o.connect(og); og.connect(A.room); o.start(); });
+}
+function setMode(mode) {
+  if (mode === A.mode) return;
+  const go = () => {
+    A.mode = mode;
+    members.forEach(m => { m.amb = null; });
+    visualQueue.length = 0;
+    if (A.ctx) { A.step = 0; A.next = A.ctx.currentTime + 0.06; A.chordAt = A.ctx.currentTime + rand(15, 25); }
+    applyMix(1);
+    syncMode();
+  };
+  // fade out, swap the scheduler, fade back in
+  if (A.ctx && A.playing) {
+    const t = A.ctx.currentTime;
+    A.master.gain.cancelScheduledValues(t); A.master.gain.setTargetAtTime(0, t, .15);
+    setTimeout(() => { go(); A.master.gain.setTargetAtTime(.85 * (A.mode === "ambient" ? .95 : 1), A.ctx.currentTime, .35); }, 600);
+  } else { go(); if (A.ctx) A.master.gain.value = .85 * (A.mode === "ambient" ? .95 : 1); }
+}
+function syncMode() {
+  const amb = A.mode === "ambient";
+  document.querySelectorAll(".mode button").forEach(b => { const on = b.dataset.mode === A.mode; b.setAttribute("aria-checked", String(on)); b.classList.toggle("on", on); });
+  $("tempoName").textContent = amb ? "Busyness" : "Tempo";
+  const el = $("tempo");
+  el.value = amb ? 70 + A.busy * 50 : A.bpm;
+  $("tempoOut").textContent = amb ? (A.busy < .34 ? "sleepy" : A.busy < .67 ? "steady" : "busy") : A.bpm + " bpm";
+  el.setAttribute("aria-label", amb ? "Busyness" : "Tempo");
 }
 
 /* ---------- Office geometry: an architect's axonometric ----------
@@ -1238,12 +1400,15 @@ function syncPlayBtn() {
   $("playBtn").setAttribute("aria-pressed", String(A.playing));
 }
 $("playBtn").addEventListener("click", () => A.playing ? stop() : start());
+document.querySelectorAll(".mode button").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+syncMode();
 const menu = $("menu"), menuBtn = $("menuBtn");
 function setMenu(open) { menu.hidden = !open; menuBtn.setAttribute("aria-expanded", String(open)); if (open) $("menuClose").focus(); }
 menuBtn.addEventListener("click", () => setMenu(menu.hidden));
 $("menuClose").addEventListener("click", () => { setMenu(false); menuBtn.focus(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !menu.hidden) { setMenu(false); menuBtn.focus(); } });
 $("tempo").addEventListener("input", e => {
+  if (A.mode === "ambient") { A.busy = (+e.target.value - 70) / 50; syncMode(); return; }
   A.bpm = +e.target.value; $("tempoOut").textContent = A.bpm + " bpm"; setDelayTime();
 });
 $("fillBtn").addEventListener("click", () => {
@@ -1513,7 +1678,7 @@ function drawVitals(now) {
     g.fillStyle = glow > .3 ? PAL.coral : shade(PAL.coral, .7);
     g.font = "600 4px Archivo, sans-serif"; g.textBaseline = "top";
     g.fillText("♥", 2, 2);
-    g.fillStyle = PAL.ecg; g.fillText(`${A.bpm} BPM`, 7, 2);
+    g.fillStyle = PAL.ecg; g.fillText(A.mode === "ambient" ? "CALM" : `${A.bpm} BPM`, 7, 2);
     g.fillStyle = hexA(PAL.ecg, .6); g.fillText(`${members.length} IN TODAY`, 2, H - 6);
     g.beginPath(); g.strokeStyle = PAL.ecg; g.lineWidth = .5; g.lineJoin = "round";
     const live = A.playing && A.analyser && members.length;
