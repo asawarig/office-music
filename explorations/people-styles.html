@@ -37,6 +37,7 @@ h1 { font: 800 clamp(34px, 6vw, 56px)/.95 var(--font-display); letter-spacing: -
 .card h2 { font: 800 19px/1.15 var(--font-display); margin: 0; display: flex; gap: 10px; align-items: baseline; }
 .card h2 b { font: 600 12px var(--font-display); border: 1px solid var(--edge); border-radius: 50%; width: 24px; height: 24px; display: inline-grid; place-items: center; flex: none; }
 .card p { margin: 0; color: var(--muted); font-size: 14px; }
+.card .fam { font: 600 11px var(--font-display); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
 canvas { display: block; width: 100%; max-width: 100%; }
 </style>
 </head>
@@ -44,8 +45,8 @@ canvas { display: block; width: 100%; max-width: 100%; }
 <div class="wrap">
   <header>
     <p class="eyebrow">Office Pulse · people for the pastel plan</p>
-    <h1>Ten people styles</h1>
-    <p class="lede">Each style sits in the same isometric space as the office, with real depth: rounded limbs, shaded faces of the body, floor shadows. They all share one skeleton, so the animation for each sound is the same move drawn ten ways. Pick a sound, or let it cycle.</p>
+    <h1>Ten people, three families</h1>
+    <p class="lede">Drawn after your three references: crayon people with textured colour and tiny heads, architects' scale figures in long tapered coats, and noodle characters with bendy limbs and big noses. Each sits in the plan's 3D space with a floor shadow and darker far limbs, and acts out its sound. The coffee drinker now stands at the machine: presses the button, waits for the cup, then sips.</p>
   </header>
   <div class="sounds" role="group" aria-label="Sound to animate">
     <span>Sound</span>
@@ -116,8 +117,9 @@ const SOUNDS = [
 ];
 // returns joint positions in world space plus extras for props and faces
 function pose(sound, t) {
-  const standing = sound === "copier";
-  const hip = standing ? [0, 0, 21] : [0, 0, 11];
+  const coffee = sound === "coffee", standing = coffee || sound === "copier";
+  const dir = coffee ? -1 : 1;                     // the coffee drinker faces the machine, back to you
+  const hip = coffee ? [15, 0, 21] : standing ? [0, 0, 21] : [0, 0, 11];
   let lean = .12, nod = 0, tilt = 0, bob = 0, mouth = "smile";
   const desk = (x, y, dz = 0) => [x, y, 14.6 + dz];   // a point on the desk top
   let hL = desk(11, -3), hR = desk(11, 3), prop = null, fx = null;
@@ -126,7 +128,7 @@ function pose(sound, t) {
     hL = desk(11.5, -2.6, tap(0)); hR = desk(11.5, 2.6, tap(2.1)); nod = Math.sin(t * 3) * .04; lean = .2;
   } else if (sound === "clicking") {
     const ph = (t * 2.2) % 1, click = ph < .12 ? -.5 : 0;
-    hR = desk(12.5, 5.2, .8 + click); hL = desk(11, -2.5); prop = { kind: "mouse", at: desk(12.8, 5.2, 0) , down: click < 0 };
+    hR = desk(12.5, 5.2, .8 + click); hL = desk(11, -2.5); prop = { kind: "mouse", at: desk(12.8, 5.2, 0), down: click < 0 };
     nod = Math.sin(t * 2.2 * Math.PI * 2) * .03; lean = .16;
   } else if (sound === "phone") {
     tilt = .28; bob = Math.sin(t * 7) * .15; mouth = Math.sin(t * 9) > 0 ? "open" : "smile";
@@ -136,9 +138,17 @@ function pose(sound, t) {
     lean = .14 + spike * .4; nod = spike * .35; mouth = spike > .2 ? "cough" : "flat";
     prop = { kind: "coughHand", w: ph < .6 ? 1 : Math.max(0, 1 - (ph - .6) / .2) }; hR = desk(10.5, 3);
     if (spike > .3) fx = { kind: "puff", s: spike };
-  } else if (sound === "coffee") {
-    const ph = (t % 2.6) / 2.6, up = ph < .3 ? ease(ph / .3) : ph < .62 ? 1 : ph < .9 ? 1 - ease((ph - .62) / .28) : 0;
-    prop = { kind: "cup", up }; nod = -up * .18; mouth = up > .8 ? "sip" : "smile"; hL = desk(10.5, -2.5);
+  } else if (coffee) {
+    // press the button, wait while the cup fills, lift it and sip, put it back on the tray
+    const ph = (t % 3.6) / 3.6;
+    const press = ph < .14 ? Math.sin(ph / .14 * Math.PI) : 0;
+    const fill = ph > .96 ? 0 : Math.min(1, Math.max(0, (ph - .14) / .3));
+    const up = ph < .5 ? 0 : ph < .64 ? ease((ph - .5) / .14) : ph < .82 ? 1 : ph < .95 ? 1 - ease((ph - .82) / .13) : 0;
+    prop = { kind: "machine", press, fill, up, pouring: ph > .14 && ph < .44 };
+    lean = .06; nod = .1 - up * .3; mouth = up > .8 ? "sip" : "smile";
+    hL = [10.4, -4.6, 14.3];
+    hR = press > 0 ? lerp3([11, 3.5, 15.5], [8.7, 2.2, 22.5], press) : [11, 3.5, 15.5];
+    if (up > 0 && up < .98 && fill >= 1) fx = { kind: "steam" };
   } else if (sound === "stamp") {
     const ph = (t % 1.0) / 1.0;
     const h = ph < .55 ? ease(ph / .55) : ph < .66 ? 1 - (ph - .55) / .11 : 0;
@@ -152,30 +162,29 @@ function pose(sound, t) {
     const ph = (t * 1.6) % 1, press = ph < .2 ? Math.sin(ph / .2 * Math.PI) : 0;
     hR = [8.2, 3.2, 22.4 - press * .9]; hL = [3, -4.5, 15]; lean = .08; nod = .12; prop = { kind: "copier", sweep: (t * .6) % 1 };
   }
-  // torso and head
-  const neck = add(hip, [Math.sin(lean) * 14, 0, Math.cos(lean) * 14 + bob]);
-  const head = add(neck, [Math.sin(lean + nod) * 5.2, tilt * 4.5, Math.cos(lean + nod) * 5.2]);
-  const shL = add(neck, [-.6, -5, -1.2]), shR = add(neck, [-.6, 5, -1.2]);
-  // props that fix where a hand goes
-  if (prop && prop.kind === "phone") hR = add(head, [.6, 5.2, -.8]);
-  if (prop && prop.kind === "coughHand") hL = lerp3(desk(10.5, -2.5), add(head, [4.6, -.8, -2.2]), prop.w);
-  if (prop && prop.kind === "cup") hR = lerp3(desk(11.2, 3.6, 1.6), add(head, [4.4, 1.2, -2.6]), prop.up);
-  const pole = s => [-.3, s * .5, -1];
+  const fw = x => x * dir;
+  const neck = add(hip, [fw(Math.sin(lean) * 14), 0, Math.cos(lean) * 14 + bob]);
+  const head = add(neck, [fw(Math.sin(lean + nod) * 5.2), tilt * 4.5, Math.cos(lean + nod) * 5.2]);
+  const shL = add(neck, [fw(-.6), -4.4, -1.4]), shR = add(neck, [fw(-.6), 4.4, -1.4]);
+  if (prop && prop.kind === "phone") hR = add(head, [.6, 4.6, -.8]);
+  if (prop && prop.kind === "coughHand") hL = lerp3(desk(10.5, -2.5), add(head, [4.2, -.8, -2.2]), prop.w);
+  if (prop && prop.kind === "machine" && prop.up > 0) hR = lerp3([9.8, -1.1, 16], add(head, [fw(3.8), 1.2, -2.4]), prop.up);
+  const pole = s => [-.3 * dir, s * .5, -1];
   const elL = ik(shL, hL, 7.4, 7.6, pole(-1)), elR = ik(shR, hR, 7.4, 7.6, pole(1));
-  // legs: seated thighs forward and shins down; standing legs straight
-  const hipL = add(hip, [0, -3, 0]), hipR = add(hip, [0, 3, 0]);
+  const hipL = add(hip, [0, -2.6, 0]), hipR = add(hip, [0, 2.6, 0]);
   const legs = standing
-    ? { knL: add(hipL, [.6, -.2, -10.5]), knR: add(hipR, [.6, .2, -10.5]), anL: [hipL[0] + .4, hipL[1] - .3, 1], anR: [hipR[0] + .4, hipR[1] + .3, 1] }
+    ? { knL: add(hipL, [fw(.6), -.2, -10.5]), knR: add(hipR, [fw(.6), .2, -10.5]), anL: [hipL[0] + fw(.4), hipL[1] - .3, 1], anR: [hipR[0] + fw(.4), hipR[1] + .3, 1] }
     : { knL: add(hipL, [10, -.5, .3]), knR: add(hipR, [10, .5, .3]), anL: add(hipL, [10.4, -.6, -10]), anR: add(hipR, [10.4, .6, -10]) };
-  const toeL = add(legs.anL, [3, 0, 0]), toeR = add(legs.anR, [3, 0, 0]);
-  return { standing, hip, neck, head, shL, shR, elL, elR, hL, hR, hipL, hipR, ...legs, toeL, toeR, lean, nod, tilt, mouth, prop, fx, t };
+  const toeL = add(legs.anL, [fw(2.6), 0, 0]), toeR = add(legs.anR, [fw(2.6), 0, 0]);
+  return { standing, coffee, dir, back: dir < 0, hip, neck, head, shL, shR, elL, elR, hL, hR, hipL, hipR, ...legs, toeL, toeR, lean, nod, tilt, mouth, prop, fx, t };
 }
 
-/* ---------- vignette: floor, chair, desk or copier, and props ---------- */
+/* ---------- vignette: floor, chair, desk, copier or coffee counter, and props ---------- */
 function setting(sk, chairCol = PAL.chair) {
   const fl = [P(-12, -12, 0), P(28, -12, 0), P(28, 14, 0), P(-12, 14, 0)];
   polyS(fl, PAL.floor, INK, .8);
   for (let y = -9; y < 14; y += 3) line2(P(-12, y, 0), P(28, y, 0), PAL.plank, .8);
+  if (sk.coffee) { coffeeCounter(sk); return; }
   if (sk.standing) return;
   // chair, turned to face the desk
   for (let k = 0; k < 5; k++) { const a = k * 1.2566 + .3; line2(P(0, 0, 2), P(Math.cos(a) * 5, Math.sin(a) * 5, .5), INK, 1.4); }
@@ -183,18 +192,36 @@ function setting(sk, chairCol = PAL.chair) {
   box(-6.2, -5, 11, -4.8, 5, 25, chairCol, shade(chairCol, .9), shade(chairCol, .85));
   box(-5, -5, 9.5, 5, 5, 11, chairCol, shade(chairCol, .9), shade(chairCol, .85));
 }
+// counter against the back with the machine on it, its front toward the person and you
+function coffeeCounter(sk) {
+  const pr = sk.prop;
+  box(-2, -10, 0, 9, 10, 14, "#ffffff", PAL.sage, shade(PAL.sage, .9));
+  for (let y = -8; y < 9; y += 5.6) polyS([P(9.02, y, 2), P(9.02, y + 4.6, 2), P(9.02, y + 4.6, 12), P(9.02, y, 12)], null, INK, .7);
+  box(1, -5.5, 14, 8.2, 3.5, 27, PAL.coral, shade(PAL.coral, .9), shade(PAL.coral, .82));
+  box(1, -5.5, 25, 8.2, 3.5, 27, "#2b2b2e", "#2b2b2e", "#2b2b2e");
+  box(8.2, -3, 14, 10.8, .8, 14.7, "#d8d8d6", "#c8c8c6", "#c8c8c6");           // drip tray
+  box(8.2, -2, 20.2, 9.6, -.2, 21.4, "#2b2b2e", "#2b2b2e", "#2b2b2e");          // spout
+  const btn = P(8.25, 2.2, 22.5); c.beginPath(); c.arc(btn[0], btn[1], 2.2 + (pr.press > .5 ? -.5 : 0), 0, 7); c.fillStyle = pr.press > .3 ? PAL.yellow : "#ffffff"; c.fill(); c.strokeStyle = INK; c.lineWidth = .8; c.stroke();
+  if (pr.pouring) line2(P(9.1, -1.1, 20.2), P(9.6, -1.1, 15.6 + pr.fill * 2.2), "#7a4a2a", 2);
+  if (pr.up <= 0) cup([9.6, -1.1, 14.7], pr.fill);
+  box(-1, 4.5, 14, 4, 9, 18, "#ffffff", PAL.sky, shade(PAL.sky, .9));         // a tin of beans
+}
+function cup(base, fill) {
+  ellipseZ(base[0], base[1], base[2], 1.5, "#ffffff"); const top = add(base, [0, 0, 3.2]);
+  line2(P(base[0] - 1.05, base[1] + 1.05, base[2]), P(top[0] - 1.05, top[1] + 1.05, top[2]), INK, 1); line2(P(base[0] + 1.05, base[1] - 1.05, base[2]), P(top[0] + 1.05, top[1] - 1.05, top[2]), INK, 1);
+  ellipseZ(top[0], top[1], top[2], 1.5, fill > .5 ? "#7a4a2a" : "#ffffff");
+}
 function deskAndProps(sk) {
+  if (sk.coffee) return;
   if (sk.standing) { copier(sk); return; }
-  // desk legs and top
   [[9.5, -11], [26, -11], [9.5, 11], [26, 11]].forEach(([x, y]) => line2(P(x, y, 0), P(x, y, 14), INK, 1.4));
   box(9, -12, 13.6, 26.5, 12, 14.6, PAL.desk, PAL.deskSide, PAL.deskSide);
-  // laptop, its screen toward the sitter
   box(10.5, -4.5, 14.6, 16.5, 4.5, 15.1, "#eeeeec", "#e2e2e0", "#e2e2e0");
   polyS([P(16.5, -4.5, 15.1), P(16.5, 4.5, 15.1), P(17.6, 4.5, 21.5), P(17.6, -4.5, 21.5)], PAL.sky, INK, 1);
   const pr = sk.prop;
   if (pr && pr.kind === "mouse") { const [x, y] = P(...pr.at); c.beginPath(); c.ellipse(x, y + (pr.down ? 1 : 0), 4.2, 2.6, -.45, 0, 7); c.fillStyle = "#ffffff"; c.fill(); c.strokeStyle = INK; c.lineWidth = 1; c.stroke(); }
-  if (!pr || pr.kind !== "cup") { ellipseZ(22, 7, 14.7, 1.8, PAL.pink); line2(P(20.2, 7, 14.7), P(20.2, 7, 17.5), INK, 1); line2(P(23.8, 7, 14.7), P(23.8, 7, 17.5), INK, 1); ellipseZ(22, 7, 17.5, 1.8, PAL.pink); }
-  if (pr && pr.kind === "stamp") { polyS([P(12, 1, 14.62), P(18, 1, 14.62), P(18, 7, 14.62), P(12, 7, 14.62)], "#ffffff", INK, .8); }
+  ellipseZ(22, 7, 14.7, 1.8, PAL.pink); line2(P(20.2, 7, 14.7), P(20.2, 7, 17.5), INK, 1); line2(P(23.8, 7, 14.7), P(23.8, 7, 17.5), INK, 1); ellipseZ(22, 7, 17.5, 1.8, PAL.pink);
+  if (pr && pr.kind === "stamp") polyS([P(12, 1, 14.62), P(18, 1, 14.62), P(18, 7, 14.62), P(12, 7, 14.62)], "#ffffff", INK, .8);
   if (pr && pr.kind === "glass") {
     const gx = 12.6, gy = -1.6;
     ellipseZ(gx, gy, 14.7, 2.2, "rgba(214,235,247,.6)"); ellipseZ(gx, gy, 17.2, 2.2, "rgba(159,211,236,.85)"); ellipseZ(gx, gy, 20, 2.2, "rgba(214,235,247,.4)");
@@ -209,146 +236,171 @@ function copier(sk) {
   box(16, -6, 6, 22, 6, 7, "#ffffff", PAL.deskSide, PAL.deskSide);
   box(8, 2.5, 19, 10, 4.5, 20.2, PAL.coral, shade(PAL.coral, .9), shade(PAL.coral, .8));
 }
-// things held in the hand, drawn after the near arm
-function handProps(sk, skin) {
+function handProps(sk) {
   const pr = sk.prop; if (!pr) return;
   if (pr.kind === "phone") { const a = P(...add(sk.hR, [-.4, -.4, 1.8])), b = P(...add(sk.hR, [.6, .2, -2.2])); line2(a, b, INK, 6); line2(a, b, PAL.coral, 4); }
-  if (pr.kind === "cup") { const base = add(sk.hR, [.8, -.3, -1.2]); ellipseZ(base[0], base[1], base[2], 1.6, PAL.coral); const top = add(base, [0, 0, 3.4]); line2(P(base[0] - 1.1, base[1] + 1.1, base[2]), P(top[0] - 1.1, top[1] + 1.1, top[2]), INK, 1); line2(P(base[0] + 1.1, base[1] - 1.1, base[2]), P(top[0] + 1.1, top[1] - 1.1, top[2]), INK, 1); ellipseZ(top[0], top[1], top[2], 1.6, "#ffffff"); }
+  if (pr.kind === "machine" && pr.up > 0) cup(add(sk.hR, [0, 0, -1.4]), 1);
   if (pr.kind === "stamp") { const h = sk.hR; box(h[0] - 1.6, h[1] - 1.6, h[2] - 3.4, h[0] + 1.6, h[1] + 1.6, h[2] - 2.2, PAL.coral, shade(PAL.coral, .9), shade(PAL.coral, .8), .8); line2(P(...add(h, [0, 0, -2.2])), P(...add(h, [0, 0, .6])), INK, 2.4); }
   if (pr.kind === "glass") line2(P(...sk.hR), P(...add(sk.hR, [2.6, -3.2, -1.4])), INK, 1.6);
 }
 function effects(sk) {
   const fx = sk.fx; if (!fx) return;
-  if (fx.kind === "puff") { const p = P(...add(sk.head, [7, 0, -1])); c.strokeStyle = INK; c.lineWidth = 1; for (let k = 0; k < 3; k++) { c.beginPath(); c.arc(p[0] + k * 5, p[1] + k * 1.5, 2 + k * .8, 0, 7); c.stroke(); } }
-  if (fx.kind === "slam") { const p = P(...add(sk.hR, [0, 0, -3])); c.strokeStyle = PAL.coral; c.lineWidth = 1.6; [[-12, -3], [12, -4], [-10, 5], [11, 5]].forEach(([dx, dy]) => line2([p[0] + dx * .6, p[1] + dy * .6], [p[0] + dx, p[1] + dy], PAL.coral, 1.6)); }
+  if (fx.kind === "puff") { const p = P(...add(sk.head, [6, 0, -1])); c.strokeStyle = INK; c.lineWidth = 1; for (let k = 0; k < 3; k++) { c.beginPath(); c.arc(p[0] + k * 5, p[1] + k * 1.5, 2 + k * .8, 0, 7); c.stroke(); } }
+  if (fx.kind === "slam") { const p = P(...add(sk.hR, [0, 0, -3])); [[-12, -3], [12, -4], [-10, 5], [11, 5]].forEach(([dx, dy]) => line2([p[0] + dx * .6, p[1] + dy * .6], [p[0] + dx, p[1] + dy], PAL.coral, 1.6)); }
   if (fx.kind === "ting") { const p = P(12.6, -1.6, 22); c.fillStyle = PAL.coral; c.font = "700 12px Archivo, sans-serif"; c.fillText("♪", p[0] + 4, p[1] - 4); }
-}
-function faceDots(hp, r, sk, opt = {}) {
-  // eyes and mouth on the visible side of the head, turned toward the facing direction
-  const [x, y] = hp, s = r / 5.5, ox = 3.2 * s, eyeY = y - 1 * s;
-  c.fillStyle = opt.ink || INK;
-  c.beginPath(); c.arc(x + ox - 3 * s, eyeY, 1.1 * s, 0, 7); c.arc(x + ox + 2.6 * s, eyeY + 1.3 * s, 1.1 * s, 0, 7); c.fill();
-  c.strokeStyle = opt.ink || INK; c.lineWidth = 1.1 * Math.max(1, s * .8);
-  const mx = x + ox, my = y + 4 * s;
-  if (sk.mouth === "open" || sk.mouth === "cough") { c.beginPath(); c.ellipse(mx, my, (sk.mouth === "cough" ? 1.8 : 1.3) * s, (sk.mouth === "cough" ? 1.6 : 1) * s, 0, 0, 7); c.fillStyle = opt.ink || INK; c.fill(); }
-  else if (sk.mouth === "sip") { c.beginPath(); c.arc(mx, my, .9 * s, 0, 7); c.stroke(); }
-  else if (sk.mouth === "flat") { line2([mx - 1.4 * s, my], [mx + 1.4 * s, my], opt.ink || INK, 1.1); }
-  else { c.beginPath(); c.arc(mx, my - .8 * s, 1.6 * s, .25, Math.PI - .25); c.stroke(); }
-  if (opt.blush) { c.fillStyle = opt.blush; c.globalAlpha = .7; c.beginPath(); c.ellipse(x + ox + 4.6 * s, y + 2 * s, 1.6 * s, 1 * s, 0, 0, 7); c.fill(); c.globalAlpha = 1; }
+  if (fx.kind === "steam") { const p = P(...add(sk.hR, [0, 0, 3])); c.strokeStyle = "#9a9a9c"; c.lineWidth = 1; for (let k = 0; k < 2; k++) { c.beginPath(); const x = p[0] - 2 + k * 4, ph = sk.t * 4 + k; c.moveTo(x, p[1]); c.bezierCurveTo(x + Math.sin(ph) * 3, p[1] - 5, x - Math.sin(ph) * 3, p[1] - 9, x, p[1] - 13); c.stroke(); } }
 }
 
-/* ---------- ten styles ----------
-   each draws: far leg, near leg, (desk), far arm, torso, head, near arm. "parts" splits around the desk. */
-function legs(sk, fn) { fn(sk.hipL, sk.knL, sk.anL, sk.toeL, false); fn(sk.hipR, sk.knR, sk.anR, sk.toeR, true); }
+/* ---------- 2D figure helpers: the people are drawn flat, like the references, over the 3D scene ---------- */
+const Q = p => P(...p);
+function joints(sk) { const o = {}; ["hip", "hipL", "hipR", "knL", "knR", "anL", "anR", "toeL", "toeR", "neck", "head", "shL", "shR", "elL", "elR", "hL", "hR"].forEach(k => o[k] = Q(sk[k])); o.f = sk.dir; o.back = sk.back; return o; }
+function sp(pts, w, col, cap = "round", join = "round") { c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.strokeStyle = col; c.lineWidth = w; c.lineCap = cap; c.lineJoin = join; c.stroke(); }
+// a smooth limb bending through its middle joint
+function noodle(a, m, b, w, col) { c.beginPath(); c.moveTo(a[0], a[1]); c.quadraticCurveTo(2 * m[0] - (a[0] + b[0]) / 2, 2 * m[1] - (a[1] + b[1]) / 2, b[0], b[1]); c.strokeStyle = col; c.lineWidth = w; c.lineCap = "round"; c.stroke(); }
+function fillPts(pts, col, ink, lw = 1) { c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); if (col) { c.fillStyle = col; c.fill(); } if (ink) { c.strokeStyle = ink; c.lineWidth = lw; c.lineJoin = "round"; c.stroke(); } }
+function hull(p) {
+  p = p.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lo = [], up = [];
+  for (const q of p) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (const q of p.slice().reverse()) { while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+function tinyFace(J, r, ink, opt = {}) {
+  if (J.back) return;
+  const [x, y] = J.head, f = J.f;
+  c.fillStyle = ink;
+  c.beginPath(); c.arc(x + f * r * .25, y - r * .1, Math.max(.9, r * .13), 0, 7); c.arc(x + f * r * .7, y - r * .02, Math.max(.9, r * .13), 0, 7); c.fill();
+  if (opt.blush) { c.fillStyle = opt.blush; c.globalAlpha = .6; c.beginPath(); c.ellipse(x + f * r * .45, y + r * .35, r * .22, r * .14, 0, 0, 7); c.fill(); c.globalAlpha = 1; }
+  const mx = x + f * r * .5, my = y + r * .5;
+  if (J.mouth === "cough" || J.mouth === "open") { c.beginPath(); c.ellipse(mx, my, r * .17, r * .16, 0, 0, 7); c.fillStyle = ink; c.fill(); }
+  else if (J.mouth === "sip") { c.beginPath(); c.arc(mx, my, r * .1, 0, 7); c.strokeStyle = ink; c.lineWidth = 1; c.stroke(); }
+  else sp([[mx - r * .16, my], [mx + r * .16, my]], 1, ink);
+}
+
+/* crayon grain: a fixed pattern of short strokes laid over each crayon figure */
+let grain = null;
+function grainPattern() {
+  if (grain) return grain;
+  const g = document.createElement("canvas"); g.width = g.height = 80; const x = g.getContext("2d");
+  for (let i = 0; i < 700; i++) { const px = Math.random() * 80, py = Math.random() * 80, l = 2 + Math.random() * 4; x.strokeStyle = Math.random() < .55 ? "rgba(0,0,0,.16)" : "rgba(255,255,255,.28)"; x.lineWidth = .8; x.beginPath(); x.moveTo(px, py); x.lineTo(px + (Math.random() - .5) * 1.2, py + l); x.stroke(); }
+  return grain = c.createPattern(g, "repeat");
+}
+let layer = null, layerCtx = null;
+function crayonPass(main, fn) {
+  if (!layer) { layer = document.createElement("canvas"); layer.width = W * DPR; layer.height = H * DPR; layerCtx = layer.getContext("2d"); }
+  layerCtx.setTransform(1, 0, 0, 1, 0, 0); layerCtx.clearRect(0, 0, layer.width, layer.height); layerCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  c = layerCtx; fn();
+  c.globalCompositeOperation = "source-atop"; c.fillStyle = grainPattern(); c.fillRect(0, 0, W, H); c.globalCompositeOperation = "source-over";
+  c = main; c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(layer, 0, 0); c.restore();
+}
+
+/* ---------- three families, ten styles ---------- */
+// crayon people: tall, small heads, boxy sweaters, wide trousers, textured colour, no outlines
+function crayonStyle(o) {
+  return {
+    crayon: true,
+    lower(sk, L) {
+      const J = joints(sk);
+      [["L", .82], ["R", 1]].forEach(([s, k]) => { const col = shade(L.pants, k); sp([J["hip" + s], J["kn" + s], J["an" + s]], 3.1 * KS, col, "butt"); if (L.pantsDots) { c.fillStyle = shade(L.pants, .6); for (let i = 1; i < 6; i++) { const p = mix(J["kn" + s], J["an" + s], i / 6); c.fillRect(p[0] + (i % 2 ? -2 : 2), p[1], 1.6, 1.6); } } sp([J["an" + s], J["toe" + s]], 1.4 * KS, L.shoes); });
+    },
+    upper(sk, L) {
+      const J = joints(sk), sw = 2.4 * KS;
+      sp([J.shL, J.elL, J.hL], 2.2 * KS, shade(L.top, .82)); c.beginPath(); c.arc(J.hL[0], J.hL[1], .9 * KS, 0, 7); c.fillStyle = shade(L.skin, .9); c.fill();
+      const torso = [J.shL, J.shR, mix(J.hipR, J.shR, -.05), mix(J.hipL, J.shL, -.05)];
+      if (o.coat) torso.push(...(sk.standing ? [mix(J.hipL, J.knL, .6), mix(J.hipR, J.knR, .6)] : []));
+      const h = hull(torso);
+      fillPts(h, L.top, L.top, sw);
+      if (L.stripes || L.dots) { c.save(); c.beginPath(); h.forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.closePath(); c.lineWidth = sw; c.stroke(); c.clip(); c.strokeStyle = shade(L.top, .65); c.fillStyle = shade(L.top, .6); const [cx, cy] = J.neck; for (let k = -12; k < 30; k += 3.2) { if (L.stripes) sp([[cx - 30, cy + k], [cx + 30, cy + k + 4]], 1.2, shade(L.top, .62)); else for (let i = -20; i < 20; i += 4) c.fillRect(cx + i + (k % 2 ? 2 : 0), cy + k, 1.6, 1.6); } c.restore(); }
+      if (L.scarf) sp([mix(J.shL, J.shR, .3), J.neck, mix(J.neck, J.hip, .35)], 1.3 * KS, L.scarf);
+      sp([J.neck, mix(J.neck, J.head, .5)], 1.1 * KS, L.skin);
+      const r = 2.5 * KS; c.beginPath(); c.arc(J.head[0], J.head[1], r, 0, 7); c.fillStyle = L.skin; c.fill();
+      c.save(); c.beginPath(); c.arc(J.head[0], J.head[1], r, 0, 7); c.clip(); c.fillStyle = L.hair;
+      if (J.back) c.fillRect(J.head[0] - r, J.head[1] - r, r * 2, r * 1.7);
+      else { c.beginPath(); c.ellipse(J.head[0] - J.f * r * .35, J.head[1] - r * .55, r * 1.05, r * .7, 0, 0, 7); c.fill(); }
+      c.restore();
+      if (L.bun) { c.beginPath(); c.arc(J.head[0] - J.f * r * .4, J.head[1] - r * 1.05, r * .45, 0, 7); c.fillStyle = L.hair; c.fill(); }
+      if (L.cap) { c.fillStyle = L.cap; c.beginPath(); c.ellipse(J.head[0], J.head[1] - r * .55, r * 1.05, r * .55, 0, Math.PI, 0); c.fill(); }
+      tinyFace(J, r, "#3a2a22", { blush: "#e8857a" });
+      sp([J.shR, J.elR, J.hR], 2.2 * KS, L.top); c.beginPath(); c.arc(J.hR[0], J.hR[1], .9 * KS, 0, 7); c.fillStyle = L.skin; c.fill();
+    },
+  };
+}
+// architects' scale figures: a long tapered coat, thin legs, small faceless head, a thin outline
+function scaleStyle(o) {
+  return {
+    lower(sk, L) {
+      const J = joints(sk);
+      ["L", "R"].forEach(s => { sp([J["hip" + s], J["kn" + s], J["an" + s]], 1.4 * KS + 2, o.ink); sp([J["hip" + s], J["kn" + s], J["an" + s]], 1.4 * KS, s === "L" ? shade(L.fill, .9) : L.fill); sp([J["an" + s], J["toe" + s]], .8 * KS, o.ink); });
+    },
+    upper(sk, L) {
+      const J = joints(sk);
+      const arm = (s, col) => { sp([J["sh" + s], J["el" + s], J["h" + s]], 1.3 * KS + 2, o.ink); sp([J["sh" + s], J["el" + s], J["h" + s]], 1.3 * KS, col); };
+      arm("L", shade(L.fill, .9));
+      const pts = [mix(J.shL, J.neck, .35), mix(J.shR, J.neck, .35), J.shL, J.shR, J.hipL, J.hipR];
+      if (sk.standing) pts.push(mix(J.hipL, J.knL, .75), mix(J.hipR, J.knR, .75)); else pts.push(mix(J.hipL, J.knL, .3), mix(J.hipR, J.knR, .3));
+      const h = hull(pts); fillPts(h, L.fill, o.ink, 1.1); fillPts(h, null, L.fill, .01);
+      const [hx, hy] = J.head; c.beginPath(); c.ellipse(hx, hy, 1.9 * KS, 2.4 * KS, sk.lean * J.f, 0, 7); c.fillStyle = L.fill; c.fill(); c.strokeStyle = o.ink; c.lineWidth = 1.1; c.stroke();
+      if (L.hair) { c.save(); c.clip(); c.fillStyle = L.hair; c.fillRect(hx - 9, hy - 2.4 * KS, 18, J.back ? 4 * KS : 1.6 * KS); c.restore(); }
+      arm("R", L.fill);
+      if (L.bag && !sk.standing) { const p = mix(J.hipL, J.hipR, .5); fillPts([[p[0] - 8, p[1] - 6], [p[0] - 2, p[1] - 6], [p[0] - 2, p[1] + 1], [p[0] - 8, p[1] + 1]], L.fill, o.ink, 1); }
+    },
+  };
+}
+// noodle people: thin line, pale fill, long bendy limbs, a big nose
+function noodleStyle(o) {
+  const ink = o.ink, w = 1.25 * KS;
+  const limb = (a, m, b, col) => { noodle(a, m, b, w + 2.2, ink); noodle(a, m, b, w, col); };
+  return {
+    lower(sk, L) {
+      const J = joints(sk);
+      ["L", "R"].forEach(s => { limb(J["hip" + s], J["kn" + s], J["an" + s], s === "L" ? shade(L.pants || o.fill, .93) : (L.pants || o.fill)); const a = J["an" + s], t = J["toe" + s]; c.beginPath(); c.ellipse((a[0] + t[0]) / 2, (a[1] + t[1]) / 2 + 1, Math.hypot(t[0] - a[0], t[1] - a[1]) / 2 + 2, 2.2, Math.atan2(t[1] - a[1], t[0] - a[0]), 0, 7); c.fillStyle = L.shoes || "#ffffff"; c.fill(); c.strokeStyle = ink; c.lineWidth = 1; c.stroke(); });
+    },
+    upper(sk, L) {
+      const J = joints(sk), skin = L.skin || o.fill, top = L.top || o.fill;
+      limb(J.shL, J.elL, J.hL, shade(top, .93)); c.beginPath(); c.arc(J.hL[0], J.hL[1], 1.6, 0, 7); c.fillStyle = skin; c.fill(); c.strokeStyle = ink; c.lineWidth = 1; c.stroke();
+      // pear-shaped body with a little belly toward the front
+      const belly = [mix(J.neck, J.hip, .65)[0] + J.f * 2.6 * KS, mix(J.neck, J.hip, .65)[1] + 1.4 * KS];
+      const body = hull([mix(J.shL, J.neck, .3), mix(J.shR, J.neck, .3), J.hipL, J.hipR, belly, [J.hip[0] - J.f * 1.6 * KS, J.hip[1] - 2]]);
+      fillPts(body, top, ink, 1.1);
+      if (L.pattern) { c.save(); c.beginPath(); body.forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.closePath(); c.clip(); c.fillStyle = ink; const [bx, by] = J.neck; for (let i = 0; i < 6; i++) { c.beginPath(); c.arc(bx + J.f * (2 + (i % 3) * 3), by + 6 + Math.floor(i / 3) * 6, .9, 0, 7); c.fill(); } c.restore(); }
+      // tall head, big nose, dot eye, a tuft of hair
+      const [hx, hy] = J.head, rx = 2.2 * KS, ry = 3 * KS;
+      c.beginPath(); c.ellipse(hx, hy, rx, ry, sk.lean * J.f * .5, 0, 7); c.fillStyle = skin; c.fill(); c.strokeStyle = ink; c.lineWidth = 1.1; c.stroke();
+      if (!J.back) {
+        c.beginPath(); c.arc(hx + J.f * rx * .95, hy + ry * .1, .85 * KS, 0, 7); c.fillStyle = skin; c.fill(); c.stroke();
+        c.fillStyle = ink; c.beginPath(); c.arc(hx + J.f * rx * .35, hy - ry * .25, 1.1, 0, 7); c.fill();
+        if (J.mouth === "cough" || J.mouth === "open") { c.beginPath(); c.ellipse(hx + J.f * rx * .45, hy + ry * .55, 1.6, 1.4, 0, 0, 7); c.fill(); }
+        else if (J.mouth === "sip") { c.beginPath(); c.arc(hx + J.f * rx * .5, hy + ry * .55, 1, 0, 7); c.stroke(); }
+        else sp([[hx + J.f * rx * .2, hy + ry * .55], [hx + J.f * rx * .65, hy + ry * .5]], 1, ink);
+      }
+      c.strokeStyle = ink; c.lineWidth = 1; for (let k = 0; k < 4; k++) { c.beginPath(); const a = -Math.PI / 2 - J.f * (.3 + k * .28); c.moveTo(hx + Math.cos(a) * rx * .85, hy + Math.sin(a) * ry * .85); c.lineTo(hx + Math.cos(a) * rx * 1.25, hy + Math.sin(a) * ry * 1.12); c.stroke(); }
+      if (L.hairFill) { c.save(); c.beginPath(); c.ellipse(hx, hy, rx, ry, sk.lean * J.f * .5, 0, 7); c.clip(); c.fillStyle = L.hairFill; c.fillRect(hx - rx, hy - ry, rx * 2, J.back ? ry * 1.6 : ry * .55); c.restore(); }
+      limb(J.shR, J.elR, J.hR, top); c.beginPath(); c.arc(J.hR[0], J.hR[1], 1.6, 0, 7); c.fillStyle = skin; c.fill(); c.strokeStyle = ink; c.lineWidth = 1; c.stroke();
+    },
+  };
+}
 const STYLES = [
-  { n: 1, name: "Scale figure", note: "Like the person in your first plan: slim, true-to-life proportions, flat fills with thin lines and a patterned shirt. Depth comes from the far limbs sitting a shade darker.",
-    look: { skin: "#f1c8a5", shirt: "#ffffff", pants: "#6f86b8", hair: "#3a2a22" },
-    lower(sk, L) { legs(sk, (h, k, a, t, near) => { const col = near ? L.pants : shade(L.pants, .82); tube(h, k, 4, col, { shine: false }); tube(k, a, 3.4, col, { shine: false }); tube(a, t, 2.6, INK, { shine: false, outline: false }); }); },
-    upper(sk, L) {
-      tube(sk.shL, sk.elL, 2.8, shade(L.skin, .85), { shine: false }); tube(sk.elL, sk.hL, 2.4, shade(L.skin, .85), { shine: false });
-      const pts = [P(...add(sk.hip, [0, -4, 0])), P(...add(sk.hip, [0, 4, 0])), P(...sk.shR), P(...sk.shL)]; polyS(pts, L.shirt, INK, 1);
-      c.save(); polyS(pts, null, null); c.clip(); c.fillStyle = PAL.sage; for (let i = 0; i < 40; i++) { const p = P(...add(sk.hip, [Math.random() * 0, -4 + (i % 8), (Math.floor(i / 8)) * 3.2])); c.beginPath(); c.arc(p[0] + 2, p[1], 1.1, 0, 7); c.fill(); } c.restore();
-      const hp = ball(sk.head, 3.6, L.skin, { shade: false }); c.save(); c.beginPath(); c.arc(hp[0], hp[1], hp[2], 0, 7); c.clip(); c.fillStyle = L.hair; c.fillRect(hp[0] - hp[2], hp[1] - hp[2], hp[2] * 2, hp[2] * .9); c.restore(); c.beginPath(); c.arc(hp[0], hp[1], hp[2], 0, 7); c.strokeStyle = INK; c.lineWidth = 1; c.stroke();
-      tube(sk.shR, sk.elR, 2.8, L.shirt, { shine: false }); tube(sk.elR, sk.hR, 2.4, L.skin, { shine: false });
-    } },
-  { n: 2, name: "Capsules", note: "Rounded pill limbs and a sphere head, no face. Soft shading on every part gives them volume; they read as calm and very 'architect's model'.",
-    look: { body: "#f6c9cf" },
-    lower(sk, L) { legs(sk, (h, k, a, t, near) => { const col = near ? L.body : shade(L.body, .88); tube(h, k, 7, col); tube(k, a, 6, col); }); },
-    upper(sk, L) { tube(sk.shL, sk.elL, 5, shade(L.body, .88)); tube(sk.elL, sk.hL, 5, shade(L.body, .88)); tube(add(sk.hip, [0, 0, 2]), add(sk.neck, [0, 0, -1.5]), 14, L.body); ball(sk.head, 4.6, L.body); tube(sk.shR, sk.elR, 5, L.body); tube(sk.elR, sk.hR, 5, L.body); } },
-  { n: 3, name: "Blocks", note: "Built from boxes like the furniture: a cube head, a box torso and square-ended limbs, each face in its own shade. Matches the plan's geometry most strictly.",
-    look: { skin: "#f6d3b3", shirt: "#b9dccd", pants: "#9cc3e8", hair: "#6b4a33" },
-    lower(sk, L) { legs(sk, (h, k, a, t, near) => { const col = near ? L.pants : shade(L.pants, .85); tube(h, k, 6.5, col, { cap: "square", shine: false }); tube(k, a, 6, col, { cap: "square", shine: false }); tube(a, t, 4.5, INK, { cap: "square", shine: false, outline: false }); }); },
-    upper(sk, L) {
-      tube(sk.shL, sk.elL, 4.6, shade(L.shirt, .85), { cap: "square", shine: false }); tube(sk.elL, sk.hL, 4.4, shade(L.skin, .85), { cap: "square", shine: false });
-      const m = lerp3(sk.hip, sk.neck, .5); box(m[0] - 2.4, m[1] - 4.6, sk.hip[2], m[0] + 2.4, m[1] + 4.6, sk.neck[2], L.shirt, shade(L.shirt, .9), shade(L.shirt, .78));
-      const h = sk.head; box(h[0] - 3.4, h[1] - 3.4, h[2] - 3.6, h[0] + 3.4, h[1] + 3.4, h[2] + 3.2, L.hair, shade(L.skin, .92), L.skin);
-      const f = P(h[0] + 3.4, h[1] + .4, h[2] - .4); c.fillStyle = INK; c.fillRect(f[0] - 2.6, f[1] - 3, 1.8, 2.4); c.fillRect(f[0] + 3, f[1] - .2, 1.8, 2.4);
-      tube(sk.shR, sk.elR, 4.6, L.shirt, { cap: "square", shine: false }); tube(sk.elR, sk.hR, 4.4, L.skin, { cap: "square", shine: false });
-    } },
-  { n: 4, name: "Paper cut-outs", note: "Flat shapes with a visible card thickness behind them and a white paper edge, like a model-maker's cut figures standing in the plan.",
-    look: { skin: "#f1c8a5", shirt: "#ffd95c", pants: "#ee6f6a", hair: "#3a2a22" },
-    lower(sk, L) { legs(sk, (h, k, a, t, near) => { const col = near ? L.pants : shade(L.pants, .9); [[1.4, shade(col, .65)], [0, col]].forEach(([o, cc]) => { c.save(); c.translate(o, o * .5); tube(h, k, 5.5, cc, { shine: false, ink: "#ffffff" }); tube(k, a, 5, cc, { shine: false, ink: "#ffffff" }); c.restore(); }); }); },
-    upper(sk, L) {
-      const layer = (o, f) => { c.save(); c.translate(o, o * .5); f(); c.restore(); };
-      [[1.4, true], [0, false]].forEach(([o, back]) => layer(o, () => {
-        const col = cc => back ? shade(cc, .65) : cc;
-        tube(sk.shL, sk.elL, 4, col(L.shirt), { shine: false, ink: "#ffffff" }); tube(sk.elL, sk.hL, 3.6, col(L.skin), { shine: false, ink: "#ffffff" });
-        tube(add(sk.hip, [0, 0, 1.5]), add(sk.neck, [0, 0, -1]), 12, col(L.shirt), { shine: false, ink: "#ffffff" });
-        ball(sk.head, 4.2, col(L.skin), { shade: false, ink: "#ffffff", lw: 2 });
-        tube(sk.shR, sk.elR, 4, col(L.shirt), { shine: false, ink: "#ffffff" }); tube(sk.elR, sk.hR, 3.6, col(L.skin), { shine: false, ink: "#ffffff" });
-      }));
-      const hp = P(...sk.head); c.save(); c.beginPath(); c.arc(hp[0], hp[1], 4.2 * KS, 0, 7); c.clip(); c.fillStyle = L.hair; c.fillRect(hp[0] - 15, hp[1] - 15, 30, 12); c.restore();
-      faceDots(hp, 4.2 * KS, sk);
-    } },
-  { n: 5, name: "Beans", note: "One soft bean for head and body, tiny arms and legs, dot eyes. They squash and stretch a little with every move, so the animation reads most clearly.",
-    look: { body: "#9fd3c2", cheek: "#ee6f6a" },
-    lower(sk, L) { legs(sk, (h, k, a, t, near) => { const col = near ? shade(L.body, .9) : shade(L.body, .8); tube(add(h, [2, 0, 0]), k, 4, col); tube(k, a, 3.6, col); }); },
-    upper(sk, L) {
-      tube(sk.shL, sk.elL, 3.4, shade(L.body, .85)); tube(sk.elL, sk.hL, 3.4, shade(L.body, .85));
-      const a = P(...add(sk.hip, [0, 0, 3])), b = P(...sk.head), mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2, ang = Math.atan2(b[1] - a[1], b[0] - a[0]) + Math.PI / 2;
-      const stretch = 1 + Math.sin(sk.t * 8) * .03 + (sk.mouth === "cough" ? -.06 : 0);
-      c.save(); c.translate(mx, my); c.rotate(ang); c.scale(1 / stretch, stretch);
-      const rx = 8.2 * KS, ry = Math.hypot(b[0] - a[0], b[1] - a[1]) / 2 + 5 * KS;
-      c.beginPath(); c.ellipse(0, 0, rx, ry, 0, 0, 7); c.fillStyle = L.body; c.fill();
-      c.save(); c.clip(); c.beginPath(); c.ellipse(rx * .35, ry * .3, rx, ry, 0, 0, 7); c.fillStyle = shade(L.body, .88); c.fill(); c.restore();
-      c.beginPath(); c.ellipse(0, 0, rx, ry, 0, 0, 7); c.strokeStyle = INK; c.lineWidth = 1.2; c.stroke(); c.restore();
-      faceDots(P(...add(sk.head, [0, 0, -1])), 6 * KS, sk, { blush: L.cheek });
-      tube(sk.shR, sk.elR, 3.4, L.body); tube(sk.elR, sk.hR, 3.4, L.body);
-    } },
-  { n: 6, name: "Outline", note: "White figures drawn only in the plan's thin line, with one pastel colour on the top. The quietest option: the people sit inside the drawing rather than on top of it.",
-    look: { top: "#f6c9cf" },
-    lower(sk, L) { legs(sk, (h, k, a, t) => { tube(h, k, 5, "#ffffff", { shine: false }); tube(k, a, 4.4, "#ffffff", { shine: false }); }); },
-    upper(sk, L) {
-      tube(sk.shL, sk.elL, 3.6, "#ffffff", { shine: false }); tube(sk.elL, sk.hL, 3.2, "#ffffff", { shine: false });
-      tube(add(sk.hip, [0, 0, 1.5]), add(sk.neck, [0, 0, -1]), 12, L.top, { shine: false });
-      const hp = ball(sk.head, 4, "#ffffff", { shade: false }); faceDots(hp, hp[2], sk);
-      tube(sk.shR, sk.elR, 3.6, L.top, { shine: false }); tube(sk.elR, sk.hR, 3.2, "#ffffff", { shine: false });
-    } },
-  { n: 7, name: "Faceted", note: "Low-poly volumes: the head is a gem of light and shadow facets, the torso a two-tone prism. Crisp depth that still fits the clean line style.",
-    look: { skin: "#e8b48a", shirt: "#9cc3e8", pants: "#5a6f9e", hair: "#2b2622" },
-    lower(sk, L) { legs(sk, (h, k, a, t, near) => { const col = near ? L.pants : shade(L.pants, .82); tube(h, k, 6, col, { cap: "butt", shine: false }); tube(k, a, 5.4, col, { cap: "butt", shine: false }); tube(a, t, 4, INK, { cap: "butt", shine: false, outline: false }); }); },
-    upper(sk, L) {
-      tube(sk.shL, sk.elL, 4.4, shade(L.shirt, .8), { cap: "butt", shine: false }); tube(sk.elL, sk.hL, 3.8, shade(L.skin, .8), { cap: "butt", shine: false });
-      const hl = P(...add(sk.hip, [0, -4.5, 0])), hr = P(...add(sk.hip, [0, 4.5, 0])), sl = P(...add(sk.shL, [0, -.5, 0])), sr = P(...add(sk.shR, [0, .5, 0])), mid = P(...lerp3(sk.hip, sk.neck, .55));
-      polyS([hl, sl, mid], shade(L.shirt, .82), INK, 1); polyS([sl, sr, mid], shade(L.shirt, 1.12), INK, 1); polyS([hl, mid, hr], L.shirt, INK, 1); polyS([mid, sr, hr], shade(L.shirt, .92), INK, 1);
-      const [hx, hy] = P(...sk.head), r = 4.6 * KS, pt = a => [hx + Math.cos(a) * r, hy + Math.sin(a) * r * 1.05], ctr = [hx + r * .2, hy + r * .1];
-      const angs = [-2.6, -1.6, -.5, .5, 1.6, 2.6];
-      angs.forEach((a, i) => { const b = angs[(i + 1) % angs.length]; polyS([ctr, pt(a), pt(b)], i < 2 || i === 5 ? (i === 1 ? L.hair : shade(L.hair, 1.2)) : [shade(L.skin, 1.08), L.skin, shade(L.skin, .86)][i - 2], INK, .9); });
-      faceDots([hx + 1, hy + 2], r, sk);
-      tube(sk.shR, sk.elR, 4.4, L.shirt, { cap: "butt", shine: false }); tube(sk.elR, sk.hR, 3.8, L.skin, { cap: "butt", shine: false });
-    } },
-  { n: 8, name: "Mannequins", note: "Artist's wooden mannequins with ball joints at the shoulders, elbows, hips and knees. Faceless and warm; every bend in the animation shows at a joint.",
-    look: { wood: "#e7bf8f", joint: "#c9955f" },
-    lower(sk, L) { legs(sk, (h, k, a, t, near) => { const col = near ? L.wood : shade(L.wood, .88); tube(h, k, 4, col); tube(k, a, 3.6, col); ball(k, 1.4, L.joint); ball(h, 1.6, L.joint); tube(a, t, 2.6, col); }); },
-    upper(sk, L) {
-      tube(sk.shL, sk.elL, 3, shade(L.wood, .88)); tube(sk.elL, sk.hL, 2.8, shade(L.wood, .88)); ball(sk.elL, 1.2, L.joint); ball(sk.shL, 1.5, L.joint);
-      tube(add(sk.hip, [0, 0, 1]), lerp3(sk.hip, sk.neck, .45), 10, L.wood); tube(lerp3(sk.hip, sk.neck, .55), add(sk.neck, [0, 0, -1.2]), 11, L.wood);
-      tube(sk.neck, add(sk.head, [0, 0, -3]), 2.4, L.wood);
-      const [hx, hy] = P(...sk.head); c.beginPath(); c.ellipse(hx, hy, 3.6 * KS, 4.6 * KS, -.25, 0, 7); c.fillStyle = L.wood; c.fill(); c.save(); c.clip(); c.beginPath(); c.ellipse(hx + 4, hy + 5, 3.6 * KS, 4.6 * KS, -.25, 0, 7); c.fillStyle = shade(L.wood, .88); c.fill(); c.restore(); c.beginPath(); c.ellipse(hx, hy, 3.6 * KS, 4.6 * KS, -.25, 0, 7); c.strokeStyle = INK; c.lineWidth = 1; c.stroke();
-      ball(sk.shR, 1.5, L.joint); tube(sk.shR, sk.elR, 3, L.wood); ball(sk.elR, 1.2, L.joint); tube(sk.elR, sk.hR, 2.8, L.wood);
-    } },
-  { n: 9, name: "Silhouettes", note: "Solid single-colour figures with a pale rim of light along their top edges and a shadow on the floor. Bold at a distance; the pose carries everything.",
-    look: { body: "#5a6f9e" },
-    lower(sk, L) { legs(sk, (h, k, a, t) => { tube(h, k, 6, L.body, { outline: false }); tube(k, a, 5.4, L.body, { outline: false }); tube(a, t, 4, L.body, { outline: false, shine: false }); }); },
-    upper(sk, L) {
-      tube(sk.shL, sk.elL, 4.4, shade(L.body, .85), { outline: false }); tube(sk.elL, sk.hL, 4, shade(L.body, .85), { outline: false });
-      tube(add(sk.hip, [0, 0, 1.5]), add(sk.neck, [0, 0, -1.2]), 13, L.body, { outline: false });
-      ball(sk.head, 4.4, L.body, { outline: false });
-      tube(sk.shR, sk.elR, 4.4, L.body, { outline: false }); tube(sk.elR, sk.hR, 4, L.body, { outline: false });
-    } },
-  { n: 10, name: "Chibi", note: "Big round heads on small bodies, cel-shaded in two tones, with expressive faces: an O for a sip, a wide mouth for a cough, chatting on the phone.",
-    look: { skin: "#f6d3b3", shirt: "#ee6f6a", pants: "#cfe2f3", hair: "#4a2c1a" },
-    lower(sk, L) { legs(sk, (h, k, a, t, near) => { const col = near ? L.pants : shade(L.pants, .86); tube(h, k, 5.2, col, { shine: false }); tube(k, a, 4.6, col, { shine: false }); tube(a, t, 3.6, INK, { shine: false, outline: false }); }); },
-    upper(sk, L) {
-      tube(sk.shL, sk.elL, 3.6, shade(L.shirt, .85), { shine: false }); tube(sk.elL, sk.hL, 3.2, shade(L.skin, .88), { shine: false });
-      tube(add(sk.hip, [0, 0, 2]), add(sk.neck, [0, 0, -1.5]), 12, L.shirt, { shine: false });
-      const head = add(sk.head, [0, 0, 2]), [hx, hy] = P(...head), r = 7.2 * KS;
-      c.beginPath(); c.arc(hx, hy, r, 0, 7); c.fillStyle = L.skin; c.fill();
-      c.save(); c.clip(); c.fillStyle = shade(L.skin, .9); c.beginPath(); c.arc(hx + r * .7, hy + r * .6, r, 0, 7); c.fill(); c.fillStyle = L.hair; c.beginPath(); c.ellipse(hx - r * .25, hy - r * .55, r * 1.1, r * .75, -.4, 0, 7); c.fill(); c.restore();
-      c.beginPath(); c.arc(hx, hy, r, 0, 7); c.strokeStyle = INK; c.lineWidth = 1.2; c.stroke();
-      faceDots([hx + 2, hy + 4], r * .8, sk, { blush: "#ee6f6a" });
-      tube(sk.shR, sk.elR, 3.6, L.shirt, { shine: false }); tube(sk.elR, sk.hR, 3.2, L.skin, { shine: false });
-    } },
+  { n: 1, family: "Crayon", name: "Crayon, bold", note: "Straight from the crayon sheet: tall figures with tiny heads, a black jumper and pink trousers, colour laid on with visible texture and no outlines.",
+    look: { skin: "#f1c8a5", top: "#2b2b2e", pants: "#e85a9a", shoes: "#2b2b2e", hair: "#9c9c9c" }, ...crayonStyle({}) },
+  { n: 2, family: "Crayon", name: "Crayon, patterned", note: "The same crayon figures with patterned clothes, like the striped shirts and dotted trousers on the sheet.",
+    look: { skin: "#a46a3f", top: "#f6c9cf", pants: "#5a6fbf", shoes: "#2b2b2e", hair: "#1f1b19", stripes: true, pantsDots: true }, ...crayonStyle({}) },
+  { n: 3, family: "Crayon", name: "Crayon, pastel", note: "Crayon texture in the plan's own pastels: sage jumper, powder-blue trousers, a bun. Softest fit with the office drawing.",
+    look: { skin: "#f6d3b3", top: "#9fd3c2", pants: "#b9d3f0", shoes: "#ee6f6a", hair: "#7a3f2a", bun: true }, ...crayonStyle({}) },
+  { n: 4, family: "Crayon", name: "Crayon, coats", note: "Bundled-up crayon people in long coats with scarves, like the navy coat and striped scarf on the sheet.",
+    look: { skin: "#f1c8a5", top: "#2c3a66", pants: "#4c6fc2", shoes: "#5a3a28", hair: "#c26a2a", scarf: "#e2a23b", dots: false }, ...crayonStyle({ coat: true }) },
+  { n: 5, family: "Scale figure", name: "Scale figure, grey and red", note: "The architect's scale figure exactly: a grey coat that tapers to thin legs, a small faceless head, a thin dark-red outline.",
+    look: { fill: "#dcdcdc" }, ...scaleStyle({ ink: "#a33232" }) },
+  { n: 6, family: "Scale figure", name: "Scale figure, pastel", note: "The same figures filled with the plan's pastels and drawn in its grey line, so each person is a soft colour block in the room.",
+    look: { fill: "#f6c9cf", hair: "#7a3f2a", bag: true }, ...scaleStyle({ ink: "#3a3a3c" }) },
+  { n: 7, family: "Scale figure", name: "Scale figure, white", note: "White figures in a coral line. The quietest version: people read as part of the drawing, and coral marks them out.",
+    look: { fill: "#ffffff" }, ...scaleStyle({ ink: "#ee6f6a" }) },
+  { n: 8, family: "Noodle", name: "Noodle, red line", note: "After the line-character sheet: a thin red line on pale pink, long bendy arms, a big nose and a tuft of hair.",
+    look: {}, ...noodleStyle({ ink: "#e2574c", fill: "#fbdcd5" }) },
+  { n: 9, family: "Noodle", name: "Noodle, blue line", note: "The same noodle people in a cobalt line on pale blue, with a dotted shirt. Crisper, a little more technical.",
+    look: { pattern: true }, ...noodleStyle({ ink: "#1d3fbf", fill: "#e6ebfb" }) },
+  { n: 10, family: "Noodle", name: "Noodle, coloured", note: "Noodle people drawn in the plan's grey line with pastel clothes and dark hair, so they carry a little colour into the room.",
+    look: { skin: "#f6d3b3", top: "#ffd95c", pants: "#9fd3c2", shoes: "#ee6f6a", hairFill: "#4a2c1a" }, ...noodleStyle({ ink: "#3a3a3c", fill: "#ffffff" }) },
 ];
 
 /* ---------- page ---------- */
@@ -362,7 +414,7 @@ chips.addEventListener("click", e => {
 });
 const grid = document.getElementById("grid");
 const cards = STYLES.map(s => {
-  grid.insertAdjacentHTML("beforeend", `<article class="card"><div class="art"><canvas></canvas></div><div class="meta"><h2><b>${s.n}</b>${s.name}</h2><p class="now"></p><p>${s.note}</p></div></article>`);
+  grid.insertAdjacentHTML("beforeend", `<article class="card"><div class="art"><canvas></canvas></div><div class="meta"><h2><b>${s.n}</b>${s.name}</h2><p class="fam">${s.family}</p><p class="now"></p><p>${s.note}</p></div></article>`);
   const el = grid.lastElementChild, cv = el.querySelector("canvas");
   cv.width = W * DPR; cv.height = H * DPR; cv.style.aspectRatio = `${W} / ${H}`;
   return { cv, ctx: cv.getContext("2d"), now: el.querySelector(".now") };
@@ -375,13 +427,14 @@ function frame(ms) {
     c = cards[i].ctx; c.setTransform(DPR, 0, 0, DPR, 0, 0); c.clearRect(0, 0, W, H);
     const sk = pose(sound, t + i * .13);
     // standing figures are taller, so the camera pulls back a little
-    if (sk.standing) { KS = 3.5; OX = 128; OY = 182; } else { KS = 4.4; OX = 122; OY = 158; }
+    if (sk.coffee) { KS = 3.5; OX = 112; OY = 176; } else if (sk.standing) { KS = 3.5; OX = 128; OY = 182; } else { KS = 4.4; OX = 122; OY = 158; }
     setting(sk);
-    floorShadow(sk.standing ? [1, 0] : [6, 0], sk.standing ? 7 : 9);
-    s.lower(sk, s.look);
+    floorShadow(sk.coffee ? [15, 0] : sk.standing ? [1, 0] : [6, 0], sk.standing ? 6 : 9);
+    const main = c, J = sk;
+    if (s.crayon) crayonPass(main, () => s.lower(sk, s.look)); else s.lower(sk, s.look);
     deskAndProps(sk);
-    s.upper(sk, s.look);
-    handProps(sk, s.look.skin);
+    if (s.crayon) crayonPass(main, () => s.upper(sk, s.look)); else s.upper(sk, s.look);
+    handProps(sk);
     effects(sk);
     if (label !== lastLabel) cards[i].now.textContent = `Now: ${label.toLowerCase()}`;
   });
