@@ -81,6 +81,17 @@ body {
   font-size: 15px;
   line-height: 1.5;
 }
+/* the office fills the page; a small heads-up bar holds the menu and play */
+.stage { position: fixed; inset: 0; display: grid; place-items: center; background: #ffffff; overflow: hidden; }
+.board { position: relative; width: min(100vw, calc(100dvh * 440 / 310)); }
+.hud { position: fixed; top: max(12px, env(safe-area-inset-top, 0px)); left: max(12px, env(safe-area-inset-left, 0px)); display: flex; gap: 8px; z-index: 5; }
+.hud .btn { display: inline-flex; align-items: center; gap: 8px; }
+.hud svg { width: 14px; height: 14px; fill: currentColor; }
+.menu { position: fixed; top: 0; left: 0; bottom: 0; width: min(420px, 100vw); overflow-y: auto; background: var(--surface); color: var(--fg); border-right: 1px solid var(--edge); padding: 64px max(20px, env(safe-area-inset-left, 0px)) 28px 20px; display: grid; align-content: start; gap: 22px; z-index: 6; }
+.menu[hidden] { display: none; }
+.menu .close { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border: 1px solid var(--edge); background: var(--surface); border-radius: 4px; font-size: 22px; line-height: 1; cursor: pointer; }
+.menu .top { display: grid; gap: 18px; }
+.menu .foot { color: var(--muted); font-size: 13px; }
 .wrap {
   max-width: 1080px;
   margin: 0 auto;
@@ -165,15 +176,7 @@ button { font: inherit; color: inherit; }
 .tempo output { color: var(--fg); min-width: 7ch; font-variant-numeric: tabular-nums; }
 
 /* Stage */
-.stage {
-  position: relative;
-  background: #ffffff !important;
-  border: 1px solid var(--edge);
-  border-radius: 6px;
-  box-shadow: none;
-  background: var(--bg);
-  overflow: hidden;
-}
+
 canvas#office {
   display: block;
   width: 100%;
@@ -359,7 +362,25 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
 </style>
 </head>
 <body>
-<div class="wrap">
+<main class="stage" id="stage">
+  <div class="board">
+    <canvas id="office" width="440" height="310" role="img" aria-label="An axonometric office plan with three pods of desks, a meeting room, kitchen, photocopier, water cooler, washroom and lounge. Thirteen people each have their own seat and act out their sound as it plays."></canvas>
+    <div class="tags" id="tags"></div>
+    <div class="empty" id="empty" hidden><b>The office is empty and quiet</b><span>Click an empty seat to call someone in</span></div>
+    <div class="tip" id="tip" hidden></div>
+  </div>
+</main>
+<div class="hud">
+  <button class="btn" id="menuBtn" aria-expanded="false" aria-controls="menu">
+    <svg viewBox="0 0 14 14" aria-hidden="true"><path d="M1 3h12v1.6H1zM1 6.2h12v1.6H1zM1 9.4h12V11H1z"/></svg><span>Menu</span>
+  </button>
+  <button class="btn play" id="playBtn" aria-pressed="false">
+    <svg viewBox="0 0 14 14" aria-hidden="true"><path id="playIcon" d="M3 1h2v1h2v2h2v2h2v2h-2v2h-2v2h-2v1h-2z"/></svg>
+    <span id="playLabel">Play</span>
+  </button>
+</div>
+<aside class="menu" id="menu" hidden>
+  <button class="close" id="menuClose" aria-label="Close menu">×</button>
   <header class="top">
     <div class="brand">
       <p class="eyebrow"><span class="dot" id="beatDot"></span>A group health jam</p>
@@ -367,10 +388,6 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
       <p class="lede">Every teammate makes one office noise: ringing phones, coughs, the coffee machine, typing, clicking, the claims stamp, a pen on a glass, the photocopier and the washroom flush. Thirteen people, each with their own seat. Call them in and their noises lock into one groove.</p>
     </div>
     <div class="transport">
-      <button class="btn play" id="playBtn" aria-pressed="false">
-        <svg viewBox="0 0 14 14" aria-hidden="true"><path id="playIcon" d="M3 1h2v1h2v2h2v2h2v2h-2v2h-2v2h-2v1h-2z"/></svg>
-        <span id="playLabel">Play</span>
-      </button>
       <label class="tempo" for="tempo">Tempo
         <input type="range" id="tempo" min="70" max="120" value="88">
         <output id="tempoOut">88 bpm</output>
@@ -379,18 +396,10 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
       <button class="btn" id="clearBtn">Empty office</button>
     </div>
   </header>
-
-  <div class="stage" id="stage">
-    <canvas id="office" width="440" height="310" role="img" aria-label="An axonometric office plan with three pods of desks, a meeting room, kitchen, photocopier, water cooler, washroom and lounge. Each person has their own seat at a desk or in the room their sound belongs to, and acts out their sound as it plays."></canvas>
-    <div class="tags" id="tags"></div>
-    <div class="empty" id="empty" hidden><b>The office is empty and quiet</b><span>Click an empty seat, or Everyone in, to start the music</span></div>
-    <div class="tip" id="tip" hidden></div>
-  </div>
-
   <footer class="foot">
     <span>Hover over someone to see who they are. Click them to send them home, or click an empty seat to call its person back.</span>
   </footer>
-</div>
+</aside>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
 <script>
@@ -917,7 +926,8 @@ function stop() {
    World units: the plan is 240 wide (x) by 210 deep (y), with a notch cut from the front-right corner.
    The left wall is the x = 0 plane, the back wall is y = 0. iso() projects into a 440 x 310 frame;
    the canvas draws it at three times that resolution with thin vector lines. */
-const LW = 440, LH = 310, K = 0.9, OX = 206.5, OY = 85, WH = 70, SC = 3;
+const LW = 440, LH = 310, K = 0.9, OX = 206.5, OY = 85, WH = 70;
+const SC = Math.min(4, Math.max(3, Math.ceil((devicePixelRatio || 1) * Math.min(innerWidth, innerHeight * LW / LH) / LW)));
 const iso = (x, y, z = 0) => [OX + (x - y) * K, OY + (x + y) * K / 2 - z * K];
 const PLAN = [[0, 0], [240, 0], [240, 150], [200, 150], [200, 210], [0, 210]];
 
@@ -1220,6 +1230,11 @@ function syncPlayBtn() {
   $("playBtn").setAttribute("aria-pressed", String(A.playing));
 }
 $("playBtn").addEventListener("click", () => A.playing ? stop() : start());
+const menu = $("menu"), menuBtn = $("menuBtn");
+function setMenu(open) { menu.hidden = !open; menuBtn.setAttribute("aria-expanded", String(open)); if (open) $("menuClose").focus(); }
+menuBtn.addEventListener("click", () => setMenu(menu.hidden));
+$("menuClose").addEventListener("click", () => { setMenu(false); menuBtn.focus(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !menu.hidden) { setMenu(false); menuBtn.focus(); } });
 $("tempo").addEventListener("input", e => {
   A.bpm = +e.target.value; $("tempoOut").textContent = A.bpm + " bpm"; setDelayTime();
 });
