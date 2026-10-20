@@ -1254,6 +1254,7 @@ const DRAW_ORDER = [
   { depth: 420, draw: () => wallShelf(...LAYOUT.wallShelf) },
   ...[["meet", 51], ["washX", 210], ["washY", 300]].map(([k, depth]) => ({ depth, draw: () => { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(GLASS[k].cv, 0, 0); g.restore(); } })),
   { depth: 86, draw: () => drawCopier(g) },
+  { depth: 104, draw: () => drawCooler(g) },
   { depth: 220, draw: () => drawSink(g) },   // in front of the washroom's glass wall, behind whoever washes up
   // the kitchen's round table and its two stools, clear of the coffee machine
   { depth: 179, draw: () => stool(149, 30) }, { depth: 190, draw: () => kitchenTable(160, 30) }, { depth: 201, draw: () => stool(171, 30) },
@@ -1760,9 +1761,6 @@ function drawStatic() {
   plant(c, 6, 204, 0, 1.3);
   // knock box for the espresso grounds
   box(c, 119, 11, 22, 123.5, 14, 24.6, { top: "#2b2b2e", left: "#3a3a3c", right: "#2b2b2e" });
-  // water cooler by the kitchen
-  box(c, 92, 2, 0, 100, 10, 26, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
-  const wb = iso(96, 6, 31); poly(c, [[wb[0] - 3.4, wb[1] + 4.5], [wb[0] - 3.8, wb[1] - 2], [wb[0] - 1.6, wb[1] - 5], [wb[0] + 1.6, wb[1] - 5], [wb[0] + 3.8, wb[1] - 2], [wb[0] + 3.4, wb[1] + 4.5]], hexA("#7cc7f2", .7));
 
   // front cut walls: low white slabs along the open edges of the plan
   lowWall(c, [[0, 210], [200, 210]]); lowWall(c, [[200, 150], [200, 210]]); lowWall(c, [[200, 150], [240, 150]]); lowWall(c, [[240, 0], [240, 150]]);
@@ -2241,6 +2239,31 @@ function drawSink(c) {
 }
 // the photocopier: a cabinet with two paper drawers, the glass under a hinged lid, a control panel
 // angled at the front, and an output tray with a few printed pages on the side
+// the water cooler: a cabinet with a recessed tap nook and drip tray, a collar, and a ridged blue bottle
+function drawCooler(c) {
+  const lw = .4, x = 96, y = 6;
+  box(c, 92.4, 2.4, 0, 99.6, 9.6, 1, { top: "#d8d8d6", left: "#c9c9c6", right: "#bdbdba" }, lw);              // plinth
+  box(c, 92, 2, 1, 100, 10, 24, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }, lw);
+  // the nook on the front, with two taps and a drip tray
+  poly(c, quadY(10.03, 93.4, 98.6, 9.5, 17.5), "#e9edf2", INK_LINE, lw);
+  poly(c, quadY(10.03, 93.4, 98.6, 9.5, 10.6), "#c9ccd1", INK_LINE, .3);
+  [[94.7, "#5b6ee1"], [97.3, "#d6545a"]].forEach(([tx, col]) => { box(c, tx - .6, 10, 15.6, tx + .6, 11, 17, { top: col, left: col, right: shade(col, .8) }, .3); seg(c, iso(tx, 10.8, 15.6), iso(tx, 10.8, 14.8), INK_LINE, .45); });
+  seg(c, iso(92.6, 10.05, 4), iso(99.4, 10.05, 4), PAL.wallShade, .5);
+  // collar, then the bottle sitting neck-down in it
+  cylinder(c, x, y, 24, 25.6, 3.4, "#f3f3f1", lw);
+  cylinder(c, x, y, 25.6, 27, 1.5, hexA("#7cc7f2", .8), lw);
+  const r = 3.4, z0 = 27, z1 = 37, k = r / Math.SQRT2, bot = (z) => [iso(x - k, y + k, z), iso(x + k, y - k, z)];
+  // body: sides, a rounded shoulder at the bottom and a domed top
+  const shoulder = [], dome = [];
+  for (let i = 0; i <= 12; i++) { const a = Math.PI * i / 12, u = Math.cos(a) * k, v = Math.sin(a) * 1.4; shoulder.push(iso(x - u, y + u, z0 + 1.4 - v)); dome.push(iso(x + u, y - u, z1 + v * .9)); }
+  c.beginPath(); [...shoulder, ...dome].forEach((q, i) => i ? c.lineTo(...q) : c.moveTo(...q)); c.closePath();
+  c.fillStyle = "#b9e0f2"; c.fill(); c.strokeStyle = INK_LINE; c.lineWidth = lw; c.stroke();
+  // water inside up to about two thirds, ridges, and a highlight down one side
+  const wl = z0 + 7;
+  c.beginPath(); [...shoulder, bot(wl)[1], bot(wl)[0]].forEach((q, i) => i ? c.lineTo(...q) : c.moveTo(...q)); c.closePath(); c.fillStyle = hexA("#5aaedc", .45); c.fill();
+  [30, 33.5].forEach(z => { c.beginPath(); for (let i = 0; i <= 12; i++) { const a = Math.PI * i / 12, u = Math.cos(a) * k, v = Math.sin(a) * 1.4; const q = iso(x - u, y + u, z - v); i ? c.lineTo(...q) : c.moveTo(...q); } c.strokeStyle = hexA("#2c6d96", .55); c.lineWidth = .35; c.stroke(); });
+  seg(c, iso(x - k * .55, y + k * .55, z0 + 2), iso(x - k * .55, y + k * .55, z1 - .5), "rgba(255,255,255,.75)", .7);
+}
 function drawCopier(c) {
   const lw = .4, grey = "#e4e4e2";
   [[71, 2], [87, 2], [71, 13], [87, 13]].forEach(([x, y]) => box(c, x - .6, y - .6, 0, x + .6, y + .6, 1.2, { top: "#3a3a3c", left: "#3a3a3c", right: "#2b2b2e" }, .3));   // castors
