@@ -2264,40 +2264,50 @@ function cylinder(c, x, y, z0, z1, r, fill, lw = HAIR) {
   seg(c, l0, l1, INK_LINE, lw); seg(c, r0, r1, INK_LINE, lw);
   ellipseFloor(c, x, y, r, z1, fill === "#ffffff" ? "#f3f3f1" : shade(fill, 1.08));
 }
-// the lounge sofa: short legs, a frame, three back and three seat cushions, padded arms and two
-// cushions leaning in the corners, drawn back to front
+// the lounge sofa, seen from the front: short legs, a low frame, a backrest with three back cushions,
+// three seat cushions, two rolled arms and one cushion propped in the far corner, drawn back to front
 function drawSofa(c) {
-  const cor = PAL.coral, f = k => ({ top: shade(cor, k * 1.12), left: shade(cor, k), right: shade(cor, k * .86) }), cush = f(1.12), lw = .4;
-  [[1, 149.5], [1, 198], [20, 149.5], [20, 198]].forEach(([x, y]) => box(c, x - .8, y - .8, 0, x + .8, y + .8, 2.2, { top: "#5a3a28", left: "#5a3a28", right: "#3e271b" }, .3));
-  box(c, 0, 149, 2.2, 22, 199, 6.5, f(.9), lw);                                  // the frame under the cushions
-  box(c, 0, 149, 6.5, 4.5, 199, 23, f(1), lw);                                   // backrest
-  ellipseFloor(c, 2.25, 149.6, 0, 23, null); poly(c, [iso(0, 149, 23), iso(4.5, 149, 23), iso(4.5, 199, 23), iso(0, 199, 23)], shade(cor, 1.2), INK_LINE, lw);
-  const runs = [[152.4, 167.3], [167.6, 182.4], [182.7, 197.6]];
-  runs.forEach(([a, b]) => box(c, 4.5, a, 10.4, 8.5, b, 21.2, cush, lw));        // back cushions, a little gap between each
-  runs.forEach(([a, b]) => {                                                    // seat cushions, puffed at the front edge
-    box(c, 4.5, a, 6.5, 21, b, 10.4, cush, lw);
-    seg(c, iso(21.05, a + 1, 9.7), iso(21.05, b - 1, 9.7), shade(cor, .95), .5);
-  });
-  // a cushion leaning into each corner
-  [[5.2, 153.2, 1], [5.2, 186.5, -1]].forEach(([x, y, d], k) => {
-    const col = k ? PAL.yellow : PAL.sky, w = 10;
-    poly(c, [iso(x, y, 10.4), iso(x, y + w, 10.4), iso(x + 3.2, y + w + d * .6, 19.4), iso(x + 3.2, y + d * .6, 19.4)], col, INK_LINE, lw);
-    poly(c, [iso(x, y + w, 10.4), iso(x + 3.2, y + w + d * .6, 19.4), iso(x + 5, y + w, 19), iso(x + 2.2, y + w - .2, 10.4)], shade(col, .85), INK_LINE, lw);
-  });
-  // padded arms, rounded on top
-  const arm = (y0, y1) => { box(c, 0, y0, 2.2, 21, y1, 13, f(1), lw); poly(c, [iso(0, y0, 13), iso(21, y0, 13), iso(21, y1, 13), iso(0, y1, 13)], shade(cor, 1.22), INK_LINE, lw); seg(c, iso(21.05, y0 + .6, 12.2), iso(21.05, y1 - .6, 12.2), shade(cor, 1.15), .6); };
-  arm(147, 152.4); arm(197.6, 201);
+  const cor = PAL.coral, f = k => ({ top: shade(cor, k * 1.14), left: shade(cor, k), right: shade(cor, k * .86) }), lw = .4;
+  const y0 = 149, y1 = 199, ax = 4;   // the arms are 4 deep at each end
+  [[1.2, y0 + 1], [1.2, y1 - 1], [19.8, y0 + 1], [19.8, y1 - 1]].forEach(([x, y]) => box(c, x - .7, y - .7, 0, x + .7, y + .7, 2.4, { top: "#5a3a28", left: "#5a3a28", right: "#3e271b" }, .3));
+  // far arm first, then the back, the cushions and finally the near arm
+  const arm = (a, b) => {
+    box(c, 0, a, 2.4, 20.5, b, 12.4, f(.97), lw);
+    cylX(c, 0, 20.5, (a + b) / 2, 12.4, (b - a) / 2, shade(cor, 1.08));
+  };
+  arm(y0, y0 + ax);
+  box(c, 0, y0 + ax, 2.4, 20.5, y1 - ax, 6.4, f(.88), lw);                     // frame under the seat
+  box(c, 0, y0 + ax, 6.4, 4.2, y1 - ax, 21, f(1), lw);                          // backrest
+  const n = 3, w = (y1 - y0 - 2 * ax) / n;
+  for (let k = 0; k < n; k++) box(c, 4.2, y0 + ax + k * w + .25, 9.8, 8, y0 + ax + (k + 1) * w - .25, 20, f(1.08), lw);   // back cushions
+  for (let k = 0; k < n; k++) {                                                // seat cushions with a soft front edge
+    const a = y0 + ax + k * w + .25, b = y0 + ax + (k + 1) * w - .25;
+    box(c, 4.2, a, 6.4, 20.5, b, 9.8, f(1.1), lw);
+    seg(c, iso(20.55, a + .8, 9.1), iso(20.55, b - .8, 9.1), shade(cor, 1.22), .45);
+  }
+  // one yellow cushion propped against the far arm and the back
+  const px = 8.4, py = y0 + ax + .6;
+  poly(c, [iso(px, py, 9.8), iso(px, py + 7, 9.8), iso(px - 2.4, py + 7, 17.6), iso(px - 2.4, py, 17.6)], PAL.yellow, INK_LINE, lw);
+  poly(c, [iso(px, py + 7, 9.8), iso(px + 2.4, py + 7, 10.4), iso(px, py + 7, 17.4), iso(px - 2.4, py + 7, 17.6)], shade(PAL.yellow, .85), INK_LINE, lw);
+  arm(y1 - ax, y1);
 }
-// an armchair facing the sofa (towards -x): legs, frame, a seat cushion, a back cushion and two arms
+// a half-round roll along x on top of an arm: its rounded end shows at the front
+function cylX(c, x0, x1, y, z, r, fill) {
+  const end = [], N = 10;
+  for (let k = 0; k <= N; k++) { const a = Math.PI * k / N; end.push(iso(x1, y - Math.cos(a) * r, z + Math.sin(a) * r * .8)); }
+  const top = [iso(x0, y - r, z), ...end.map((_, k) => { const a = Math.PI * k / N; return iso(x0, y - Math.cos(a) * r, z + Math.sin(a) * r * .8); }), iso(x0, y + r, z)];
+  poly(c, [iso(x0, y - r, z), iso(x1, y - r, z), ...end, iso(x1, y + r, z), iso(x0, y + r, z), ...top.slice(1, -1).reverse()], fill, INK_LINE, .4);
+  poly(c, [iso(x1, y - r, z), ...end, iso(x1, y + r, z)], shade(fill, .9), INK_LINE, .4);
+}
+// an armchair facing the sofa (towards -x), so you see its back: legs, frame, seat, arms and back
 function drawArmchair(c, x, y) {
   const col = PAL.cobalt, f = k => ({ top: shade(col, k * 1.18), left: shade(col, k), right: shade(col, k * .86) }), lw = .4;
-  [[x + 1, y + 1], [x + 15, y + 1], [x + 1, y + 15], [x + 15, y + 15]].forEach(([a, b]) => box(c, a - .7, b - .7, 0, a + .7, b + .7, 2.2, { top: "#5a3a28", left: "#5a3a28", right: "#3e271b" }, .3));
-  box(c, x, y, 2.2, x + 16, y + 16, 6, f(.9), lw);
-  box(c, x + 12, y, 6, x + 16, y + 16, 20, f(1), lw);                 // back
-  box(c, x + 8.6, y + 3.2, 7.5, x + 12, y + 12.8, 18.5, f(1.1), lw);   // back cushion
-  box(c, x, y + 3.2, 6, x + 12, y + 12.8, 9.6, f(1.1), lw);           // seat cushion
-  seg(c, iso(x + 1, y + 12.85, 9), iso(x + 11, y + 12.85, 9), shade(col, .95), .5);
-  [[y, y + 3.2], [y + 12.8, y + 16]].forEach(([a, b]) => { box(c, x, a, 6, x + 16, b, 13, f(1), lw); seg(c, iso(x + .4, b + .02, 12.3), iso(x + 15.6, b + .02, 12.3), shade(col, 1.15), .5); });
+  [[x + 1, y + 1], [x + 15, y + 1], [x + 1, y + 15], [x + 15, y + 15]].forEach(([a, b]) => box(c, a - .7, b - .7, 0, a + .7, b + .7, 2.4, { top: "#5a3a28", left: "#5a3a28", right: "#3e271b" }, .3));
+  box(c, x, y, 2.4, x + 12, y + 16, 6.4, f(.9), lw);
+  box(c, x, y + 3.2, 6.4, x + 12, y + 12.8, 9.8, f(1.1), lw);                  // seat cushion
+  [[y, y + 3.2], [y + 12.8, y + 16]].forEach(([a, b]) => { box(c, x, a, 2.4, x + 12, b, 12.4, f(.97), lw); cylX(c, x, x + 12, (a + b) / 2, 12.4, 1.6, shade(col, 1.12)); });
+  box(c, x + 12, y, 2.4, x + 16, y + 16, 19.5, f(1), lw);                       // the back, facing you
+  seg(c, iso(x + 16.05, y + 1, 17.5), iso(x + 16.05, y + 15, 17.5), shade(col, 1.15), .45);
 }
 // a slouchy beanbag: a soft lump, taller at the back where it props you up, with a dent where you sit
 function beanbag(x, y, col, sat) {
