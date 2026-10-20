@@ -1262,8 +1262,6 @@ const DRAW_ORDER = [
   ...[["meet", 51], ["washX", 210], ["washY", 300]].map(([k, depth]) => ({ depth, draw: () => { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(GLASS[k].cv, 0, 0); g.restore(); } })),
   { depth: 86, draw: () => drawCopier(g) },
   { depth: 104, draw: () => drawCooler(g) },
-  // the kitchen cabinets' front stands in front of the cooler, so it is drawn again after it
-  { depth: 105, draw: () => { poly(g, quadY(14, 104, 182, 0, 22), PAL.mint, INK_LINE, HAIR); for (let x = 106; x < 180; x += 13) poly(g, quadY(14.05, x, x + 11, 3, 19), null, INK_LINE, .35); } },
   { depth: 220, draw: () => drawSink(g) },   // in front of the washroom's glass wall, behind whoever washes up
   // the kitchen's round table and its two stools, clear of the coffee machine
   { depth: 179, draw: () => stool(149, 30) }, { depth: 190, draw: () => kitchenTable(160, 30) }, { depth: 201, draw: () => stool(171, 30) },
@@ -1736,8 +1734,9 @@ function drawStatic() {
   // kitchen: coral splashback, mint base cabinets, open shelves, fridge, coffee machine
   poly(c, quadY(.25, 104, 182, 22, 36), PAL.coral);
   onWallY(c, 104, 36, () => { c.strokeStyle = "#ffffff"; c.lineWidth = .35; for (let u = 0; u < 78; u += 4) { c.beginPath(); c.moveTo(u, 0); c.lineTo(u, 14); c.stroke(); } for (let v = 0; v < 14; v += 4) { c.beginPath(); c.moveTo(0, v); c.lineTo(78, v); c.stroke(); } });
-  box(c, 104, 0, 0, 182, 14, 22, { top: "#ffffff", left: PAL.mint, right: PAL.mintDark });
-  for (let x = 106; x < 180; x += 13) poly(c, quadY(14.05, x, x + 11, 3, 19), null, INK_LINE, .35);
+  // the cabinets start a little to the right, leaving the water cooler room to stand clear of them
+  box(c, 112, 0, 0, 182, 14, 22, { top: "#ffffff", left: PAL.mint, right: PAL.mintDark });
+  for (let x = 114; x < 179; x += 11) poly(c, quadY(14.05, x, x + 9.5, 3, 19), null, INK_LINE, .35);
   [42, 56].forEach(z => box(c, 106, 0, z, 180, 6, z + 1.4, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }));
   SNACK_BOXES.forEach(([x, z, k]) => box(c, x, 1, z, x + 5, 4.6, z + 6, { top: shade(PAL[k], 1.08), left: PAL[k], right: shade(PAL[k], .85) }));
   box(c, 184, 0, 0, 202, 16, 52, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); seg(c, iso(186, 16.1, 30), iso(186, 16.1, 46), INK_LINE, .8); seg(c, iso(186, 16.1, 12), iso(186, 16.1, 26), INK_LINE, .8); seg(c, iso(184, 16.1, 28), iso(202, 16.1, 28));
