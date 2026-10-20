@@ -1203,9 +1203,9 @@ function makeMember(roleId, desk, name, seed, variant = 0) {
 const DESK_CAST = [
   ["typing", "Ganapathi"], ["clicking", "Asawari"], null, ["cough", "Rhea"],
   ["stamp", "Ashmita"], null,
-  ["cough", "Sathvik"], null, null, ["stamp", "Avani"],
+  ["cough", "Sathvik"], null, null, ["stamp", "Shriram"],
 ];
-const SPOT_CAST = [["phone", "Tavish"], ["copier", "Trayi"], ["glass", "Ruhani"], ["coffee", "Krtin"], ["flush", "Shriram"], ["typing", "Akanksha"], ["clicking", "Shreyas"]];
+const SPOT_CAST = [["phone", "Tavish"], ["copier", "Trayi"], ["glass", "Ruhani"], ["coffee", "Krtin"], ["flush", "Avani"], ["typing", "Akanksha"], ["clicking", "Shreyas"]];
 const CAST = [...DESK_CAST, ...SPOT_CAST].map((c, i, all) => c && ({ role: c[0], name: c[1], seed: 4099 + i * 131, variant: all.slice(0, i).filter(o => o && o[0] === c[0]).length }));
 const CAST_SIZE = CAST.filter(Boolean).length;
 function callIn(seat) {
@@ -2205,18 +2205,186 @@ const CAL_CSS = `
 .cal .seal b { font-size: 14px; font-weight: 800; white-space: nowrap; } .cal .seal { white-space: nowrap; } .cal .seal span { font-size: 10.5px; font-weight: 700; }
 `;
 
-document.head.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}</style>`);
-const CAL_PICK = Math.max(0, Math.min(CAL_VARIANTS.length - 1, (+new URLSearchParams(location.search).get("cal") || 1) - 1));
+/* Five takes on the wall calendar, drawn in the office's own language: Archivo headings,
+   Figtree numbers, thin ink lines, the plan's pastels and a picture taken from the office. */
+const PIC = {
+  // a corner of the plan: window, sunny floorboards, a desk with a laptop, a plant and a mug
+  plan: `<svg viewBox="0 0 230 60" aria-hidden="true"><rect width="230" height="60" fill="#d6ebf7"/><rect x="18" y="8" width="44" height="30" fill="#eaf4fb" stroke="#3a3a3c" stroke-width=".8"/><path d="M40 8v30M18 23h44" stroke="#3a3a3c" stroke-width=".6"/><path d="M0 46 115 30 230 46v14H0z" fill="#fdeaa0" stroke="#3a3a3c" stroke-width=".8"/><path d="M20 49 135 33M45 52 160 36M75 55 190 39M110 58 220 43" stroke="#f5d679" stroke-width=".8"/><path d="M120 40l26-9 30 9-26 9z" fill="#fff" stroke="#3a3a3c" stroke-width=".8"/><path d="M120 40v12M150 49v11M176 40v11" stroke="#3a3a3c" stroke-width=".8"/><path d="M138 37l10-3 9 3-10 3z" fill="#eee" stroke="#3a3a3c" stroke-width=".6"/><path d="M148 34l-1-8 9 3 1 8" fill="#f6c9cf" stroke="#3a3a3c" stroke-width=".6"/><path d="M196 46l4-14 3 14M200 46l-8-10 6 10M201 46l9-11-6 11" fill="#5aa67a" stroke="#2f7f57" stroke-width=".6"/><rect x="194" y="45" width="12" height="9" fill="#fff" stroke="#3a3a3c" stroke-width=".7"/><ellipse cx="166" cy="38" rx="2.2" ry="1.1" fill="#ee6f6a" stroke="#3a3a3c" stroke-width=".5"/></svg>`,
+  // crayon: a red beanbag in the sun, coloured in with grain
+  crayon: id => `<svg viewBox="0 0 230 60" aria-hidden="true"><defs><filter id="${id}"><feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 -1.6 1.1"/><feComposite in2="SourceGraphic" operator="in"/><feBlend in="SourceGraphic" mode="multiply"/></filter></defs><g filter="url(#${id})"><rect width="230" height="60" fill="#d9ece4"/><rect y="42" width="230" height="18" fill="#fdeaa0"/><circle cx="190" cy="16" r="9" fill="#ffd95c"/><path d="M70 50c-14 0-17-14-9-22 7-8 22-9 29-2 8 8 6 24-20 24z" fill="#e0483e"/><path d="M128 50l5-20 4 20M133 50l-11-14 8 14M135 50l13-14-9 14" fill="#2f7f57"/><rect x="126" y="48" width="15" height="10" fill="#fff"/></g><path d="M70 50c-14 0-17-14-9-22 7-8 22-9 29-2 8 8 6 24-20 24z" fill="none" stroke="#3a3a3c" stroke-width=".7"/></svg>`,
+  // the vitals screen on the back wall, with a heartbeat running across it
+  vitals: D => `<svg viewBox="0 0 230 60" aria-hidden="true"><rect width="230" height="60" fill="#2f3b55"/><path d="M8 34h44l5-6 5 6h12l4-18 6 30 5-12h24l5-6 5 6h12l4-18 6 30 5-12h24l5-6 5 6h12l4-18 6 30 5-12h12" fill="none" stroke="#9fe3c8" stroke-width="1.4" stroke-linejoin="round"/><text x="10" y="13" fill="#ee6f6a" font-family="Archivo, sans-serif" font-size="8" font-weight="800">♥</text><text x="20" y="13" fill="#9fe3c8" font-family="Archivo, sans-serif" font-size="8" font-weight="700" letter-spacing=".08em">AWAY</text><text x="10" y="54" fill="#9fe3c8" fill-opacity=".65" font-family="Archivo, sans-serif" font-size="7" font-weight="600" letter-spacing=".08em">BACK ${fmtD(D.back, { weekday: "short", day: "numeric", month: "short" }).toUpperCase()}</text></svg>`,
+  // the kitchen splashback: coral tiles with white grout
+  tiles: `<svg viewBox="0 0 230 60" aria-hidden="true"><defs><pattern id="tl" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#ee6f6a"/><path d="M10 0V10H0" fill="none" stroke="#fff" stroke-width="1.2"/></pattern></defs><rect width="230" height="60" fill="url(#tl)"/><rect x="0" y="44" width="230" height="16" fill="#d9ece4" stroke="#3a3a3c" stroke-width=".8"/><path d="M14 47h40v10H14zM62 47h40v10H62zM110 47h40v10h-40zM158 47h40v10h-40z" fill="none" stroke="#3a3a3c" stroke-width=".6"/><rect x="90" y="18" width="22" height="26" fill="#2b2b2e"/><rect x="90" y="18" width="22" height="5" fill="#ee6f6a" stroke="#2b2b2e"/><path d="M98 30h6v4h-6z" fill="#9a9a9c"/></svg>`,
+  // the lounge rug: pink with white panels
+  rug: `<svg viewBox="0 0 230 60" aria-hidden="true"><rect width="230" height="60" fill="#f6c9cf"/><g fill="none" stroke="#fff" stroke-width="2.2"><rect x="10" y="9" width="40" height="42"/><rect x="62" y="9" width="40" height="42"/><rect x="114" y="9" width="40" height="42"/><rect x="166" y="9" width="54" height="42"/></g></svg>`,
+};
+const wallGrid = (D, cls) => grid(D, "wg " + cls);
+const monthTitle = D => `<p class="wmo">${fmtD(D.from, { month: "long" })} <span>${D.from.getFullYear()}</span></p>`;
+const wallFoot = D => `<p class="wft"><b>${D.reason}</b><span>${backLine(D)}</span></p>`;
+const wall = (D, pic, cls, body) => `${head(D)}<div class="wall2 ${cls}"><div class="rings">${"<i></i>".repeat(7)}</div><div class="wpic">${pic}</div>${body}</div>${wallFoot(D)}`;
+const WALL_VARIANTS = [
+  { name: "Plan print", html: D => wall(D, PIC.plan, "w-plan", monthTitle(D) + wallGrid(D, "floor")) },
+  { name: "Crayon", html: D => wall(D, PIC.crayon("crg" + Math.round(Math.random() * 1e6)), "w-crayon", monthTitle(D) + wallGrid(D, "swatch")) },
+  { name: "Vitals screen", html: D => wall(D, PIC.vitals(D), "w-vitals", monthTitle(D) + wallGrid(D, "mint")) },
+  { name: "Kitchen tiles", html: D => wall(D, PIC.tiles, "w-tiles", monthTitle(D) + wallGrid(D, "tile")) },
+  { name: "Headline", html: D => wall(D, PIC.rug, "w-head", `<p class="whl">Out of <em>office</em></p><p class="wsub">${sameDay(D.from, D.to) ? fmtD(D.from, { weekday: "long", day: "numeric", month: "short" }) : fmtD(D.from, { day: "numeric", month: "short" }) + " – " + fmtD(D.to, { day: "numeric", month: "short" })}</p>` + wallGrid(D, "sun")) },
+];
+const WALL_CSS = `
+.cal { font-family: var(--font-body, Figtree, system-ui, sans-serif); }
+.cal .ctag { font-family: var(--font-label, Archivo, sans-serif); }
+.cal .wall2 { border: 1px solid #3a3a3c; border-radius: 4px; padding: 0 10px 10px; background: #fff; position: relative; }
+.cal .wall2 .rings { display: flex; justify-content: space-around; margin: -7px 8px 0; position: relative; z-index: 1; }
+.cal .wall2 .rings i { width: 6px; height: 13px; border: 1.5px solid #3a3a3c; border-radius: 4px; background: #fff; }
+.cal .wpic { margin: -6px -10px 8px; border-bottom: 1px solid #3a3a3c; line-height: 0; overflow: hidden; border-radius: 4px 4px 0 0; }
+.cal .wpic svg { display: block; width: 100%; height: auto; }
+.cal .wmo { margin: 0 0 6px; font: 800 17px/1 var(--font-display, Archivo, sans-serif); letter-spacing: -.01em; }
+.cal .wmo span { color: #d6545a; }
+.cal .wft { margin: 9px 0 0; display: grid; gap: 1px; }
+.cal .wft b { font: 700 14px/1.25 var(--font-display, Archivo, sans-serif); }
+.cal .wft span { font: 400 12.5px/1.3 var(--font-body, Figtree, sans-serif); color: #6b6b6e; }
+.cal .cg.wg { font: 500 12px/1 var(--font-body, Figtree, sans-serif); gap: 3px 0; }
+.cal .cg.wg b { font: 600 9.5px/1 var(--font-label, Archivo, sans-serif); letter-spacing: .08em; color: #8a8a8d; }
+.cal .cg.wg i { padding: 4px 0; }
+.cal .cg.wg i.now { font-weight: 800; color: #fff !important; }
+.cal .cg.wg i.now::before { content: ""; position: absolute; inset: 0 3px; border-radius: 50%; background: #d6545a; z-index: -1; }
+.cal .cg.wg i { z-index: 0; }
+/* plan print: days away sit on sunny floorboards */
+.cal .cg.floor i.out { background: #fdeaa0 repeating-linear-gradient(90deg, transparent 0 7px, #f5d679 7px 8px); }
+.cal .cg.floor i.s { border-left: 1px solid #3a3a3c; } .cal .cg.floor i.e { border-right: 1px solid #3a3a3c; }
+.cal .cg.floor i.out { border-top: 1px solid #3a3a3c; border-bottom: 1px solid #3a3a3c; }
+/* crayon: days away coloured in with a rough stroke */
+.cal .w-crayon .wmo { font-size: 18px; }
+.cal .cg.swatch i.out { background: repeating-linear-gradient(-62deg, rgba(224,72,62,.55) 0 2px, rgba(224,72,62,.25) 2px 3px, rgba(224,72,62,.5) 3px 5px); border-radius: 3px 6px 4px 7px; }
+.cal .cg.swatch i.now::before { background: #e0483e; border-radius: 46% 54% 50% 48%; }
+/* vitals: the screen's dark blue and mint */
+.cal .cg.mint i.out { background: #9fe3c8; color: #2f3b55; font-weight: 700; }
+.cal .cg.mint i.s { border-radius: 4px 0 0 4px; } .cal .cg.mint i.e { border-radius: 0 4px 4px 0; } .cal .cg.mint i.s.e { border-radius: 4px; }
+.cal .cg.mint i.now::before { background: #2f3b55; }
+.cal .w-vitals .wmo span { color: #2f3b55; }
+/* kitchen tiles: every day is a tile, days away are pink */
+.cal .cg.tile { gap: 0; border-top: 1px solid #f0b3b0; border-left: 1px solid #f0b3b0; }
+.cal .cg.tile b { border-right: 1px solid #f0b3b0; border-bottom: 1px solid #f0b3b0; padding: 4px 0; }
+.cal .cg.tile i { border-right: 1px solid #f0b3b0; border-bottom: 1px solid #f0b3b0; padding: 5px 0; }
+.cal .cg.tile i.out { background: #f6c9cf; }
+.cal .cg.tile i.now::before { inset: 2px 5px; border-radius: 3px; }
+/* headline: the site's own heading, then a small month with days away in yellow */
+.cal .whl { margin: 0; font: 800 26px/.92 var(--font-display, Archivo, sans-serif); letter-spacing: -.02em; }
+.cal .whl em { font-style: normal; color: #d6545a; }
+.cal .wsub { margin: 4px 0 8px; font: 500 13px/1.2 var(--font-body, Figtree, sans-serif); color: #6b6b6e; }
+.cal .cg.sun i.out { background: #ffd95c; } .cal .cg.sun i.s { border-radius: 10px 0 0 10px; } .cal .cg.sun i.e { border-radius: 0 10px 10px 0; } .cal .cg.sun i.s.e { border-radius: 10px; }
+`;
+/* Pinboards: the popup shows the away person's own board, with the wall calendar pinned in
+   the middle and bits of their life around it: notes, torn paper, photos, pins and a plant. */
+const BITS = [
+  { sticky: "Fasting from 10pm!", list: ["bloods, 9am", "bring ID card", "treat: masala dosa"], photo: "cat", caption: "Biscuit" },
+  { sticky: "Drink water. Lots.", list: ["soup", "sleep", "reply to mails later"], photo: "dog", caption: "Mango" },
+  { sticky: "Wrist stretches x3", list: ["physio, 11am", "ice pack", "no typing marathons"], photo: "hills", caption: "Coorg '25" },
+  { sticky: "Goa!!", list: ["sunscreen", "tickets", "out-of-office ON"], photo: "beach", caption: "last year" },
+];
+const PHOTOS = {
+  cat: `<svg viewBox="0 0 60 46"><rect width="60" height="46" fill="#d6ebf7"/><rect y="34" width="60" height="12" fill="#fdeaa0"/><ellipse cx="30" cy="34" rx="15" ry="9" fill="#e2a23b" stroke="#3a3a3c" stroke-width=".8"/><circle cx="30" cy="22" r="8" fill="#e2a23b" stroke="#3a3a3c" stroke-width=".8"/><path d="M23 17l1-7 5 5M37 17l-1-7-5 5" fill="#e2a23b" stroke="#3a3a3c" stroke-width=".8"/><circle cx="27" cy="22" r="1" fill="#3a3a3c"/><circle cx="33" cy="22" r="1" fill="#3a3a3c"/></svg>`,
+  dog: `<svg viewBox="0 0 60 46"><rect width="60" height="46" fill="#d9ece4"/><rect y="36" width="60" height="10" fill="#b9dccd"/><ellipse cx="32" cy="34" rx="16" ry="8" fill="#fff" stroke="#3a3a3c" stroke-width=".8"/><circle cx="22" cy="24" r="8" fill="#fff" stroke="#3a3a3c" stroke-width=".8"/><path d="M15 20c-3 4-2 9 1 10M27 18c3 3 4 8 2 10" fill="#7a4b2a" stroke="#3a3a3c" stroke-width=".8"/><circle cx="20" cy="24" r="1" fill="#3a3a3c"/><circle cx="16" cy="27" r="1.4" fill="#3a3a3c"/></svg>`,
+  hills: `<svg viewBox="0 0 60 46"><rect width="60" height="46" fill="#d6ebf7"/><circle cx="46" cy="12" r="5" fill="#ffd95c"/><path d="M0 34 16 18l12 12 10-8 22 16v16H0z" fill="#5aa67a" stroke="#3a3a3c" stroke-width=".8"/><path d="M0 40 20 30l18 8 22-6v14H0z" fill="#2f7f57"/></svg>`,
+  beach: `<svg viewBox="0 0 60 46"><rect width="60" height="46" fill="#d6ebf7"/><circle cx="14" cy="12" r="5" fill="#ffd95c"/><rect y="26" width="60" height="8" fill="#7cc7f2"/><rect y="34" width="60" height="12" fill="#fdeaa0"/><path d="M44 34c0-10 1-16 3-20" fill="none" stroke="#7a4b2a" stroke-width="1.6"/><path d="M47 14c-6-2-10 0-12 3M47 14c4-4 9-4 11-2M47 14c0-5 3-8 6-9" fill="none" stroke="#2f7f57" stroke-width="2"/></svg>`,
+};
+const pinSvg = (c, x, y) => `<span class="pin" style="left:${x}px;top:${y}px"><svg viewBox="0 0 14 14"><ellipse cx="8.5" cy="10" rx="4" ry="2" fill="rgba(0,0,0,.18)"/><circle cx="6.5" cy="6.5" r="4.6" fill="${c}" stroke="#3a3a3c" stroke-width=".8"/><circle cx="5" cy="5" r="1.3" fill="#fff" fill-opacity=".7"/></svg></span>`;
+const plantSvg = (x, y, s = 1) => `<span class="bplant" style="left:${x}px;top:${y}px;width:${46 * s}px"><svg viewBox="0 0 46 56"><path d="M23 34 18 6l7 26M23 34 4 14l17 21M23 34l20-18-18 19M23 34 9 28l14 7M23 34l15-4-14 6" fill="#5aa67a" stroke="#2f7f57" stroke-width=".8" stroke-linejoin="round"/><path d="M11 34h24l-3 20H14z" fill="#fff" stroke="#3a3a3c" stroke-width=".9"/><path d="M11 34h24v4H11z" fill="#f3f3f1" stroke="#3a3a3c" stroke-width=".9"/></svg></span>`;
+const ivySvg = (x, y) => `<span class="bplant" style="left:${x}px;top:${y}px;width:64px"><svg viewBox="0 0 64 90"><path d="M20 0v6M44 0v6" stroke="#3a3a3c" stroke-width=".8"/><path d="M14 6h36l-4 14H18z" fill="#f6c9cf" stroke="#3a3a3c" stroke-width=".9"/><path d="M22 20c-4 20 2 40-6 66M38 20c6 18 0 36 10 58M30 20c0 14-3 22 1 34" fill="none" stroke="#2f7f57" stroke-width="1"/>${[[18,30],[20,44],[15,58],[17,72],[40,32],[44,46],[42,60],[47,74],[29,34],[31,48]].map(([a,b],i)=>`<ellipse cx="${a}" cy="${b}" rx="4" ry="2.4" transform="rotate(${i%2?30:-30} ${a} ${b})" fill="${i%3?"#5aa67a":"#2f7f57"}"/>`).join("")}</svg></span>`;
+const sticky = (t, c, x, y, r, w = 92) => `<span class="sticky" style="left:${x}px;top:${y}px;width:${w}px;background:${c};transform:rotate(${r}deg)">${t}</span>`;
+const torn = (lines, x, y, r, w = 104) => `<span class="torn" style="left:${x}px;top:${y}px;width:${w}px;transform:rotate(${r}deg)"><b>to do</b>${lines.map(l => `<i>${l}</i>`).join("")}</span>`;
+const polaroid = (p, cap, x, y, r) => `<span class="polaroid" style="left:${x}px;top:${y}px;transform:rotate(${r}deg)">${PHOTOS[p]}<i>${cap}</i></span>`;
+const tape = (x, y, r, c = "rgba(255,217,92,.7)", w = 34) => `<span class="tape" style="left:${x}px;top:${y}px;width:${w}px;background:${c};transform:rotate(${r}deg)"></span>`;
+const clipSvg = (x, y) => `<span class="clip" style="left:${x}px;top:${y}px"><svg viewBox="0 0 22 18"><path d="M3 8h16v8H3z" fill="#2b2b2e"/><path d="M6 8 8 1h6l2 7" fill="none" stroke="#9a9a9c" stroke-width="1.4"/></svg></span>`;
+const magnet = (c, x, y) => `<span class="magnet" style="left:${x}px;top:${y}px;background:${c}"></span>`;
+// the calendar itself: the wall calendar, a little smaller, with a picture from the office
+function boardCal(D, x, y, r, pic = PIC.plan, gcls = "floor") {
+  return `<div class="bcal" style="left:${x}px;top:${y}px;transform:rotate(${r}deg)"><div class="wall2"><div class="rings">${"<i></i>".repeat(6)}</div><div class="wpic">${pic}</div>${monthTitle(D)}${wallGrid(D, gcls)}<p class="bback">${D.reason}<span>${backLine(D)}</span></p></div></div>`;
+}
+const boardHead = D => `<div class="ch"><span class="ctag">${CAL_ICONS[D.icon]}Out of office</span><button class="cx" aria-label="Close">×</button></div>`;
+const scene = (cls, inner) => `<div class="scene ${cls}">${inner}</div>`;
+const BOARD_VARIANTS = [
+  { name: "Cork board", board: true, html: (D, k = 0) => { const b = BITS[k % 4]; return boardHead(D) + scene("cork",
+    boardCal(D, 88, 22, -1.5) + pinSvg("#ee6f6a", 166, 16) + polaroid(b.photo, b.caption, 12, 30, -7) + pinSvg("#ffd95c", 38, 26) +
+    sticky(b.sticky, "#ffd95c", 262, 30, 5, 78) + pinSvg("#5b6ee1", 294, 24) + torn(b.list, 8, 136, 3, 90) + pinSvg("#2f7f57", 46, 146) +
+    sticky("♥", "#f6c9cf", 272, 140, -8, 46) + plantSvg(276, 196, 1.05)) } },
+  { name: "Pegboard", board: true, html: (D, k = 1) => { const b = BITS[k % 4]; return boardHead(D) + scene("peg",
+    `<span class="hook" style="left:166px;top:12px"></span>` + boardCal(D, 90, 18, 0, PIC.crayon("pc" + k), "swatch") +
+    `<span class="shelf" style="left:262px;top:156px"></span>` + plantSvg(262, 112, .85) + `<span class="mug" style="left:298px;top:132px"></span>` +
+    sticky(b.sticky, "#9fe3c8", 264, 30, -4, 62) + polaroid(b.photo, b.caption, 14, 20, 5) + tape(26, 14, -8) +
+    torn(b.list, 12, 148, -3, 86) + `<span class="scissors" style="left:288px;top:186px">✂</span>`) } },
+  { name: "Desk screen", board: true, html: (D, k = 2) => { const b = BITS[k % 4]; return boardHead(D) + scene("felt",
+    boardCal(D, 86, 18, 1, PIC.vitals(D), "mint") + pinSvg("#ee6f6a", 100, 16) + pinSvg("#ee6f6a", 238, 16) +
+    `<span class="postcard" style="left:240px;top:34px">${PHOTOS[b.photo]}<i>wish you were here</i></span>` + tape(250, 28, 12, "rgba(238,111,106,.55)") +
+    sticky(b.sticky, "#ffd95c", 14, 34, -6, 76) + torn(b.list, 248, 140, 4, 82) + pinSvg("#5b6ee1", 282, 136) +
+    sticky("call amma", "#f6c9cf", 16, 148, 4, 66) + plantSvg(6, 196, .95)) } },
+  { name: "Whiteboard", board: true, html: (D, k = 3) => { const b = BITS[k % 4]; return boardHead(D) + scene("white",
+    `<svg class="doodle" viewBox="0 0 340 250" aria-hidden="true"><path d="M8 238h30l5-8 5 8h8l4-16 6 26 4-10h14" fill="none" stroke="#ee6f6a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text x="262" y="196" font-family="Figtree, sans-serif" font-size="13" font-style="italic" fill="#5b6ee1">see you</text><text x="268" y="212" font-family="Figtree, sans-serif" font-size="13" font-style="italic" fill="#5b6ee1">soon :)</text><path d="M262 218c20 3 46 2 66-4" fill="none" stroke="#5b6ee1" stroke-width="1.5" stroke-linecap="round"/></svg>` +
+    boardCal(D, 92, 16, 0, PIC.tiles, "tile") + magnet("#ee6f6a", 102, 12) + magnet("#5b6ee1", 240, 12) +
+    sticky(b.sticky, "#ffd95c", 250, 30, 4, 78) + sticky("Q4 deck", "#9fe3c8", 254, 104, -5, 70) +
+    polaroid(b.photo, b.caption, 14, 22, -5) + magnet("#ffd95c", 40, 18) + torn(b.list, 14, 120, 2, 80) + `<span class="marker" style="left:262px;top:236px"></span>`) } },
+  { name: "Wire grid", board: true, html: (D, k = 0) => { const b = BITS[k % 4]; return boardHead(D) + scene("wire",
+    ivySvg(262, -4) + boardCal(D, 84, 18, 0, PIC.rug, "sun") + clipSvg(120, 10) + clipSvg(196, 10) +
+    polaroid(b.photo, b.caption, 12, 26, -4) + clipSvg(32, 18) + polaroid("hills", "home", 14, 128, 5) + clipSvg(34, 120) +
+    sticky(b.sticky, "#f6c9cf", 252, 120, 3, 80) + torn(b.list, 246, 172, -2, 86) + `<span class="ticket" style="left:20px;top:214px">ADMIT ONE · 7:30pm</span>`) } },
+];
+const BOARD_CSS = `
+.cal.board { width: 344px; padding: 10px; }
+.cal .scene { position: relative; height: 266px; border: 1px solid #3a3a3c; border-radius: 4px; overflow: hidden; }
+.cal .scene > span, .cal .scene > div { position: absolute; }
+.cal .scene.cork { background: #d9a86c radial-gradient(circle at 20% 30%, rgba(122,75,42,.35) 0 1px, transparent 1.5px) 0 0/9px 11px, radial-gradient(circle at 70% 60%, rgba(255,255,255,.25) 0 1px, transparent 1.5px) 0 0/13px 7px; background-color: #d9a86c; box-shadow: inset 0 0 0 5px #b98c66, inset 0 0 0 6px #3a3a3c; }
+.cal .scene.peg { background: #f3f3f1 radial-gradient(circle, #bdbdba 0 1.4px, transparent 1.8px) 6px 6px/14px 14px; }
+.cal .scene.felt { background: #d9ece4 repeating-linear-gradient(45deg, rgba(47,127,87,.05) 0 2px, transparent 2px 4px); border-radius: 14px 14px 4px 4px; box-shadow: inset 0 0 0 5px #d9ece4, inset 0 0 0 6px rgba(47,127,87,.45); }
+.cal .scene.white { background: #fff; box-shadow: inset 0 0 0 5px #e6e6e4, inset 0 0 0 6px #9a9a9c; }
+.cal .scene.wire { background-color: #fff; background-image: linear-gradient(90deg, rgba(43,43,46,.55) 1px, transparent 1px), linear-gradient(rgba(43,43,46,.55) 1px, transparent 1px); background-size: 20px 20px; }
+.cal .doodle { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cal .bcal { width: 168px; z-index: 2; filter: drop-shadow(3px 4px 0 rgba(58,58,60,.16)); }
+.cal .bcal .wall2 { padding: 0 8px 8px; }
+.cal .bcal .wmo { font-size: 14px; margin-bottom: 4px; }
+.cal .bcal .cg.wg { font-size: 9.5px; gap: 1px 0; } .cal .bcal .cg.wg b { font-size: 7.5px; } .cal .bcal .cg.wg i { padding: 2.5px 0; }
+.cal .bcal .wpic { margin-bottom: 6px; }
+.cal .bback { margin: 6px 0 0; font: 700 11px/1.2 var(--font-display, Archivo, sans-serif); display: grid; }
+.cal .bback span { font: 400 10px/1.3 var(--font-body, Figtree, sans-serif); color: #6b6b6e; }
+.cal .pin { width: 14px; height: 14px; z-index: 5; } .cal .pin svg, .cal .clip svg { display: block; width: 100%; height: 100%; }
+.cal .clip { width: 22px; height: 18px; z-index: 5; }
+.cal .magnet { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #3a3a3c; z-index: 5; box-shadow: 1px 2px 0 rgba(0,0,0,.15); }
+.cal .sticky { z-index: 3; padding: 9px 8px 12px; border: 1px solid rgba(58,58,60,.5); font: italic 500 12px/1.25 var(--font-body, Figtree, sans-serif); box-shadow: 2px 3px 0 rgba(58,58,60,.14); }
+.cal .torn { z-index: 3; background: #fff repeating-linear-gradient(transparent 0 13px, #d6ebf7 13px 14px); padding: 8px 8px 12px; display: grid; font: italic 400 10.5px/14px var(--font-body, Figtree, sans-serif); clip-path: polygon(0 4%, 9% 0, 18% 3%, 30% 0, 41% 4%, 55% 1%, 66% 4%, 78% 0, 90% 3%, 100% 1%, 100% 95%, 92% 100%, 81% 96%, 70% 100%, 58% 97%, 46% 100%, 35% 96%, 22% 100%, 11% 97%, 0 100%); filter: drop-shadow(1px 2px 0 rgba(58,58,60,.15)); }
+.cal .torn b { font: 700 9px/14px var(--font-label, Archivo, sans-serif); letter-spacing: .1em; text-transform: uppercase; color: #d6545a; font-style: normal; }
+.cal .torn i::before { content: "□ "; font-style: normal; color: #9a9a9c; }
+.cal .polaroid { z-index: 3; width: 70px; background: #fff; border: 1px solid #3a3a3c; padding: 5px 5px 4px; display: grid; gap: 3px; box-shadow: 2px 3px 0 rgba(58,58,60,.15); }
+.cal .polaroid svg, .cal .postcard svg { width: 100%; height: auto; display: block; border: 1px solid #3a3a3c; }
+.cal .polaroid i { font: italic 500 10px/1 var(--font-body, Figtree, sans-serif); text-align: center; }
+.cal .postcard { z-index: 3; width: 88px; background: #fff; border: 1px solid #3a3a3c; padding: 4px; display: grid; gap: 3px; transform: rotate(6deg); }
+.cal .postcard i { font: italic 500 9px/1 var(--font-body, Figtree, sans-serif); text-align: center; color: #6b6b6e; }
+.cal .tape { height: 11px; z-index: 6; }
+.cal .bplant { z-index: 4; } .cal .bplant svg { display: block; width: 100%; height: auto; }
+.cal .hook { width: 8px; height: 10px; border: 1.5px solid #3a3a3c; border-top: 0; border-radius: 0 0 6px 6px; z-index: 5; }
+.cal .shelf { width: 62px; height: 6px; background: #fff; border: 1px solid #3a3a3c; z-index: 3; }
+.cal .mug { width: 18px; height: 22px; background: #ee6f6a; border: 1px solid #3a3a3c; border-radius: 0 0 4px 4px; z-index: 4; }
+.cal .mug::after { content: ""; position: absolute; right: -7px; top: 5px; width: 6px; height: 9px; border: 1.5px solid #3a3a3c; border-left: 0; border-radius: 0 6px 6px 0; }
+.cal .scissors { font-size: 24px; color: #5b6ee1; transform: rotate(-30deg); z-index: 4; }
+.cal .marker { width: 60px; height: 9px; border-radius: 4px; background: #ee6f6a; border: 1px solid #3a3a3c; z-index: 3; }
+.cal .marker::after { content: ""; position: absolute; right: -8px; top: 1px; width: 8px; height: 5px; background: #2b2b2e; border-radius: 0 3px 3px 0; }
+.cal .ticket { z-index: 3; padding: 5px 10px; background: #ffd95c; border: 1px dashed #3a3a3c; font: 700 9px/1 var(--font-label, Archivo, sans-serif); letter-spacing: .1em; transform: rotate(-4deg); }
+`;
+CAL_VARIANTS.push(...WALL_VARIANTS, ...BOARD_VARIANTS);   // wall calendars are 11 to 15, pinboards 16 to 20
+document.head.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOARD_CSS}</style>`);
+const CAL_PICK = Math.max(0, Math.min(CAL_VARIANTS.length - 1, (+new URLSearchParams(location.search).get("cal") || 16) - 1));
 let calEl = null;
 function closeCal() { if (calEl) { calEl.remove(); calEl = null; } }
 // the calendar opens beside the desk and stays inside the office
 function openCal(i) {
   closeCal();
   const d = SEATS[i], k = LAYOUT.hot.indexOf(i), D = calData(k), board = cv.parentElement;
-  calEl = document.createElement("div"); calEl.className = "cal"; calEl.setAttribute("role", "dialog"); calEl.setAttribute("aria-label", `Out of office: ${D.reason}`);
-  calEl.innerHTML = CAL_VARIANTS[CAL_PICK].html(D);
+  const V = CAL_VARIANTS[CAL_PICK];
+  calEl = document.createElement("div"); calEl.className = V.board ? "cal board" : "cal"; calEl.setAttribute("role", "dialog"); calEl.setAttribute("aria-label", `Out of office: ${D.reason}`);
+  calEl.innerHTML = V.html(D, k);
   board.appendChild(calEl);
-  const bw = board.clientWidth, bh = board.clientHeight, w = calEl.offsetWidth, h = calEl.offsetHeight;
+  // shrink the popup on small screens so it always fits inside the office
+  const bw = board.clientWidth, bh = board.clientHeight, fit = Math.min(1, (bw - 16) / calEl.offsetWidth, (bh - 16) / calEl.offsetHeight);
+  if (fit < 1) { calEl.style.transform = `scale(${fit})`; calEl.style.transformOrigin = "0 0"; }
+  const w = calEl.offsetWidth * fit, h = calEl.offsetHeight * fit;
   const px = d.sx / LW * bw, py = (d.sy - 20) / LH * bh;
   calEl.style.left = Math.max(8, Math.min(bw - w - 8, px - w / 2)) + "px";
   calEl.style.top = Math.max(8, Math.min(bh - h - 8, py - h - 10)) + "px";

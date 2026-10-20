@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wall Calendars</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root { --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif; --font-label: "Archivo", "Helvetica Neue", Arial, sans-serif; --font-body: "Figtree", system-ui, sans-serif; --bg: #fdf8e6; --fg: #2b2b2e; --muted: #6b6b6e; }
+:root:not([data-theme="light"]) { color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 var(--font-body); }
+h1, figcaption { font-family: var(--font-display); }
+h1 { font-weight: 800; letter-spacing: -.01em; } h1 em { font-style: normal; color: #d6545a; }
+main { max-width: 1180px; margin: 0 auto; padding: 32px 16px 56px; }
+h1 { margin: 0 0 6px; font-size: clamp(28px, 4vw, 40px); line-height: 1.05; }
+.lede { margin: 0 0 26px; color: var(--muted); max-width: 64ch; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(262px, 1fr)); gap: 28px 20px; }
+figure { margin: 0; display: grid; gap: 10px; justify-items: start; align-content: start; }
+figcaption { font-weight: 700; } figcaption span { color: #d6545a; margin-right: 6px; font-variant-numeric: tabular-nums; }
+.cal { position: relative !important; }
+.cal .cx { visibility: hidden; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Five <em>wall</em> calendars</h1>
+  <p class="lede">Calendar 4, redrawn in the office's own style: Archivo headings, Figtree numbers, thin ink lines, and a picture from the office on each one. The live office now opens the first; add <b>?cal=11</b> to <b>?cal=15</b> to its address to try the others there.</p>
+  <div class="grid" id="grid"></div>
+</main>
+<script>
+/* ---------- Out-of-office calendars ----------
+   A free desk belongs to someone who is out today. Clicking it opens a small calendar
+   that shows the days they are away; CAL_VARIANTS holds ten looks for it. */
+const OOO = [
+  { reason: "Annual health check-up", start: 0, days: 1, icon: "heart" },
+  { reason: "Sick leave, resting up", start: -1, days: 4, icon: "cross" },
+  { reason: "Physio for a sore wrist", start: 0, days: 2, icon: "cross" },
+  { reason: "Family holiday", start: -3, days: 8, icon: "sun" },
+];
+function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function nextWorkday(d) { let x = addDays(d, 1); while (x.getDay() === 0 || x.getDay() === 6) x = addDays(x, 1); return x; }
+function calData(k) {
+  const o = OOO[k % OOO.length], today = new Date(); today.setHours(0, 0, 0, 0);
+  const from = addDays(today, o.start), to = addDays(from, o.days - 1);
+  return { ...o, today, from, to, back: nextWorkday(to) };
+}
+const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+const isOut = (d, D) => d >= D.from && d <= D.to;
+const fmtD = (d, o) => d.toLocaleDateString("en-GB", o);
+const DOW = ["M", "T", "W", "T", "F", "S", "S"];
+const CAL_ICONS = {
+  heart: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M5 9 1.2 5.2A2.3 2.3 0 0 1 5 2.4a2.3 2.3 0 0 1 3.8 2.8z"/></svg>',
+  cross: '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3.6 1h2.8v2.6H9v2.8H6.4V9H3.6V6.4H1V3.6h2.6z"/></svg>',
+  sun: '<svg viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="2.2"/><path d="M5 .3v1.6M5 8.1v1.6M.3 5h1.6M8.1 5h1.6M1.7 1.7l1.1 1.1M7.2 7.2l1.1 1.1M8.3 1.7 7.2 2.8M2.8 7.2 1.7 8.3" stroke="currentColor" stroke-width=".9"/></svg>',
+};
+// the days of the month containing d, padded to whole Monday-first weeks
+function monthCells(d) {
+  const first = new Date(d.getFullYear(), d.getMonth(), 1), lead = (first.getDay() + 6) % 7, cells = [];
+  for (let i = -lead; cells.length < 42; i++) { const x = addDays(first, i); if (i >= 0 && x.getMonth() !== d.getMonth() && cells.length % 7 === 0) break; cells.push(x); }
+  return cells;
+}
+function grid(D, cls = "", dayFn) {
+  const m = D.from.getMonth();
+  return `<div class="cg ${cls}">${DOW.map(w => `<b>${w}</b>`).join("")}${monthCells(D.from).map(x => {
+    const o = isOut(x, D), c = [x.getMonth() !== m ? "dim" : "", o ? "out" : "", o && (sameDay(x, D.from) || x.getDay() === 1) ? "s" : "", o && (sameDay(x, D.to) || x.getDay() === 0) ? "e" : "", sameDay(x, D.today) ? "now" : "", x.getDay() % 6 === 0 ? "we" : ""].join(" ");
+    return `<i class="${c}">${dayFn ? dayFn(x, o) : x.getDate()}</i>`;
+  }).join("")}</div>`;
+}
+const backLine = D => `Back ${fmtD(D.back, { weekday: "short", day: "numeric", month: "short" })}`;
+const head = (D, extra = "") => `<div class="ch"><span class="ctag">${CAL_ICONS[D.icon]}Out of office</span>${extra}<button class="cx" aria-label="Close">×</button></div>`;
+function crayonRing(seed) {
+  let s = seed, r = () => (s = (s * 9301 + 49297) % 233280) / 233280, p = "";
+  for (let k = 0; k <= 26; k++) { const a = k / 24 * Math.PI * 2 - .6, rr = 46 + (r() - .5) * 6; p += `${k ? "L" : "M"}${(50 + Math.cos(a) * rr).toFixed(1)} ${(50 + Math.sin(a) * rr * .9).toFixed(1)}`; }
+  return `<svg class="ring" viewBox="0 0 100 100" aria-hidden="true"><path d="${p}"/></svg>`;
+}
+const CAL_VARIANTS = [
+  { name: "Month grid", html: D => `${head(D)}<p class="mo">${fmtD(D.from, { month: "long", year: "numeric" })}</p>${grid(D, "cbar")}<p class="ft"><b>${D.reason}</b><span>${backLine(D)}</span></p>` },
+  { name: "Week strip", html: D => {
+    const mon = addDays(D.today, -((D.today.getDay() + 6) % 7)), days = [...Array(7)].map((_, i) => addDays(mon, i));
+    // the label spans the days away, and at least three columns so it stays readable
+    let a = days.findIndex(x => isOut(x, D)), b = 6 - [...days].reverse().findIndex(x => isOut(x, D));
+    if (a >= 0 && b - a < 2) { b = Math.min(6, a + 2); a = Math.max(0, b - 2); }
+    return `${head(D)}<p class="mo">Week of ${fmtD(mon, { day: "numeric", month: "long" })}</p><div class="wk">${days.map(x => `<div class="${sameDay(x, D.today) ? "now" : ""} ${x.getDay() % 6 === 0 ? "we" : ""}"><b>${fmtD(x, { weekday: "short" })}</b><span>${x.getDate()}</span></div>`).join("")}${a >= 0 ? `<em style="grid-column:${a + 1}/${b + 2}">${D.reason}</em>` : ""}</div><p class="ft"><span>${backLine(D)}</span></p>`;
+  } },
+  { name: "Tear-off pad", html: D => `${head(D)}<div class="tear"><p class="tm">${fmtD(D.today, { month: "long" })}</p><p class="td">${D.today.getDate()}</p><p class="tw">${fmtD(D.today, { weekday: "long" })}</p><span class="tstamp">Out</span></div><p class="ft"><b>${D.reason}</b><span>${backLine(D)}</span></p>` },
+  { name: "Wall calendar", html: D => `${head(D)}<div class="wall"><div class="rings">${"<i></i>".repeat(6)}</div><div class="pic"><span class="sun"></span><span class="hill a"></span><span class="hill b"></span></div><p class="mo">${fmtD(D.from, { month: "long", year: "numeric" })}</p>${grid(D, "soft")}</div><p class="ft"><b>${D.reason}</b><span>${backLine(D)}</span></p>` },
+  { name: "Sticky note", html: D => `${head(D)}<div class="stk">${grid(D, "faint")}<div class="note"><b>Gone!</b><span>${D.reason}</span><span>${backLine(D)} :)</span></div></div>` },
+  { name: "Dot grid", html: D => `${head(D)}<p class="mo">${fmtD(D.from, { month: "long" })}</p>${grid(D, "dots", (x, o) => `<span title="${x.getDate()}"></span>`)}<p class="ft"><b>${D.reason}</b><span><i class="key"></i>away · ${backLine(D)}</span></p>` },
+  { name: "Fortnight timeline", html: D => {
+    const mon = addDays(D.today, -((D.today.getDay() + 6) % 7) - 7), days = [...Array(14)].map((_, i) => addDays(mon, i));
+    return `${head(D)}<p class="mo">Two weeks around today</p><div class="tl">${days.map(x => `<div class="${isOut(x, D) ? "out" : ""} ${sameDay(x, D.today) ? "now" : ""} ${x.getDay() % 6 === 0 ? "we" : ""}"><b>${"MTWTFSS"[(x.getDay() + 6) % 7]}</b><span>${x.getDate()}</span>${isOut(x, D) ? CAL_ICONS[D.icon] : "<i></i>"}</div>`).join("")}</div><p class="ft"><b>${D.reason}</b><span>${backLine(D)}</span></p>`;
+  } },
+  { name: "Agenda", html: D => {
+    let x = D.today, rows = [];
+    while (rows.length < 5) { if (x.getDay() % 6) rows.push(x); x = addDays(x, 1); }
+    return `${head(D)}<ul class="ag">${rows.map(x => `<li class="${isOut(x, D) ? "out" : ""}"><b>${fmtD(x, { weekday: "short", day: "numeric" })}</b><span>${isOut(x, D) ? `Out · ${D.reason}` : "In the office"}</span></li>`).join("")}</ul>`;
+  } },
+  { name: "Crayon circles", html: D => `${head(D)}<p class="mo">${fmtD(D.from, { month: "long", year: "numeric" })}</p>${grid(D, "cray", (x, o) => `${x.getDate()}${o ? crayonRing(x.getDate() * 7) : ""}`)}<p class="ft"><b>${D.reason}</b><span>${backLine(D)}</span></p>` },
+  { name: "Rubber stamp", html: D => `${head(D)}<div class="stp">${grid(D, "plain")}<div class="seal"><b>Out of office</b><span>${fmtD(D.from, { day: "numeric", month: "short" })} – ${fmtD(D.to, { day: "numeric", month: "short" })}</span></div></div><p class="ft"><b>${D.reason}</b><span>${backLine(D)}</span></p>` },
+];
+const CAL_CSS = `
+.cal { position: absolute; z-index: 4; width: 252px; background: #fff; color: #3a3a3c; border: 1px solid #3a3a3c; border-radius: 6px; padding: 10px 12px 12px; font: 13px/1.35 Archivo, system-ui, sans-serif; box-shadow: 4px 4px 0 rgba(58,58,60,.12); }
+.cal .ch { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.cal .ctag { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: #d6545a; }
+.cal .ctag svg { width: 11px; height: 11px; fill: currentColor; }
+.cal .cx { margin-left: auto; width: 24px; height: 24px; border: 1px solid #3a3a3c; border-radius: 4px; background: #fff; font-size: 16px; line-height: 1; cursor: pointer; color: inherit; }
+.cal .mo { margin: 0 0 6px; font-weight: 700; font-size: 15px; }
+.cal .ft { margin: 8px 0 0; display: grid; gap: 1px; }
+.cal .ft span { color: #6b6b6e; font-size: 12px; }
+.cal .cg { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px 0; text-align: center; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.cal .cg b { font-size: 10px; color: #8a8a8d; font-weight: 600; padding-bottom: 2px; }
+.cal .cg i { font-style: normal; position: relative; padding: 3px 0; }
+.cal .cg i.dim { color: #c4c4c6; }
+.cal .cg i.we { color: #9a9a9d; }
+.cal .cg i.now { font-weight: 800; }
+.cal .cg.cbar i.out { background: #f6c9cf; } .cal .cg.cbar i.s { border-radius: 10px 0 0 10px; } .cal .cg.cbar i.e { border-radius: 0 10px 10px 0; } .cal .cg.cbar i.s.e { border-radius: 10px; }
+.cal .cg.cbar i.now { outline: 1.5px solid #3a3a3c; outline-offset: -2px; border-radius: 10px; }
+.cal .wk { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal .wk div { border: 1px solid #3a3a3c; border-radius: 4px; text-align: center; padding: 4px 0; display: grid; }
+.cal .wk div.we { background: #f3f3f1; } .cal .wk div.now { background: #fdeaa0; }
+.cal .wk b { font-size: 9.5px; font-weight: 600; color: #6b6b6e; } .cal .wk span { font-weight: 700; }
+.cal .wk em { font-style: normal; background: #ee6f6a; color: #fff; font-size: 11px; font-weight: 700; padding: 3px 6px; border-radius: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; grid-row: 2; margin-top: 2px; }
+.cal .tear { position: relative; border: 1px solid #3a3a3c; border-radius: 4px; text-align: center; padding: 0 0 10px; overflow: hidden; background: linear-gradient(225deg, #f3f3f1 0 14px, #3a3a3c 14px 15px, #fff 15px); }
+.cal .tear .tm { margin: 0; background: #ee6f6a; color: #fff; font-weight: 700; padding: 4px; letter-spacing: .08em; text-transform: uppercase; font-size: 11px; border-bottom: 1px dashed #fff; }
+.cal .tear .td { margin: 2px 0 0; font-size: 56px; font-weight: 800; line-height: 1; }
+.cal .tear .tw { margin: 0; color: #6b6b6e; }
+.cal .tstamp { position: absolute; right: 12px; top: 36px; transform: rotate(-14deg); border: 2px solid #d6545a; color: #d6545a; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; padding: 1px 8px; border-radius: 4px; font-size: 15px; opacity: .9; }
+.cal .wall { border: 1px solid #3a3a3c; border-radius: 4px; padding: 0 8px 8px; position: relative; }
+.cal .wall .rings { display: flex; justify-content: space-around; margin: -6px 10px 4px; }
+.cal .wall .rings i { width: 6px; height: 12px; border: 1.5px solid #3a3a3c; border-radius: 4px; background: #fff; }
+.cal .wall .pic { height: 46px; margin: 0 -8px 6px; background: #d6ebf7; position: relative; overflow: hidden; border-block: 1px solid #3a3a3c; }
+.cal .wall .sun { position: absolute; width: 16px; height: 16px; right: 30px; top: 8px; background: #ffd95c; border: 1px solid #3a3a3c; border-radius: 50%; }
+.cal .wall .hill { position: absolute; bottom: -22px; width: 120px; height: 50px; border: 1px solid #3a3a3c; border-radius: 50%; }
+.cal .wall .hill.a { left: -20px; background: #b9dccd; } .cal .wall .hill.b { left: 80px; background: #d9ece4; bottom: -28px; }
+.cal .cg.soft i.out { background: #ffd95c; border-radius: 3px; } .cal .cg.soft i.now { text-decoration: underline 2px #ee6f6a; text-underline-offset: 2px; }
+.cal .stk { position: relative; }
+.cal .cg.faint { opacity: .45; } .cal .cg.faint i.out { background: #f6c9cf; }
+.cal .note { position: absolute; right: -6px; bottom: -8px; width: 128px; background: #ffd95c; border: 1px solid #3a3a3c; padding: 8px 9px 10px; transform: rotate(4deg); display: grid; gap: 2px; box-shadow: 3px 3px 0 rgba(58,58,60,.15); font-style: italic; }
+.cal .note b { font-style: normal; font-size: 16px; } .cal .note span { font-size: 12px; }
+.cal .cg.dots { gap: 6px 0; } .cal .cg.dots i { padding: 0; display: grid; place-items: center; }
+.cal .cg.dots i span { width: 13px; height: 13px; border-radius: 50%; border: 1px solid #c4c4c6; display: block; }
+.cal .cg.dots i.out span { background: #ee6f6a; border-color: #ee6f6a; } .cal .cg.dots i.now span { outline: 2px solid #3a3a3c; outline-offset: 1px; } .cal .cg.dots i.dim span { opacity: .3; }
+.cal .key { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #ee6f6a; margin-right: 4px; vertical-align: -1px; font-style: normal; }
+.cal .tl { display: grid; grid-template-columns: repeat(14, 1fr); border: 1px solid #3a3a3c; border-radius: 4px; overflow: hidden; }
+.cal .tl div { display: grid; justify-items: center; gap: 2px; padding: 4px 0; font-size: 8.5px; min-width: 0; border-left: 1px solid #e6e6e4; }
+.cal .tl div:first-child { border-left: 0; } .cal .tl div.we { background: #f3f3f1; } .cal .tl div.out { background: #f6c9cf; } .cal .tl div.now { box-shadow: inset 0 -3px 0 #3a3a3c; }
+.cal .tl b { font-weight: 600; color: #8a8a8d; } .cal .tl span { font-weight: 700; } .cal .tl svg, .cal .tl i { width: 9px; height: 9px; fill: #d6545a; color: #d6545a; }
+.cal .ag { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.cal .ag li { display: grid; grid-template-columns: 52px 1fr; gap: 8px; padding: 6px 8px; border: 1px solid #3a3a3c; border-radius: 4px; font-size: 12px; }
+.cal .ag li.out { background: #f6c9cf; } .cal .ag li b { font-variant-numeric: tabular-nums; }
+.cal .cg.cray i.out { font-weight: 700; } .cal .cg.cray .ring { position: absolute; left: 50%; top: 50%; width: 26px; height: 24px; transform: translate(-50%, -50%) rotate(-8deg); fill: none; stroke: #ee6f6a; stroke-width: 6; stroke-linecap: round; opacity: .85; stroke-dasharray: 3 1.2; }
+.cal .stp { position: relative; } .cal .cg.plain i.out { color: #d6545a; font-weight: 700; }
+.cal .seal { position: absolute; left: 50%; top: 56%; transform: translate(-50%, -50%) rotate(-12deg); border: 3px double #d6545a; color: #d6545a; background: rgba(255,255,255,.75); border-radius: 6px; padding: 4px 10px; text-align: center; display: grid; letter-spacing: .08em; text-transform: uppercase; }
+.cal .seal b { font-size: 14px; font-weight: 800; white-space: nowrap; } .cal .seal { white-space: nowrap; } .cal .seal span { font-size: 10.5px; font-weight: 700; }
+`;
+/* Five takes on the wall calendar, drawn in the office's own language: Archivo headings,
+   Figtree numbers, thin ink lines, the plan's pastels and a picture taken from the office. */
+const PIC = {
+  // a corner of the plan: window, sunny floorboards, a desk with a laptop, a plant and a mug
+  plan: `<svg viewBox="0 0 230 60" aria-hidden="true"><rect width="230" height="60" fill="#d6ebf7"/><rect x="18" y="8" width="44" height="30" fill="#eaf4fb" stroke="#3a3a3c" stroke-width=".8"/><path d="M40 8v30M18 23h44" stroke="#3a3a3c" stroke-width=".6"/><path d="M0 46 115 30 230 46v14H0z" fill="#fdeaa0" stroke="#3a3a3c" stroke-width=".8"/><path d="M20 49 135 33M45 52 160 36M75 55 190 39M110 58 220 43" stroke="#f5d679" stroke-width=".8"/><path d="M120 40l26-9 30 9-26 9z" fill="#fff" stroke="#3a3a3c" stroke-width=".8"/><path d="M120 40v12M150 49v11M176 40v11" stroke="#3a3a3c" stroke-width=".8"/><path d="M138 37l10-3 9 3-10 3z" fill="#eee" stroke="#3a3a3c" stroke-width=".6"/><path d="M148 34l-1-8 9 3 1 8" fill="#f6c9cf" stroke="#3a3a3c" stroke-width=".6"/><path d="M196 46l4-14 3 14M200 46l-8-10 6 10M201 46l9-11-6 11" fill="#5aa67a" stroke="#2f7f57" stroke-width=".6"/><rect x="194" y="45" width="12" height="9" fill="#fff" stroke="#3a3a3c" stroke-width=".7"/><ellipse cx="166" cy="38" rx="2.2" ry="1.1" fill="#ee6f6a" stroke="#3a3a3c" stroke-width=".5"/></svg>`,
+  // crayon: a red beanbag in the sun, coloured in with grain
+  crayon: id => `<svg viewBox="0 0 230 60" aria-hidden="true"><defs><filter id="${id}"><feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 -1.6 1.1"/><feComposite in2="SourceGraphic" operator="in"/><feBlend in="SourceGraphic" mode="multiply"/></filter></defs><g filter="url(#${id})"><rect width="230" height="60" fill="#d9ece4"/><rect y="42" width="230" height="18" fill="#fdeaa0"/><circle cx="190" cy="16" r="9" fill="#ffd95c"/><path d="M70 50c-14 0-17-14-9-22 7-8 22-9 29-2 8 8 6 24-20 24z" fill="#e0483e"/><path d="M128 50l5-20 4 20M133 50l-11-14 8 14M135 50l13-14-9 14" fill="#2f7f57"/><rect x="126" y="48" width="15" height="10" fill="#fff"/></g><path d="M70 50c-14 0-17-14-9-22 7-8 22-9 29-2 8 8 6 24-20 24z" fill="none" stroke="#3a3a3c" stroke-width=".7"/></svg>`,
+  // the vitals screen on the back wall, with a heartbeat running across it
+  vitals: D => `<svg viewBox="0 0 230 60" aria-hidden="true"><rect width="230" height="60" fill="#2f3b55"/><path d="M8 34h44l5-6 5 6h12l4-18 6 30 5-12h24l5-6 5 6h12l4-18 6 30 5-12h24l5-6 5 6h12l4-18 6 30 5-12h12" fill="none" stroke="#9fe3c8" stroke-width="1.4" stroke-linejoin="round"/><text x="10" y="13" fill="#ee6f6a" font-family="Archivo, sans-serif" font-size="8" font-weight="800">♥</text><text x="20" y="13" fill="#9fe3c8" font-family="Archivo, sans-serif" font-size="8" font-weight="700" letter-spacing=".08em">AWAY</text><text x="10" y="54" fill="#9fe3c8" fill-opacity=".65" font-family="Archivo, sans-serif" font-size="7" font-weight="600" letter-spacing=".08em">BACK ${fmtD(D.back, { weekday: "short", day: "numeric", month: "short" }).toUpperCase()}</text></svg>`,
+  // the kitchen splashback: coral tiles with white grout
+  tiles: `<svg viewBox="0 0 230 60" aria-hidden="true"><defs><pattern id="tl" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#ee6f6a"/><path d="M10 0V10H0" fill="none" stroke="#fff" stroke-width="1.2"/></pattern></defs><rect width="230" height="60" fill="url(#tl)"/><rect x="0" y="44" width="230" height="16" fill="#d9ece4" stroke="#3a3a3c" stroke-width=".8"/><path d="M14 47h40v10H14zM62 47h40v10H62zM110 47h40v10h-40zM158 47h40v10h-40z" fill="none" stroke="#3a3a3c" stroke-width=".6"/><rect x="90" y="18" width="22" height="26" fill="#2b2b2e"/><rect x="90" y="18" width="22" height="5" fill="#ee6f6a" stroke="#2b2b2e"/><path d="M98 30h6v4h-6z" fill="#9a9a9c"/></svg>`,
+  // the lounge rug: pink with white panels
+  rug: `<svg viewBox="0 0 230 60" aria-hidden="true"><rect width="230" height="60" fill="#f6c9cf"/><g fill="none" stroke="#fff" stroke-width="2.2"><rect x="10" y="9" width="40" height="42"/><rect x="62" y="9" width="40" height="42"/><rect x="114" y="9" width="40" height="42"/><rect x="166" y="9" width="54" height="42"/></g></svg>`,
+};
+const wallGrid = (D, cls) => grid(D, "wg " + cls);
+const monthTitle = D => `<p class="wmo">${fmtD(D.from, { month: "long" })} <span>${D.from.getFullYear()}</span></p>`;
+const wallFoot = D => `<p class="wft"><b>${D.reason}</b><span>${backLine(D)}</span></p>`;
+const wall = (D, pic, cls, body) => `${head(D)}<div class="wall2 ${cls}"><div class="rings">${"<i></i>".repeat(7)}</div><div class="wpic">${pic}</div>${body}</div>${wallFoot(D)}`;
+const WALL_VARIANTS = [
+  { name: "Plan print", html: D => wall(D, PIC.plan, "w-plan", monthTitle(D) + wallGrid(D, "floor")) },
+  { name: "Crayon", html: D => wall(D, PIC.crayon("crg" + Math.round(Math.random() * 1e6)), "w-crayon", monthTitle(D) + wallGrid(D, "swatch")) },
+  { name: "Vitals screen", html: D => wall(D, PIC.vitals(D), "w-vitals", monthTitle(D) + wallGrid(D, "mint")) },
+  { name: "Kitchen tiles", html: D => wall(D, PIC.tiles, "w-tiles", monthTitle(D) + wallGrid(D, "tile")) },
+  { name: "Headline", html: D => wall(D, PIC.rug, "w-head", `<p class="whl">Out of <em>office</em></p><p class="wsub">${sameDay(D.from, D.to) ? fmtD(D.from, { weekday: "long", day: "numeric", month: "short" }) : fmtD(D.from, { day: "numeric", month: "short" }) + " – " + fmtD(D.to, { day: "numeric", month: "short" })}</p>` + wallGrid(D, "sun")) },
+];
+const WALL_CSS = `
+.cal { font-family: var(--font-body, Figtree, system-ui, sans-serif); }
+.cal .ctag { font-family: var(--font-label, Archivo, sans-serif); }
+.cal .wall2 { border: 1px solid #3a3a3c; border-radius: 4px; padding: 0 10px 10px; background: #fff; position: relative; }
+.cal .wall2 .rings { display: flex; justify-content: space-around; margin: -7px 8px 0; position: relative; z-index: 1; }
+.cal .wall2 .rings i { width: 6px; height: 13px; border: 1.5px solid #3a3a3c; border-radius: 4px; background: #fff; }
+.cal .wpic { margin: -6px -10px 8px; border-bottom: 1px solid #3a3a3c; line-height: 0; overflow: hidden; border-radius: 4px 4px 0 0; }
+.cal .wpic svg { display: block; width: 100%; height: auto; }
+.cal .wmo { margin: 0 0 6px; font: 800 17px/1 var(--font-display, Archivo, sans-serif); letter-spacing: -.01em; }
+.cal .wmo span { color: #d6545a; }
+.cal .wft { margin: 9px 0 0; display: grid; gap: 1px; }
+.cal .wft b { font: 700 14px/1.25 var(--font-display, Archivo, sans-serif); }
+.cal .wft span { font: 400 12.5px/1.3 var(--font-body, Figtree, sans-serif); color: #6b6b6e; }
+.cal .cg.wg { font: 500 12px/1 var(--font-body, Figtree, sans-serif); gap: 3px 0; }
+.cal .cg.wg b { font: 600 9.5px/1 var(--font-label, Archivo, sans-serif); letter-spacing: .08em; color: #8a8a8d; }
+.cal .cg.wg i { padding: 4px 0; }
+.cal .cg.wg i.now { font-weight: 800; color: #fff !important; }
+.cal .cg.wg i.now::before { content: ""; position: absolute; inset: 0 3px; border-radius: 50%; background: #d6545a; z-index: -1; }
+.cal .cg.wg i { z-index: 0; }
+/* plan print: days away sit on sunny floorboards */
+.cal .cg.floor i.out { background: #fdeaa0 repeating-linear-gradient(90deg, transparent 0 7px, #f5d679 7px 8px); }
+.cal .cg.floor i.s { border-left: 1px solid #3a3a3c; } .cal .cg.floor i.e { border-right: 1px solid #3a3a3c; }
+.cal .cg.floor i.out { border-top: 1px solid #3a3a3c; border-bottom: 1px solid #3a3a3c; }
+/* crayon: days away coloured in with a rough stroke */
+.cal .w-crayon .wmo { font-size: 18px; }
+.cal .cg.swatch i.out { background: repeating-linear-gradient(-62deg, rgba(224,72,62,.55) 0 2px, rgba(224,72,62,.25) 2px 3px, rgba(224,72,62,.5) 3px 5px); border-radius: 3px 6px 4px 7px; }
+.cal .cg.swatch i.now::before { background: #e0483e; border-radius: 46% 54% 50% 48%; }
+/* vitals: the screen's dark blue and mint */
+.cal .cg.mint i.out { background: #9fe3c8; color: #2f3b55; font-weight: 700; }
+.cal .cg.mint i.s { border-radius: 4px 0 0 4px; } .cal .cg.mint i.e { border-radius: 0 4px 4px 0; } .cal .cg.mint i.s.e { border-radius: 4px; }
+.cal .cg.mint i.now::before { background: #2f3b55; }
+.cal .w-vitals .wmo span { color: #2f3b55; }
+/* kitchen tiles: every day is a tile, days away are pink */
+.cal .cg.tile { gap: 0; border-top: 1px solid #f0b3b0; border-left: 1px solid #f0b3b0; }
+.cal .cg.tile b { border-right: 1px solid #f0b3b0; border-bottom: 1px solid #f0b3b0; padding: 4px 0; }
+.cal .cg.tile i { border-right: 1px solid #f0b3b0; border-bottom: 1px solid #f0b3b0; padding: 5px 0; }
+.cal .cg.tile i.out { background: #f6c9cf; }
+.cal .cg.tile i.now::before { inset: 2px 5px; border-radius: 3px; }
+/* headline: the site's own heading, then a small month with days away in yellow */
+.cal .whl { margin: 0; font: 800 26px/.92 var(--font-display, Archivo, sans-serif); letter-spacing: -.02em; }
+.cal .whl em { font-style: normal; color: #d6545a; }
+.cal .wsub { margin: 4px 0 8px; font: 500 13px/1.2 var(--font-body, Figtree, sans-serif); color: #6b6b6e; }
+.cal .cg.sun i.out { background: #ffd95c; } .cal .cg.sun i.s { border-radius: 10px 0 0 10px; } .cal .cg.sun i.e { border-radius: 0 10px 10px 0; } .cal .cg.sun i.s.e { border-radius: 10px; }
+`;
+
+document.head.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}</style>`);
+WALL_VARIANTS.forEach((v, k) => {
+  const f = document.createElement("figure");
+  f.innerHTML = `<figcaption><span>${k + 11}</span>${v.name}</figcaption><div class="cal">${v.html(calData(k))}</div>`;
+  document.getElementById("grid").appendChild(f);
+});
+</script>
+</body>
+</html>
