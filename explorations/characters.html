@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Office Pulse Characters</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Silkscreen&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a review sheet. Faces first (the reference), then five numbered body options and five numbered
+   chair options, each shown on its own and inside the office so a pick can be made side by side. */
+:root {
+  --bg: #e7eef5; --surface: #ffffff; --fg: #2a2b33; --muted: #5e6475; --edge: #2a2b33;
+  --accent: #7a2e6e; --accent-soft: #f1e3ee;
+  --gb-bg: #8bbf6e; --gb-ink: #0f2f22; --gb-face: #dff0c4;
+  --c-wall-l: #e8f5f8; --c-wall-r: #a9bfdc; --c-cap: #8c8f99; --c-cap-dark: #5d606a;
+  --c-floor-a: #f8c98d; --c-floor-b: #f2b672; --c-floor-line: #fde2b6; --c-outline: #2b2730;
+  --c-desk-top: #a5634f; --c-desk-side: #7b4337; --c-sky-a: #7fc6ec; --c-sky-b: #d7f0fb;
+  --c-screen: #141019; --c-plant: #3fae4f; --c-pot: #2a9fa8; --c-paper: #ffffff;
+  --font-display: "Pixelify Sans", "Courier New", ui-monospace, monospace;
+  --font-label: "Silkscreen", "Courier New", ui-monospace, monospace;
+  --font-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #13151d; --surface: #1f2230; --fg: #eef0f6; --muted: #a2a8bb; --edge: #050608;
+    --accent: #e58bd2; --accent-soft: #3a2140;
+    --c-wall-l: #3b4466; --c-wall-r: #2a3150; --c-cap: #5a5f72; --c-cap-dark: #3b3f4e;
+    --c-floor-a: #b17b4c; --c-floor-b: #9e6a3f; --c-floor-line: #c8925f; --c-outline: #0d0b10;
+    --c-desk-top: #7e4a3b; --c-desk-side: #57302a; --c-sky-a: #0d1636; --c-sky-b: #3a3170;
+    --c-screen: #07060a; --c-plant: #2f8a3e; --c-pot: #1f7a82; --c-paper: #d9dce8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #13151d; --surface: #1f2230; --fg: #eef0f6; --muted: #a2a8bb; --edge: #050608;
+  --accent: #e58bd2; --accent-soft: #3a2140;
+  --c-wall-l: #3b4466; --c-wall-r: #2a3150; --c-cap: #5a5f72; --c-cap-dark: #3b3f4e;
+  --c-floor-a: #b17b4c; --c-floor-b: #9e6a3f; --c-floor-line: #c8925f; --c-outline: #0d0b10;
+  --c-desk-top: #7e4a3b; --c-desk-side: #57302a; --c-sky-a: #0d1636; --c-sky-b: #3a3170;
+  --c-screen: #07060a; --c-plant: #2f8a3e; --c-pot: #1f7a82; --c-paper: #d9dce8;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap {
+  max-width: 1080px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+  display: grid; gap: 36px;
+}
+.eyebrow { font-family: var(--font-label); font-size: 12px; color: var(--accent); margin: 0 0 6px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(34px, 6vw, 54px); line-height: .95; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin: 0; }
+.lede, .sub { color: var(--muted); max-width: 62ch; margin: 8px 0 0; }
+section { display: grid; gap: 16px; }
+canvas { display: block; width: 100%; max-width: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
+.panel {
+  background: var(--surface); border: 2px solid var(--edge); border-radius: 4px;
+  box-shadow: 4px 4px 0 var(--edge); padding: 16px; display: grid; gap: 12px; min-width: 0;
+}
+.faces { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.cap { font-family: var(--font-label); font-size: 11px; color: var(--muted); text-transform: uppercase; }
+.options { display: grid; gap: 18px; }
+.opt { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); align-items: start; }
+.opt-head { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+.num {
+  font-family: var(--font-label); font-size: 12px; background: var(--accent); color: var(--surface);
+  padding: 3px 7px 2px; border: 2px solid var(--edge);
+}
+.opt h3 { font-family: var(--font-display); font-size: 22px; margin: 0; }
+.opt p { margin: 0; color: var(--muted); flex-basis: 100%; max-width: 70ch; }
+.view { display: grid; gap: 6px; min-width: 0; }
+.frame { border: 2px solid var(--edge); background: var(--bg); }
+.quad { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.quad figure { margin: 0; display: grid; gap: 4px; }
+.quad figcaption { text-align: center; }
+@media (max-width: 700px) { .opt { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Office Pulse · design review</p>
+    <h1>People and chairs</h1>
+    <p class="lede">Faces are redrawn from your reference: chunky dark outlines, solid dark hair, dot eyes. Pick one body style and one chair style by number. Nothing here is in the live office yet.</p>
+  </header>
+
+  <section>
+    <div>
+      <h2>Faces</h2>
+      <p class="sub">Sixteen faces built from the same parts: hair, eyes, mouth, glasses and beards. Left is the reference's two-tone palette, right is how they'd look in the office with skin tones.</p>
+    </div>
+    <div class="faces">
+      <div class="panel"><span class="cap">Reference palette</span><canvas id="facesGB"></canvas></div>
+      <div class="panel"><span class="cap">Office palette</span><canvas id="facesOffice"></canvas></div>
+    </div>
+  </section>
+
+  <section>
+    <div>
+      <h2>Body styles</h2>
+      <p class="sub">Each shows four teammates up close, then the same four seated at desks. The shirt colour is the teammate's role colour.</p>
+    </div>
+    <div class="options" id="bodies"></div>
+  </section>
+
+  <section>
+    <div>
+      <h2>Chairs</h2>
+      <p class="sub">Every chair is built as real isometric blocks, so it can turn to face any of four directions. In the office view, chairs sit at different angles: tucked in, swivelled, pushed back.</p>
+    </div>
+    <div class="options" id="chairs"></div>
+  </section>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* ---------- tokens ---------- */
+let T = {};
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  ["gb-bg", "gb-ink", "gb-face", "c-wall-l", "c-wall-r", "c-cap", "c-cap-dark", "c-floor-a", "c-floor-b", "c-floor-line", "c-outline",
+   "c-desk-top", "c-desk-side", "c-sky-a", "c-sky-b", "c-screen", "c-plant", "c-pot", "c-paper", "bg"].forEach(k => T[k.replace(/^c-/, "")] = cs.getPropertyValue("--" + k).trim());
+}
+function shade(hex, f) {
+  if (!hex || hex[0] !== "#") return hex;
+  let h = hex.slice(1); if (h.length === 3) h = h.split("").map(c => c + c).join("");
+  const n = parseInt(h, 16);
+  const ch = v => Math.max(0, Math.min(255, Math.round(f < 1 ? v * f : v + (255 - v) * (f - 1))));
+  return "#" + [n >> 16 & 255, n >> 8 & 255, n & 255].map(v => ch(v).toString(16).padStart(2, "0")).join("");
+}
+
+/* ---------- pixel raster ---------- */
+let OX = 0, OY = 0;
+const iso = (x, y, z = 0) => [Math.round(OX + x - y), Math.round(OY + (x + y) / 2 - z)];
+function fillPoly(c, pts, col) {
+  c.fillStyle = col;
+  let y0 = Infinity, y1 = -Infinity;
+  for (const p of pts) { y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
+  for (let y = Math.floor(y0); y < Math.ceil(y1); y++) {
+    const yc = y + 0.5, xs = [];
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[i], b = pts[(i + 1) % pts.length];
+      if ((a[1] <= yc) !== (b[1] <= yc)) xs.push(a[0] + (yc - a[1]) / (b[1] - a[1]) * (b[0] - a[0]));
+    }
+    xs.sort((p, q) => p - q);
+    for (let k = 0; k + 1 < xs.length; k += 2) { const a = Math.round(xs[k]), b = Math.round(xs[k + 1]); if (b > a) c.fillRect(a, y, b - a, 1); }
+  }
+}
+function line(c, x0, y0, x1, y1, col) {
+  c.fillStyle = col;
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  for (;;) { c.fillRect(x0, y0, 1, 1); if (x0 === x1 && y0 === y1) break; const e2 = 2 * err; if (e2 >= dy) { err += dy; x0 += sx; } if (e2 <= dx) { err += dx; y0 += sy; } }
+}
+function poly(c, pts, fill, stroke) {
+  if (fill) fillPoly(c, pts, fill);
+  if (stroke) for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; line(c, a[0], a[1], b[0], b[1], stroke); }
+}
+function box(c, x0, y0, z0, x1, y1, z1, top, side, side2, stroke = T.outline) {
+  poly(c, [iso(x0, y1, z0), iso(x1, y1, z0), iso(x1, y1, z1), iso(x0, y1, z1)], side, stroke);
+  poly(c, [iso(x1, y0, z0), iso(x1, y1, z0), iso(x1, y1, z1), iso(x1, y0, z1)], side2, stroke);
+  poly(c, [iso(x0, y0, z1), iso(x1, y0, z1), iso(x1, y1, z1), iso(x0, y1, z1)], top, stroke);
+}
+function stamp(c, x, y, rows, pal, mirror = false) {
+  rows.forEach((row, j) => {
+    const r = mirror ? [...row].reverse().join("") : row;
+    for (let i = 0; i < r.length; i++) { const col = pal[r[i]]; if (col) { c.fillStyle = col; c.fillRect(x + i, y + j, 1, 1); } }
+  });
+}
+function rng(seed) {
+  return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function setup(canvas, w, h) { canvas.width = w; canvas.height = h; canvas.style.aspectRatio = `${w} / ${h}`; const c = canvas.getContext("2d"); c.clearRect(0, 0, w, h); return c; }
+
+/* ---------- faces, from the reference ----------
+   12x12 head. o = outline ink, s = skin, h = hair (ink), w = white, b = blush, p = freckle, k = accent. */
+const HEAD = ["..oooooooo..", ".osssssssso.", ...Array(8).fill("o" + "s".repeat(10) + "o"), ".osssssssso.", "..oooooooo.."];
+const EAR = { dx: -1, dy: 5, rows: ["o.", "os", "o."] };
+const HAIR = {
+  short:    { dy: 0, rows: ["..hhhhhhhh..", ".hhhhhhhhhh.", "hhhhhhhhhhhh", "hh........hh"] },
+  sidepart: { dy: -1, rows: ["...hhhhhh...", ".hhhhhhhhhh.", "hhhhhhhhhhhh", "hh...hhhhhhh", "h......hhhhh", "h........hhh", "..........hh"] },
+  spiky:    { dy: -3, rows: ["........hh..", ".......hh.h.", "..hhhhhhhh..", ".hhhhhhhhhh.", "hhhhhhhhhhhh", "hhhh.hhh.hhh", "hh........hh"] },
+  bob:      { dy: -1, rows: ["..hhhhhhhh..", ".hhhhhhhhhh.", "hhhhhhhhhhhh", "hhhhhhhhhhhh", "hhh......hhh", ...Array(5).fill("hh........hh"), ".h........h."] },
+  long:     { dy: -1, rows: ["..hhhhhhhh..", ".hhhhhhhhhh.", "hhhhhhhhhhhh", "hhhhh..hhhhh", "hhh......hhh", ...Array(8).fill("hh........hh"), ".hh......hh."] },
+  tufts:    { dx: -1, dy: 3, rows: ["hh..........hh", "hh..........hh", "hh..........hh"], shine: true },
+  afro:     { dx: -2, dy: -3, rows: ["....hhhhhhhh....", "..hhhhhhhhhhhh..", ".hhhhhhhhhhhhhh.", "hhhhhhhhhhhhhhhh", "hhhhhhhhhhhhhhhh", "hhhh........hhhh", "hhh..........hhh", ".hh..........hh.", "..h..........h.."] },
+  bun:      { dy: -5, rows: ["....hhhh....", "...hhhhhh...", "....hhhh....", "..hhhhhhhh..", ".hhhhhhhhhh.", "hhhhhhhhhhhh", "hhhhhhhhhhhh", "hhh......hhh", "hh........hh"] },
+  headband: { dy: 0, rows: ["..hhhhhhhh..", ".hhhhhhhhhh.", "hkkkkkkkkkkh", "hh........hh"] },
+};
+const EYES = {
+  dots:  { o: [[3, 5], [3, 6], [8, 5], [8, 6]] },
+  happy: { o: [[2, 6], [3, 5], [4, 6], [7, 6], [8, 5], [9, 6]] },
+  wink:  { o: [[3, 5], [3, 6], [7, 6], [8, 6], [9, 6]] },
+};
+const MOUTH = {
+  smile: { o: [[4, 8], [5, 9], [6, 9], [7, 8]] },
+  grin:  { o: [[4, 8], [7, 8], [5, 9], [6, 9]], w: [[5, 8], [6, 8]] },
+  small: { o: [[5, 9], [6, 9]] },
+  flat:  { o: [[4, 9], [5, 9], [6, 9], [7, 9]] },
+};
+const GLASSES = { dy: 4, rows: [".oooo..oooo.", "oow.oooow.oo", ".o.oo..o.oo.", ".oooo..oooo."] };
+const BEARD = { dy: 6, rows: ["h..........h", "hh........hh", "hhh......hhh", "hhhhhwwhhhhh", ".hhhhhhhhhh.", "..hhhhhhhh..", "...hhhhhh..."] };
+const MUSTACHE = { dy: 8, rows: ["...hhhhhh..."] };
+
+const FACES = [
+  { hair: "sidepart", eyes: "dots", mouth: "smile", ear: true },
+  { hair: "short", eyes: "dots", mouth: "grin" },
+  { hair: "spiky", eyes: "dots", mouth: "small" },
+  { hair: "bob", eyes: "happy", mouth: "smile", blush: true },
+  { hair: "tufts", glasses: true, mouth: "flat" },
+  { hair: "bun", eyes: "dots", mouth: "smile", blush: true },
+  { hair: "headband", eyes: "happy", mouth: "grin" },
+  { hair: "tufts", eyes: "dots", mouth: "smile", freckles: true },
+  { hair: "sidepart", eyes: "wink", mouth: "grin", mirror: true },
+  { hair: "afro", eyes: "dots", mouth: "grin" },
+  { hair: "short", eyes: "dots", mouth: "small", mustache: true },
+  { hair: "long", eyes: "dots", mouth: "small" },
+  { hair: "afro", eyes: "dots", beard: true },
+  { hair: "short", glasses: true, beard: true },
+  { hair: "long", eyes: "happy", mouth: "smile", blush: true },
+  { hair: "spiky", eyes: "dots", beard: true, mirror: true },
+];
+const SKINS = ["#f6d3b3", "#e8b48a", "#c98d5e", "#a46a3f", "#7a4b2a", "#f1c6a0"];
+
+function drawFace(c, x, y, f, pal) {
+  const P = { o: pal.ink, h: pal.hair || pal.ink, s: pal.skin, w: pal.white, b: pal.blush, p: pal.freckle, k: pal.accent };
+  stamp(c, x, y, HEAD, P);
+  if (f.ear) stamp(c, x + EAR.dx, y + EAR.dy, EAR.rows, P);
+  const hair = HAIR[f.hair];
+  if (hair) {
+    const dx = hair.dx || 0;
+    stamp(c, f.mirror ? x - dx - (hair.rows[0].length - 12) : x + dx, y + hair.dy, hair.rows, P, f.mirror);
+    if (hair.shine) { c.fillStyle = pal.white; c.fillRect(x + 7, y + 2, 2, 1); }
+  }
+  const pts = (list, col) => { c.fillStyle = col; list.forEach(([i, j]) => c.fillRect(x + i, y + j, 1, 1)); };
+  if (f.glasses) stamp(c, x, y + GLASSES.dy, GLASSES.rows, P);
+  else if (f.eyes) pts(EYES[f.eyes].o, pal.ink);
+  if (f.blush) pts([[2, 8], [9, 8]], pal.blush);
+  if (f.freckles) pts([[2, 7], [3, 8], [8, 8], [9, 7]], pal.freckle);
+  if (f.beard) stamp(c, x, y + BEARD.dy, BEARD.rows, P);
+  else if (f.mouth) { const m = MOUTH[f.mouth]; pts(m.o, pal.ink); if (m.w) pts(m.w, pal.white); }
+  if (f.mustache) stamp(c, x, y + MUSTACHE.dy, MUSTACHE.rows, P);
+}
+
+function drawFaceSheets() {
+  const cols = 4, cell = 22, W = cols * cell + 4, H = 4 * cell + 4;
+  const gb = setup(document.getElementById("facesGB"), W, H);
+  gb.fillStyle = T["gb-bg"]; gb.fillRect(0, 0, W, H);
+  const of = setup(document.getElementById("facesOffice"), W, H);
+  of.fillStyle = T.paper; of.fillRect(0, 0, W, H);
+  FACES.forEach((f, i) => {
+    const x = 7 + (i % cols) * cell, y = 8 + Math.floor(i / cols) * cell;
+    drawFace(gb, x, y, f, { ink: T["gb-ink"], skin: T["gb-face"], white: T["gb-face"], blush: T["gb-face"], freckle: T["gb-ink"], accent: T["gb-face"] });
+    drawFace(of, x, y, f, { ink: "#2b2730", skin: SKINS[i % SKINS.length], white: "#ffffff", blush: "#ff8f8f", freckle: "#a0522d", accent: "#ff6b5e" });
+  });
+}
+
+/* ---------- body styles ----------
+   16 wide, 8 tall, drawn with its top 2px tucked under the chin.
+   c = role colour, d = darker, l = lighter, w = shirt white, k = accent, p = coral, s = skin, o = outline. */
+const BODIES = [
+  { name: "Chibi tee", note: "A squat block as wide as the head, like the reference. Reads clearly at small sizes and keeps the role colour big.",
+    rows: ["...oooooooooo...", "..olllllllllo..", ".occcccccccccco.", "occcccccccccccco", "occdccccccccdcco", "occdccccccccdcco", "ossdccccccccdsso", "oooooooooooooooo"] },
+  { name: "Shirt and tie", note: "Classic office look. White shirt for everyone, with the tie carrying the role colour.",
+    rows: ["...oooooooooo...", "..owwwwccwwwwo..", ".owwwwoccowwwwo.", "owwwwwwccwwwwwwo", "owwdwwwccwwwdwwo", "owwdwwccccwwdwwo", "ossdwwwccwwwdsso", "oooooooooooooooo"] },
+  { name: "Hoodie", note: "Relaxed startup feel. The hood shows behind the shoulders, with drawstrings and a front pocket.",
+    rows: ["..oooooooooooo..", ".odddccccccdddo.", "occccwccccwcccco", "occccwccccwcccco", "occdccccccccdcco", "occdcoooooocdcco", "ossdcocccccodsso", "oooooooooooooooo"] },
+  { name: "Member ID lanyard", note: "A tee in the role colour with a lanyard and an ID card. The card can double as the person's member card in the health policy.",
+    rows: ["...oooooooooo...", "..occkcccckcco..", ".occcckcckcccco.", "occcccckkcccccco", "occdccooooccdcco", "occdccowwoccdcco", "ossdccoppoccdsso", "oooooooooooooooo"] },
+  { name: "Blazer", note: "A smart blazer in the role colour, open over a white shirt, with a button.",
+    rows: ["...oooooooooo...", "..occcwwwwccco..", ".occccowwocccco.", "occcccowwoccccco", "occdcccoocccdcco", "occdccccccccdcco", "ossdcccoocccdsso", "oooooooooooooooo"] },
+];
+const ROLE_COLORS = ["#ff6b5e", "#8e5bd6", "#2a9d8f", "#f2a93b"];
+
+function drawPersonFront(c, x, y, face, skin, body, color) {
+  const pal = { o: "#2b2730", c: color, d: shade(color, .72), l: shade(color, 1.3), w: "#ffffff", k: "#7a2e6e", p: "#ff6b5e", s: skin };
+  stamp(c, x - 2, y + 10, body.rows, pal);
+  drawFace(c, x, y, face, { ink: "#2b2730", skin, white: "#ffffff", blush: "#ff8f8f", freckle: "#a0522d", accent: "#ff6b5e" });
+}
+
+/* ---------- chairs ----------
+   Local frame: u points the way the seat faces, w to its right, z up. Parts are boxes in that frame,
+   rotated by 90° steps into world space, so they stay axis-aligned for the isometric renderer. */
+const FACING = [[0, 1], [1, 0], [0, -1], [-1, 0]];   // toward you-left, you-right, away-right, away-left
+function toWorld(cx, cy, d, u, w) { const f = FACING[d], r = [-f[1], f[0]]; return [cx + u * f[0] + w * r[0], cy + u * f[1] + w * r[1]]; }
+function partBox(c, cx, cy, d, p) {
+  const [u0, w0, z0, u1, w1, z1] = p.b;
+  const a = toWorld(cx, cy, d, u0, w0), b = toWorld(cx, cy, d, u1, w1);
+  box(c, Math.min(a[0], b[0]), Math.min(a[1], b[1]), z0, Math.max(a[0], b[0]), Math.max(a[1], b[1]), z1, p.top, p.side, p.side2);
+}
+function drawParts(c, cx, cy, d, parts) {
+  const depth = p => { const [u0, w0, , u1, w1] = p.b; const m = toWorld(cx, cy, d, (u0 + u1) / 2, (w0 + w1) / 2); return m[0] + m[1]; };
+  [...parts].sort((a, b) => depth(a) - depth(b) || a.b[2] - b.b[2]).forEach(p => partBox(c, cx, cy, d, p));
+}
+function starBase(c, cx, cy, d, R, metal) {
+  const legs = [];
+  for (let k = 0; k < 5; k++) {
+    const a = (k * 72 + 90 + d * 90) * Math.PI / 180;
+    legs.push([cx + Math.cos(a) * R, cy + Math.sin(a) * R]);
+  }
+  legs.sort((a, b) => (a[0] + a[1]) - (b[0] + b[1]));
+  const hub = iso(cx, cy, 2);
+  legs.forEach(([ex, ey]) => {
+    const e = iso(Math.round(ex), Math.round(ey), 1);
+    line(c, hub[0], hub[1], e[0], e[1], T.outline); line(c, hub[0], hub[1] + 1, e[0], e[1] + 1, metal);
+    c.fillStyle = T.outline; c.fillRect(e[0] - 1, e[1] + 1, 3, 2);
+  });
+}
+function oct(cx, cy, r, z) { const pts = []; for (let k = 0; k < 8; k++) { const a = (22.5 + k * 45) * Math.PI / 180; pts.push(iso(cx + Math.cos(a) * r, cy + Math.sin(a) * r, z)); } return pts; }
+let meshPattern = null;
+function mesh(c) {
+  if (meshPattern) return meshPattern;
+  const p = document.createElement("canvas"); p.width = 2; p.height = 2;
+  const x = p.getContext("2d"); x.fillStyle = "#2e3036"; x.fillRect(0, 0, 2, 2); x.fillStyle = "#7d8496"; x.fillRect(0, 0, 1, 1); x.fillRect(1, 1, 1, 1);
+  return meshPattern = c.createPattern(p, "repeat");
+}
+
+const CHAIRS = [
+  { name: "Task chair", note: "The everyday swivel chair: fabric seat and back, gas lift, five-star base on wheels.",
+    draw(c, cx, cy, d) {
+      const F = { top: "#5b6b94", side: "#46557a", side2: "#36425f" }, M = { top: "#9a9da8", side: "#6c6f7a", side2: "#565964" };
+      starBase(c, cx, cy, d, 7, "#8c8f99");
+      drawParts(c, cx, cy, d, [
+        { b: [-1, -1, 2, 1, 1, 7], ...M },
+        { b: [-5, -5, 7, 5, 5, 10], ...F },
+        { b: [-6, -1, 9, -5, 1, 13], ...M },
+        { b: [-7, -5, 12, -5, 5, 24], ...F },
+      ]);
+    } },
+  { name: "Executive", note: "High-back leather with a headrest and padded arms. Could be the boss's desk, or a reward for a fully covered team.",
+    draw(c, cx, cy, d) {
+      const L = { top: "#8a4b35", side: "#6b3a2a", side2: "#552d20" }, A = { top: "#3a2a25", side: "#2b1f1b", side2: "#211714" };
+      starBase(c, cx, cy, d, 8, "#5d606a");
+      drawParts(c, cx, cy, d, [
+        { b: [-1, -1, 2, 1, 1, 7], ...A },
+        { b: [-6, -6, 7, 6, 6, 11], ...L },
+        { b: [-4, -8, 11, 4, -6, 16], ...A },
+        { b: [-4, 6, 11, 4, 8, 16], ...A },
+        { b: [-9, -6, 11, -6, 6, 27], ...L },
+        { b: [-9, -4, 27, -6, 4, 32], ...L },
+      ]);
+    } },
+  { name: "Mesh ergonomic", note: "Breathable mesh back with a lumbar bar in the accent colour. Fits the health theme best.",
+    draw(c, cx, cy, d) {
+      const Fr = { top: "#3a3d45", side: "#2e3036", side2: "#24262b" }, S = { top: "#4a4e58", side: "#383b43", side2: "#2e3036" };
+      starBase(c, cx, cy, d, 7, "#8c8f99");
+      drawParts(c, cx, cy, d, [
+        { b: [-1, -1, 2, 1, 1, 7], ...Fr },
+        { b: [-5, -5, 7, 5, 5, 10], ...S },
+        { b: [-3, -7, 10, 3, -6, 15], ...Fr },
+        { b: [-3, 6, 10, 3, 7, 15], ...Fr },
+        { b: [-7, -5, 11, -6, 5, 26], top: mesh(c), side: mesh(c), side2: mesh(c) },
+        { b: [-6, -4, 14, -5, 4, 16], top: "#2a9fa8", side: "#2a9fa8", side2: "#1f7a82" },
+      ]);
+    } },
+  { name: "Stool", note: "A round wooden stool with a foot ring. No back, so it reads the same from every angle. Good for hot desks.",
+    draw(c, cx, cy) {
+      const legs = [45, 135, 225, 315].map(a => a * Math.PI / 180).sort((a, b) => (Math.cos(a) + Math.sin(a)) - (Math.cos(b) + Math.sin(b)));
+      legs.forEach(a => {
+        const top = iso(cx + Math.cos(a) * 3, cy + Math.sin(a) * 3, 9), bot = iso(cx + Math.cos(a) * 6, cy + Math.sin(a) * 6, 0);
+        line(c, top[0], top[1], bot[0], bot[1], T.outline); line(c, top[0] + 1, top[1], bot[0] + 1, bot[1], "#a97b50");
+      });
+      poly(c, oct(cx, cy, 5, 4), null, "#8c8f99");
+      poly(c, oct(cx, cy, 6, 9), "#a97b50", T.outline);
+      poly(c, oct(cx, cy, 6, 11), "#c99a6b", T.outline);
+    } },
+  { name: "Exercise ball", note: "A balance ball in a small base ring. The health-insurance joke chair. A ball has no front, so it looks the same at every angle.",
+    draw(c, cx, cy) {
+      poly(c, oct(cx, cy, 7, 1), "#3a3d45", T.outline);
+      const [px, py] = iso(cx, cy, 9), R = 9;
+      for (let y = -R; y <= R; y++) for (let x = -R; x <= R; x++) {
+        const dd = Math.hypot(x, y);
+        if (dd > R + 0.3) continue;
+        const l = (-x - y) / (R * 1.4);
+        c.fillStyle = dd > R - 0.9 ? T.outline : l > 0.35 ? "#4fc3cc" : l > -0.25 ? "#2a9fa8" : "#1f7a82";
+        c.fillRect(px + x, py + y, 1, 1);
+      }
+      c.fillStyle = "#ffffff"; c.fillRect(px - 5, py - 5, 2, 2); c.fillRect(px - 3, py - 6, 1, 1);
+      c.fillStyle = "#1f7a82"; for (let x = -R + 2; x <= R - 2; x++) c.fillRect(px + x, py + Math.round(Math.sqrt(Math.max(0, R * R - x * x)) * 0.25), 1, 1);
+    } },
+];
+
+/* ---------- room scene ---------- */
+function drawRoom(c, W, D, H) {
+  const O = T.outline;
+  poly(c, [iso(-4, D, -4), iso(W, D, -4), iso(W, D, 0), iso(-4, D, 0)], T.cap, O);
+  poly(c, [iso(W, -4, -4), iso(W, D, -4), iso(W, D, 0), iso(W, -4, 0)], T["cap-dark"], O);
+  for (let k = 0; k < D / 10; k++) {
+    const y0 = k * 10, y1 = y0 + 10, r = rng(k * 31 + 7);
+    poly(c, [iso(0, y0), iso(W, y0), iso(W, y1), iso(0, y1)], k % 2 ? T["floor-a"] : T["floor-b"]);
+    line(c, ...iso(0, y0), ...iso(W, y0), T["floor-line"]);
+    let x = -r() * 50; while ((x += 40 + r() * 40) < W - 6) line(c, ...iso(Math.round(x), y0), ...iso(Math.round(x), y1), T["floor-line"]);
+  }
+  const L = (y, z) => iso(0, y, z), R = (x, z) => iso(x, 0, z);
+  poly(c, [L(0, 0), L(D, 0), L(D, H), L(0, H)], T["wall-l"]);
+  poly(c, [R(0, 0), R(W, 0), R(W, H), R(0, H)], T["wall-r"]);
+  poly(c, [L(0, 0), L(D, 0), L(D, 3), L(0, 3)], shade(T["wall-l"], .86));
+  poly(c, [R(0, 0), R(W, 0), R(W, 3), R(0, 3)], shade(T["wall-r"], .86));
+  poly(c, [iso(-4, D, -4), iso(0, D, -4), iso(0, D, H), iso(-4, D, H)], T.cap, O);
+  poly(c, [iso(W, -4, -4), iso(W, 0, -4), iso(W, 0, H), iso(W, -4, H)], T["cap-dark"], O);
+  poly(c, [iso(-4, -4, H), iso(W, -4, H), iso(W, 0, H), iso(0, 0, H), iso(0, D, H), iso(-4, D, H)], T.cap, O);
+  // window and a poster
+  poly(c, [R(20, 24), R(64, 24), R(64, 52), R(20, 52)], T.cap, O);
+  poly(c, [R(23, 27), R(61, 27), R(61, 49), R(23, 49)], T["sky-a"]);
+  poly(c, [R(23, 27), R(61, 27), R(61, 36), R(23, 36)], T["sky-b"]);
+  poly(c, [R(41, 27), R(43, 27), R(43, 49), R(41, 49)], T.cap);
+  poly(c, [L(30, 26), L(56, 26), L(56, 48), L(30, 48)], T.pot, O);
+  poly(c, [L(33, 29), L(53, 29), L(53, 45), L(33, 45)], shade(T.screen, 1.6));
+  [[50, 6, "#ff6b5e"], [45, 11, "#f2a93b"], [40, 8, "#3aa6e8"]].forEach(([y, h, col]) => poly(c, [L(y - 3, 31), L(y, 31), L(y, 31 + h), L(y - 3, 31 + h)], col));
+}
+function drawDesk(c, x0, y0) {
+  const x1 = x0 + 32, y1 = y0 + 14, leg = T["desk-side"], leg2 = shade(T["desk-side"], .8);
+  box(c, x0, y0, 0, x0 + 3, y0 + 3, 10, leg, leg, leg2);
+  box(c, x1 - 3, y0, 0, x1, y0 + 3, 10, leg, leg, leg2);
+  box(c, x0, y1 - 3, 0, x0 + 3, y1, 10, leg, leg, leg2);
+  box(c, x1 - 3, y1 - 3, 0, x1, y1, 10, leg, leg, leg2);
+  box(c, x0 - 1, y0 - 1, 10, x1 + 1, y1 + 1, 13, T["desk-top"], T["desk-side"], shade(T["desk-side"], .82));
+  box(c, x0 + 5, y0 + 5, 13, x0 + 8, y0 + 8, 16, T["cap-dark"], T["cap-dark"], T["cap-dark"]);
+  box(c, x0 + 3, y0 + 1, 16, x0 + 6, y0 + 12, 28, T.cap, T["cap-dark"], T["cap-dark"]);
+  poly(c, [iso(x0 + 6, y0 + 2, 18), iso(x0 + 6, y0 + 11, 18), iso(x0 + 6, y0 + 11, 27), iso(x0 + 6, y0 + 2, 27)], T.screen);
+  poly(c, [iso(x0 + 13, y0 + 3, 13), iso(x0 + 26, y0 + 3, 13), iso(x0 + 26, y0 + 8, 13), iso(x0 + 13, y0 + 8, 13)], shade(T.paper, .82), T.outline);
+  box(c, x1 - 5, y0 + 8, 13, x1 - 2, y0 + 11, 17, T.paper, shade(T.paper, .85), shade(T.paper, .7));
+}
+// seated person in the room: head and torso above the desk line, bottom of torso at desk height
+function drawSeated(c, sx, sy, face, skin, body, color) {
+  const headX = sx - 6, headY = sy - 10 - 8 - 10;
+  drawPersonFront(c, headX, headY, face, skin, body, color);
+}
+
+const ROOM = { W: 120, D: 120, H: 60, w: 264, h: 210, ox: 132, oy: 72 };
+const DESKS = [[14, 34], [66, 34], [14, 84], [66, 84]];
+function scene(canvas, fill) {
+  const c = setup(canvas, ROOM.w, ROOM.h);
+  OX = ROOM.ox; OY = ROOM.oy;
+  drawRoom(c, ROOM.W, ROOM.D, ROOM.H);
+  fill(c);
+}
+
+/* ---------- build the review sheet ---------- */
+function card(listId, i, item) {
+  const el = document.createElement("article");
+  el.className = "panel opt";
+  el.innerHTML = `<div class="opt-head"><span class="num">${listId === "bodies" ? "Body" : "Chair"} ${i + 1}</span><h3>${item.name}</h3><p>${item.note}</p></div>
+    <div class="view"><span class="cap">${listId === "bodies" ? "Up close" : "Four angles"}</span>
+      <div class="quad">${(listId === "bodies" ? ["Coughing", "Claims stamp", "Pen on glass", "Typing"] : ["Toward you", "Turned right", "Away", "Turned left"])
+        .map(l => `<figure><div class="frame"><canvas class="a"></canvas></div><figcaption class="cap">${l}</figcaption></figure>`).join("")}</div></div>
+    <div class="view"><span class="cap">In the office</span><div class="frame"><canvas class="b"></canvas></div></div>`;
+  document.getElementById(listId).appendChild(el);
+  return [[...el.querySelectorAll("canvas.a")], el.querySelector("canvas.b")];
+}
+
+const cards = { bodies: BODIES.map((b, i) => card("bodies", i, b)), chairs: CHAIRS.map((ch, i) => card("chairs", i, ch)) };
+const CAST = [[0, 0], [5, 3], [9, 4], [13, 2]];   // [face index, skin index]
+
+function drawAll() {
+  readTokens();
+  meshPattern = null;
+  drawFaceSheets();
+
+  BODIES.forEach((body, bi) => {
+    const [a, b] = cards.bodies[bi];
+    CAST.forEach(([fi, si], k) => {
+      const ca = setup(a[k], 24, 24);
+      ca.fillStyle = T.bg; ca.fillRect(0, 0, 24, 24);
+      drawPersonFront(ca, 6, 5, FACES[fi], SKINS[si], body, ROLE_COLORS[k]);
+    });
+    scene(b, c => DESKS.forEach(([x0, y0], k) => {
+      const px = x0 + 18, py = y0 - 6, [sx, sy] = iso(px, py);
+      CHAIRS[0].draw(c, px, py - 1, 0);
+      drawSeated(c, sx, sy, FACES[CAST[k][0]], SKINS[CAST[k][1]], body, ROLE_COLORS[k]);
+      drawDesk(c, x0, y0);
+    }));
+  });
+
+  CHAIRS.forEach((chair, ci) => {
+    const [a, b] = cards.chairs[ci];
+    for (let d = 0; d < 4; d++) {
+      const ca = setup(a[d], 48, 54);
+      OX = 24; OY = 40;
+      poly(ca, [iso(-12, -12), iso(12, -12), iso(12, 12), iso(-12, 12)], T["floor-b"], shade(T["floor-a"], .8));
+      chair.draw(ca, 0, 0, d);
+    }
+    // in the office: one person tucked in, others empty at different angles, one pushed out into the aisle
+    scene(b, c => {
+      const items = [
+        { depth: 34 + 14, fn: () => { const [x0, y0] = DESKS[0], px = x0 + 18, py = y0 - 6, [sx, sy] = iso(px, py); chair.draw(c, px, py - 1, 0); drawSeated(c, sx, sy, FACES[1], SKINS[1], BODIES[0], ROLE_COLORS[0]); drawDesk(c, x0, y0); } },
+        { depth: 66 + 34, fn: () => { const [x0, y0] = DESKS[1]; chair.draw(c, x0 + 20, y0 - 8, 1); drawDesk(c, x0, y0); } },
+        { depth: 14 + 84, fn: () => { const [x0, y0] = DESKS[2]; chair.draw(c, x0 + 14, y0 - 9, 3); drawDesk(c, x0, y0); } },
+        { depth: 66 + 84, fn: () => { const [x0, y0] = DESKS[3]; chair.draw(c, x0 + 18, y0 - 7, 2); drawDesk(c, x0, y0); } },
+        { depth: 108 + 66, fn: () => chair.draw(c, 108, 66, 1) },
+        { depth: 46 + 112, fn: () => chair.draw(c, 46, 112, 2) },
+      ];
+      items.sort((p, q) => p.depth - q.depth).forEach(it => it.fn());
+    });
+  });
+}
+drawAll();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawAll);
+new MutationObserver(drawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+document.fonts && document.fonts.ready.then(drawAll);
+})();
+</script>
+</body>
+</html>
