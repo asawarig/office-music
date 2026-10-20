@@ -195,7 +195,7 @@ canvas#office {
   width: 100%;
   max-width: 100%;
   aspect-ratio: 440 / 310;
-  cursor: pointer;
+  cursor: default;
   touch-action: manipulation;
 }
 .tags { position: absolute; inset: 0; pointer-events: none; }
@@ -2239,12 +2239,23 @@ function drawSink(c) {
   { const tap = [iso(216, 1, 21), iso(216, 1, 25), iso(216, 1.8, 25.6), iso(216, 3, 25.2), iso(216, 3.2, 24.2)];
     c.beginPath(); tap.forEach((q, i) => i ? c.lineTo(...q) : c.moveTo(...q)); c.strokeStyle = INK_LINE; c.lineWidth = 1.5; c.lineCap = "round"; c.lineJoin = "round"; c.stroke(); c.strokeStyle = "#d8d8d6"; c.lineWidth = .8; c.stroke(); }
 }
+// the photocopier: a cabinet with two paper drawers, the glass under a hinged lid, a control panel
+// angled at the front, and an output tray with a few printed pages on the side
 function drawCopier(c) {
-  box(c, 70, 1, 0, 88, 14, 20, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
-  poly(c, floorRect(71, 2, 87, 12, 20.05), PAL.sky, INK_LINE, .35);
-  box(c, 72, 11, 20, 78, 14, 21, { top: PAL.coral, left: PAL.coral, right: shade(PAL.coral, .85) });
-  poly(c, quadY(14.05, 72, 86, 4, 8), "#ffffff", INK_LINE, .35); poly(c, quadY(14.05, 72, 86, 10, 14), "#ffffff", INK_LINE, .35);
-  box(c, 88, 4, 9, 91, 11, 10, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
+  const lw = .4, grey = "#e4e4e2";
+  [[71, 2], [87, 2], [71, 13], [87, 13]].forEach(([x, y]) => box(c, x - .6, y - .6, 0, x + .6, y + .6, 1.2, { top: "#3a3a3c", left: "#3a3a3c", right: "#2b2b2e" }, .3));   // castors
+  box(c, 70, 1, 1.2, 88, 14, 17, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }, lw);
+  [[3, 8], [9.5, 14.5]].forEach(([z0, z1]) => { poly(c, quadY(14.03, 71.5, 86.5, z0, z1), null, INK_LINE, .35); box(c, 76, 14, (z0 + z1) / 2 + .3, 82, 14.6, (z0 + z1) / 2 + 1, { top: grey, left: grey, right: "#c9c9c6" }, .3); });
+  box(c, 70, 1, 17, 88, 14, 18.4, { top: "#ffffff", left: grey, right: "#d8d8d6" }, lw);                 // the glass, under the lid
+  poly(c, floorRect(71.2, 2.2, 86.8, 10.8, 18.45), PAL.sky, INK_LINE, .35);
+  box(c, 70, 1, 18.4, 88, 11, 19.6, { top: "#f3f3f1", left: grey, right: "#d8d8d6" }, lw);               // the lid
+  // the control panel, tilted toward whoever stands at the front
+  poly(c, [iso(78, 11, 18.4), iso(88, 11, 18.4), iso(88, 14, 17.4), iso(78, 14, 17.4)], "#3a3a3c", INK_LINE, lw);
+  poly(c, [iso(79, 11.6, 18.3), iso(83.5, 11.6, 18.3), iso(83.5, 13.3, 17.7), iso(79, 13.3, 17.7)], PAL.sky, null);
+  [[85, PAL.coral], [86.8, "#2f7f57"]].forEach(([x, col]) => ellipseFloor(c, x, 12.5, .55, 18, col, null));
+  // output tray on the side, with a few warm pages
+  poly(c, [iso(88, 3.5, 11), iso(93, 3.5, 12.4), iso(93, 11.5, 12.4), iso(88, 11.5, 11)], grey, INK_LINE, lw);
+  [0, .35, .7].forEach(dz => poly(c, [iso(88.4, 4.4, 11.3 + dz), iso(92.2, 4.4, 12.4 + dz), iso(92.2, 10.6, 12.4 + dz), iso(88.4, 10.6, 11.3 + dz)], "#ffffff", INK_LINE, .3));
 }
 function kitchenTable(x, y) { ellipseFloor(g, x, y, 3.5, 0, null); seg(g, iso(x, y, 0), iso(x, y, 20), INK_LINE, .7); ellipseFloor(g, x, y, 7, 20, "#ffffff"); }
 function stool(x, y) { ellipseFloor(g, x, y, 2.4, 0, null); seg(g, iso(x, y, 0), iso(x, y, 12), INK_LINE, .5); cylinder(g, x, y, 10.8, 12, 3, PAL.yellow); }
@@ -2408,7 +2419,8 @@ function roomFx(s, m, F) {
   const hit = F ? clockFor(m, performance.now()).hit : 99;
   if (s.place === "copier") {
     const barLen = 240 / A.bpm, k = m.variant % 2 ? 1 - clamp01(hit / .2) : clamp01(hit / barLen);
-    if (hit < barLen) { const x = 71 + k * 16; g.globalAlpha = .75; poly(g, floorRect(x, 2, x + 1.6, 12, 20.1), "#fff4b0", null); g.globalAlpha = 1; }
+    // the scan light leaks out from under the lid as it sweeps along
+    if (hit < barLen) { const x = 71 + k * 15; g.globalAlpha = .9; poly(g, [iso(x, 11, 18.4), iso(x + 1.8, 11, 18.4), iso(x + 1.8, 11, 19.5), iso(x, 11, 19.5)], "#fff4b0", null); g.globalAlpha = .45; poly(g, floorRect(x - .6, 1.2, x + 2.4, 10.8, 19.65), "#fff4b0", null); g.globalAlpha = 1; }
   } else if (s.place === "kitchen" && hit < 1) {
     const p = iso(s.x - 1, 7, 34), a = 1 - hit; g.globalAlpha = a; g.strokeStyle = "#9a9a9c"; g.lineWidth = .45;
     for (let k = 0; k < 2; k++) { const x = p[0] - 1.5 + k * 3, ph = performance.now() / 250 + k; g.beginPath(); g.moveTo(x, p[1]); g.bezierCurveTo(x + Math.sin(ph) * 2, p[1] - 3 - hit * 4, x - Math.sin(ph) * 2, p[1] - 6 - hit * 6, x, p[1] - 9 - hit * 8); g.stroke(); }
@@ -3109,7 +3121,7 @@ cv.addEventListener("pointermove", e => {
     tip.style.left = (q[0] / LW * 100) + "%"; tip.style.top = (q[1] / LH * 100) + "%"; tip.hidden = false; hoverDesk = -1; return;
   }
   const sb = snackBoxAt(toLogical(e));
-  cv.style.cursor = sb >= 0 ? "pointer" : "";
+  cv.style.cursor = sb >= 0 ? "pointer" : "default";
   if (sb >= 0 && e.pointerType !== "touch") {
     const [x, z] = SNACK_BOXES[sb], q = iso(x + 2.5, 2.8, z + 6);
     tip.innerHTML = `<b>Snack box</b><small>Click for an employee snack fact</small>`;
@@ -3118,6 +3130,8 @@ cv.addEventListener("pointermove", e => {
   const i = deskAt(toLogical(e));
   hoverDesk = i;
   const m = members.find(o => o.desk === i);
+  // the hand only shows over something you can click: a person, their empty seat, or a free desk
+  cv.style.cursor = i >= 0 && (CAST[i] || LAYOUT.hot.includes(i)) ? "pointer" : "default";
   if (i >= 0 && (CAST[i] || LAYOUT.hot.includes(i)) && e.pointerType !== "touch") {
     const d = SEATS[i];
     tip.innerHTML = !CAST[i] ? `<b>${BITS[LAYOUT.hot.indexOf(i) % BITS.length].who}</b><small>Out of office · click to see when they're back</small>` : m ? `<b>${m.name}</b>` : `<b>${CAST[i].name}</b><small>Click to call in</small>`;
