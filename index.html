@@ -2399,6 +2399,7 @@ function lbox(c, L, u0, v0, z0, u1, v1, z1, f, lw) {
   const [ax, ay] = L(u0, v0), [bx, by] = L(u1, v1);
   box(c, Math.min(ax, bx), Math.min(ay, by), z0, Math.max(ax, bx), Math.max(ay, by), z1, f, lw);
 }
+const MUG_DESKS = [0, 3, 6];   // Ganapathi, Rhea and Sathvik
 function drawDeskTop(i, s, m, col, lit, F) {
   const L = s.L, act = F ? F.P.act : null;
   [[-15, -6], [15, -6], [-15, 6], [15, 6]].forEach(([u, v]) => { const [x, y] = L(u, v); seg(g, iso(x, y, 0), iso(x, y, 14), INK_LINE, .55); });
@@ -2413,7 +2414,8 @@ function drawDeskTop(i, s, m, col, lit, F) {
     poly(g, [iso(...L(lu - 5, 2, 16.2)), iso(...L(lu + 5, 2, 16.2)), iso(...L(lu + 5, 3.5, 23.5)), iso(...L(lu - 5, 3.5, 23.5))], lidCol);
   });
   const [mx, my] = L(12, 3);
-  if (act !== "stamp") put(12, 3, () => mug(mx, my, 15.6, col || "#ffffff"));
+  // only three people keep a coffee on the desk, and only while they're in
+  if (m && MUG_DESKS.includes(i) && act !== "stamp") put(12, 3, () => mug(mx, my, 15.6, col || "#ffffff"));
   if (act !== "clicking" && act !== "stamp") put(-10, .5, () => poly(g, [L(-13, -3), L(-7, -3), L(-7, 4), L(-13, 4)].map(([x, y]) => iso(x, y, 15.7)), i % 2 ? PAL.yellow : PAL.mint, INK_LINE, .35));
   const W = F ? F.W : null;
   for (const pr of F ? F.P.props : []) {
