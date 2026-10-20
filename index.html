@@ -1327,7 +1327,7 @@ const NIGHT_STYLES = [
   { name: "Cosy", wash: "#5a4a6e", page: "#5a4a6e", pool: "255,170,90", poolA: .5, fixtures: "string", screen: .2 },
   { name: "Blackout", wash: "#1f2440", page: "#1f2440", pool: "255,214,150", poolA: .6, fixtures: "desklamp", screen: .35 },
 ];
-let NS = NIGHT_STYLES[Math.max(0, Math.min(4, (+new URLSearchParams(location.search).get("night") || 1) - 1))];
+let NS = NIGHT_STYLES[Math.max(0, Math.min(4, (+new URLSearchParams(location.search).get("night") || 3) - 1))];
 function setNightStyle(k) { NS = NIGHT_STYLES[k]; document.documentElement.style.setProperty("--night-page", NS.page); }
 setNightStyle(NIGHT_STYLES.indexOf(NS));
 // a soft elliptical pool of light on the floor
