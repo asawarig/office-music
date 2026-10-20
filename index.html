@@ -2784,16 +2784,21 @@ function openSnack(b) {
   const [x, z, k] = SNACK_BOXES[b], col = PAL[k], board = cv.parentElement;
   const show = n => {
     const f = SNACK_FACTS[n % SNACK_FACTS.length];
-    snackEl.innerHTML = `<div class="flaps"><i></i><i></i></div><div class="carton"><div class="label">
-      <div class="sh"><span>Employee snack fact</span><button class="cx" aria-label="Close">×</button></div>
-      <p class="sf">${f.fact}</p><p class="st">${f.tip}</p>
-      <p class="ss">Source: <a href="${f.url}" target="_blank" rel="noopener">${f.src}</a></p>
-      <button class="sn" type="button">Another fact</button></div></div>`;
+    // laid out like a nutrition label: title, a heavy rule, then ruled rows and a barcode
+    const bars = [...String(124960700 + n * 731)].map(d => `<i style="width:${1 + (d % 3)}px;margin-right:${1 + ((d * 7) % 3)}px"></i>`).join("").repeat(3);
+    snackEl.innerHTML = `<div class="lbl"><button class="cx" aria-label="Close">×</button>
+      <p class="lt">Snack facts</p>
+      <div class="row top"><span>Serving size: 1 fact</span><span>${n % SNACK_FACTS.length + 1} of ${SNACK_FACTS.length}</span></div>
+      <p class="sf">${f.fact}</p>
+      <div class="row"><span>Good for</span><span class="st">${f.tip}</span></div>
+      <div class="row"><span>Source</span><span class="ss"><a href="${f.url}" target="_blank" rel="noopener">${f.src}</a></span></div>
+      <div class="lfoot"><button class="sn" type="button">Another fact ✓✓</button><span class="bc"><b>${bars}</b><small>${124960700 + n * 731}</small></span></div>
+      <p class="brand">Office Harmony™ pantry</p></div>`;
     snackEl.querySelector(".cx").onclick = closeSnack;
     snackEl.querySelector(".sn").onclick = () => show(++snackNext);
   };
   snackEl = document.createElement("div"); snackEl.className = "snack"; snackEl.setAttribute("role", "dialog"); snackEl.setAttribute("aria-label", "Employee snack fact");
-  snackEl.style.setProperty("--box", col); snackEl.style.setProperty("--box-dark", shade(col, .82));
+  snackEl.style.setProperty("--box-tint", shade(col, 1.55));
   board.appendChild(snackEl); show(snackNext++);
   snackEl.addEventListener("click", e => e.stopPropagation());
   // open just below the shelf, kept inside the office
@@ -2807,22 +2812,25 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") closeSnack()
 // clicking the empty page around the office closes any open popup
 document.getElementById("stage").addEventListener("click", e => { if (e.target === e.currentTarget || e.target.classList.contains("board")) { closeSnack(); closeCal(); } });
 const SNACK_CSS = `
-.snack { position: absolute; z-index: 4; width: 272px; font-family: var(--font-body); color: #2b2b2e; filter: drop-shadow(4px 5px 0 rgba(58,58,60,.14)); }
-.snack .flaps { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2px; height: 22px; }
-.snack .flaps i { background: var(--box); border: 1px solid #3a3a3c; border-bottom: 0; }
-.snack .flaps i:first-child { clip-path: polygon(0 100%, 8% 0, 100% 30%, 100% 100%); transform-origin: bottom; }
-.snack .flaps i:last-child { clip-path: polygon(0 30%, 92% 0, 100% 100%, 0 100%); }
-.snack .carton { background: var(--box); border: 1px solid #3a3a3c; border-radius: 0 0 6px 6px; padding: 12px; background-image: linear-gradient(90deg, transparent 49.6%, var(--box-dark) 49.6% 50.4%, transparent 50.4%); background-size: 100% 10px; background-repeat: no-repeat; }
-.snack .label { background: #fffdf8; border: 1px solid #3a3a3c; border-radius: 6px; padding: 10px 12px 12px; display: grid; gap: 7px; }
-.snack .sh { display: flex; align-items: center; gap: 8px; }
-.snack .sh span { font: 400 11px/1 var(--font-label); letter-spacing: .1em; text-transform: uppercase; color: #d6545a; }
-.snack .cx { margin-left: auto; width: 24px; height: 24px; border: 1px solid #3a3a3c; border-radius: 4px; background: #fff; font-size: 16px; line-height: 1; cursor: pointer; color: inherit; }
-.snack .sf { margin: 0; font: 400 16px/1.3 var(--font-display); }
-.snack .st { margin: 0; font-size: 13px; line-height: 1.35; color: #3a3a3c; padding-left: 10px; border-left: 2px solid var(--box); }
-.snack .ss { margin: 0; font-size: 11.5px; line-height: 1.35; color: #6b6b6e; }
+.snack { position: absolute; z-index: 4; width: 288px; font-family: var(--font-body); color: #23296b; }
+.snack .lbl { position: relative; background: var(--box-tint); border-radius: 20px; padding: 20px 20px 16px; transform: rotate(-2deg); box-shadow: inset 0 0 0 8px var(--box-tint), inset 0 0 0 9.5px #23296b, 5px 6px 0 rgba(35,41,107,.16); display: grid; gap: 0; }
+.snack .cx { position: absolute; top: 14px; right: 16px; width: 24px; height: 24px; border: 1.5px solid #23296b; border-radius: 50%; background: transparent; color: inherit; font-size: 15px; line-height: 1; cursor: pointer; }
+.snack .lt { margin: 4px 30px 0 0; font: 400 30px/1 var(--font-display); text-transform: uppercase; letter-spacing: -.01em; color: #23296b; text-shadow: 1.5px 1.5px 0 #fff; }
+.snack .row { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; padding: 7px 0; border-bottom: 1.5px solid #23296b; font: 400 12px/1.3 var(--font-display); text-transform: uppercase; letter-spacing: .02em; }
+.snack .row > span:first-child { flex: none; }
+.snack .row > span:last-child { text-align: right; }
+.snack .row.top { border-top: 7px solid #23296b; margin-top: 8px; }
+.snack .sf { margin: 0; padding: 9px 0; border-bottom: 1.5px solid #23296b; font: 400 15.5px/1.32 var(--font-display); }
+.snack .st, .snack .ss { text-transform: none; letter-spacing: 0; font: 400 12.5px/1.35 var(--font-body); }
 .snack .ss a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
-.snack .sn { justify-self: start; border: 1px solid #3a3a3c; border-radius: 4px; background: #fff; padding: 6px 10px; font: 400 12px/1 var(--font-label); cursor: pointer; color: inherit; }
-.snack .sn:hover, .snack .cx:hover { background: var(--box); }
+.snack .lfoot { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; padding-top: 10px; }
+.snack .sn { border: 1.5px solid #23296b; border-radius: 999px; background: transparent; color: inherit; padding: 6px 12px; font: 400 12px/1 var(--font-display); text-transform: uppercase; cursor: pointer; }
+.snack .sn:hover, .snack .cx:hover { background: #fff; }
+.snack .bc { display: grid; justify-items: center; gap: 2px; }
+.snack .bc b { display: flex; height: 30px; overflow: hidden; width: 86px; }
+.snack .bc b i { flex: none; height: 100%; background: #23296b; }
+.snack .bc small { font: 400 9px/1 var(--font-label); letter-spacing: .25em; }
+.snack .brand { margin: 8px 0 0; font: 400 16px/1 var(--font-display); }
 .snack a:focus-visible, .snack button:focus-visible { outline: 3px solid #d6545a; outline-offset: 2px; }
 `;
 // the popup styles go last in the page so nothing else overrides them
