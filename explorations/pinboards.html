@@ -300,7 +300,7 @@ const BOARD_VARIANTS = [
     sticky(b.sticky, "#f6c9cf", 252, 104, 3, 80) + torn(b.list, 246, 156, -2, 86) + `<span class="ticket" style="left:20px;top:214px">ADMIT ONE · 7:30pm</span>`) } },
 ];
 const BOARD_CSS = `
-.cal.board { width: 344px; padding: 10px; }
+.cal.pinboard { width: 344px; padding: 10px; }
 .cal .scene { position: relative; height: 266px; border: 1px solid #3a3a3c; border-radius: 4px; overflow: hidden; }
 .cal .scene > span, .cal .scene > div { position: absolute; }
 .cal .scene.cork { background: #d9a86c radial-gradient(circle at 20% 30%, rgba(122,75,42,.35) 0 1px, transparent 1.5px) 0 0/9px 11px, radial-gradient(circle at 70% 60%, rgba(255,255,255,.25) 0 1px, transparent 1.5px) 0 0/13px 7px; background-color: #d9a86c; box-shadow: inset 0 0 0 5px #b98c66, inset 0 0 0 6px #3a3a3c; }
@@ -349,7 +349,7 @@ const BOARD_CSS = `
 document.head.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOARD_CSS}</style>`);
 BOARD_VARIANTS.forEach((v, k) => {
   const f = document.createElement("figure");
-  f.innerHTML = `<figcaption><span>${k + 16}</span>${v.name}</figcaption><div class="cal board">${v.html(calData(k), k)}</div>`;
+  f.innerHTML = `<figcaption><span>${k + 16}</span>${v.name}</figcaption><div class="cal pinboard">${v.html(calData(k), k)}</div>`;
   document.getElementById("grid").appendChild(f);
 });
 </script>
