@@ -1727,7 +1727,7 @@ function drawStatic() {
   box(c, 104, 0, 0, 182, 14, 22, { top: "#ffffff", left: PAL.mint, right: PAL.mintDark });
   for (let x = 106; x < 180; x += 13) poly(c, quadY(14.05, x, x + 11, 3, 19), null, INK_LINE, .35);
   [42, 56].forEach(z => box(c, 106, 0, z, 180, 6, z + 1.4, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }));
-  [[110, 43.4, PAL.coral], [117, 43.4, PAL.yellow], [124, 43.4, PAL.cobalt], [150, 57.4, PAL.mint], [158, 57.4, PAL.coral]].forEach(([x, z, col]) => box(c, x, 1, z, x + 5, 4.6, z + 6, { top: shade(col, 1.08), left: col, right: shade(col, .85) }));
+  SNACK_BOXES.forEach(([x, z, k]) => box(c, x, 1, z, x + 5, 4.6, z + 6, { top: shade(PAL[k], 1.08), left: PAL[k], right: shade(PAL[k], .85) }));
   box(c, 184, 0, 0, 202, 16, 52, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); seg(c, iso(186, 16.1, 30), iso(186, 16.1, 46), INK_LINE, .8); seg(c, iso(186, 16.1, 12), iso(186, 16.1, 26), INK_LINE, .8); seg(c, iso(184, 16.1, 28), iso(202, 16.1, 28));
   box(c, 120, 3, 22, 130, 11, 34, { top: "#2b2b2e", left: PAL.coral, right: shade(PAL.coral, .85) });
   ellipseFloor(c, 160, 7, 3.5, 22.2, "#e4e4e2"); seg(c, iso(160, 3, 22), iso(160, 3, 30)); seg(c, iso(160, 3, 30), iso(164, 3, 30));
@@ -2744,8 +2744,89 @@ const BOARD_CSS = `
 .cal .ticket { z-index: 3; padding: 5px 10px; background: #ffd95c; border: 1px dashed #3a3a3c; font: 700 9px/1 var(--font-label, Archivo, sans-serif); letter-spacing: .1em; transform: rotate(-4deg); }
 `;
 CAL_VARIANTS.push(...WALL_VARIANTS, ...BOARD_VARIANTS);   // wall calendars are 11 to 15, pinboards 16 to 20
+
+/* ---------- Snack facts ----------
+   The boxes on the kitchen shelves open a snack box with a fact about eating well at work.
+   Research facts link to the paper or official source; the practical tips come from The Gourmet
+   Stories' guide to stocking an office pantry in India, a snack seller's blog, and say so. */
+const SNACK_BOXES = [[110, 43.4, "coral"], [117, 43.4, "yellow"], [124, 43.4, "cobalt"], [150, 57.4, "mint"], [158, 57.4, "coral"]];
+const SNACK_FACTS = [
+  { fact: "Even mild dehydration, about 1.4% of body water, dampened mood, lowered concentration and brought on headaches.", tip: "Keep water within reach of every desk, not just in the pantry.",
+    src: "Armstrong et al., The Journal of Nutrition, 2012", url: "https://doi.org/10.3945/jn.111.142000" },
+  { fact: "Adding almonds to lunch cut the after-lunch dip in memory by about 58% compared with a high-carb lunch.", tip: "Stock unsalted nuts for the 3 pm slump.",
+    src: "Dhillon, Tan & Mattes, British Journal of Nutrition, 2017", url: "https://www.cambridge.org/core/product/6D0B4A3BA4E5681F2B326C3DD176E5AA" },
+  { fact: "On days young adults ate more fruit and vegetables, they felt calmer and happier the next day too.", tip: "A fruit bowl on the counter beats a biscuit tin in the cupboard.",
+    src: "White, Horwath & Conner, British Journal of Health Psychology, 2013", url: "https://pubmed.ncbi.nlm.nih.gov/23347122/" },
+  { fact: "An estimated 56.4% of India's total disease burden is linked to unhealthy diets.", tip: "Swap fried namkeen for roasted chana, makhana and millet bites.",
+    src: "ICMR-NIN, Dietary Guidelines for Indians, 2024", url: "https://nutritionconnect.org/resource-center/dietary-guidelines-indians-2024-edition-icmr-nin" },
+  { fact: "When a hospital canteen colour-coded food and put healthy picks at eye level, healthy sales rose from 41% to 46% over two years.", tip: "Put the healthy snacks at eye level and the treats on the bottom shelf.",
+    src: "Thorndike et al., American Journal of Preventive Medicine, 2014", url: "https://news.harvard.edu/gazette/story/2014/01/color-coded-labels-healthier-food" },
+  { fact: "In a hospital trial, healthy meals and snacks at work cut fatigue by 31% among shift workers.", tip: "Night and early shifts need a stocked pantry the most.",
+    src: "Randomised crossover study, British Journal of Nutrition, 2017", url: "https://www.cambridge.org/core/services/aop-cambridge-core/content/view/B77F2F457E9FC41530AFB6A3E659DAB3/S000711451700191Xa.pdf/the-effectiveness-of-healthy-meals-at-work-on-reaction-time-mood-and-dietary-intake-a-randomised-cross-over-study-in-daytime-and-shift-workers-at-an-university-hospital.pdf" },
+  { fact: "Indian companies typically spend ₹150–450 per employee each month on pantry snacks.", tip: "Work out yours: last quarter's snack bills, divided by headcount, divided by three.",
+    src: "The Gourmet Stories, office pantry guide for HR (a snack seller's figures)", url: "https://thegourmetstories.com/blogs/news/how-to-stock-an-office-pantry-with-healthy-snacks-in-india-hr-managers-guide" },
+  { fact: "With hybrid work, the people in the office on a given day can be half the payroll.", tip: "Stock for who actually comes in, and ask them for their top three snacks.",
+    src: "The Gourmet Stories, office pantry guide for HR", url: "https://thegourmetstories.com/blogs/news/how-to-stock-an-office-pantry-with-healthy-snacks-in-india-hr-managers-guide" },
+];
+let snackEl = null, snackNext = Math.floor(Math.random() * SNACK_FACTS.length);
+// which shelf box is under the pointer, if any
+function snackBoxAt(p) {
+  for (let i = SNACK_BOXES.length - 1; i >= 0; i--) {
+    const [x, z] = SNACK_BOXES[i], pts = [iso(x, 4.6, z), iso(x + 5, 1, z), iso(x + 5, 4.6, z + 6), iso(x, 1, z + 6), iso(x + 5, 4.6, z), iso(x, 4.6, z + 6)];
+    const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+    if (p.x >= Math.min(...xs) - 1 && p.x <= Math.max(...xs) + 1 && p.y >= Math.min(...ys) - 1 && p.y <= Math.max(...ys) + 1) return i;
+  }
+  return -1;
+}
+function closeSnack() { if (snackEl) { snackEl.remove(); snackEl = null; } }
+function openSnack(b) {
+  closeSnack(); closeCal();
+  const [x, z, k] = SNACK_BOXES[b], col = PAL[k], board = cv.parentElement;
+  const show = n => {
+    const f = SNACK_FACTS[n % SNACK_FACTS.length];
+    snackEl.innerHTML = `<div class="flaps"><i></i><i></i></div><div class="carton"><div class="label">
+      <div class="sh"><span>Employee snack fact</span><button class="cx" aria-label="Close">×</button></div>
+      <p class="sf">${f.fact}</p><p class="st">${f.tip}</p>
+      <p class="ss">Source: <a href="${f.url}" target="_blank" rel="noopener">${f.src}</a></p>
+      <button class="sn" type="button">Another fact</button></div></div>`;
+    snackEl.querySelector(".cx").onclick = closeSnack;
+    snackEl.querySelector(".sn").onclick = () => show(++snackNext);
+  };
+  snackEl = document.createElement("div"); snackEl.className = "snack"; snackEl.setAttribute("role", "dialog"); snackEl.setAttribute("aria-label", "Employee snack fact");
+  snackEl.style.setProperty("--box", col); snackEl.style.setProperty("--box-dark", shade(col, .82));
+  board.appendChild(snackEl); show(snackNext++);
+  snackEl.addEventListener("click", e => e.stopPropagation());
+  // open just below the shelf, kept inside the office
+  const bw = board.clientWidth, bh = board.clientHeight, fit = Math.min(1, (bw - 16) / snackEl.offsetWidth, (bh - 16) / snackEl.offsetHeight);
+  if (fit < 1) { snackEl.style.transform = `scale(${fit})`; snackEl.style.transformOrigin = "0 0"; }
+  const [ax, ay] = iso(x + 2.5, 2.8, z), w = snackEl.offsetWidth * fit, h = snackEl.offsetHeight * fit;
+  snackEl.style.left = Math.max(8, Math.min(bw - w - 8, ax / LW * bw - w / 2)) + "px";
+  snackEl.style.top = Math.max(8, Math.min(bh - h - 8, ay / LH * bh + 10)) + "px";
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeSnack(); });
+// clicking the empty page around the office closes any open popup
+document.getElementById("stage").addEventListener("click", e => { if (e.target === e.currentTarget || e.target.classList.contains("board")) { closeSnack(); closeCal(); } });
+const SNACK_CSS = `
+.snack { position: absolute; z-index: 4; width: 272px; font-family: var(--font-body); color: #2b2b2e; filter: drop-shadow(4px 5px 0 rgba(58,58,60,.14)); }
+.snack .flaps { display: grid; grid-template-columns: 1fr 1fr; gap: 0 2px; height: 22px; }
+.snack .flaps i { background: var(--box); border: 1px solid #3a3a3c; border-bottom: 0; }
+.snack .flaps i:first-child { clip-path: polygon(0 100%, 8% 0, 100% 30%, 100% 100%); transform-origin: bottom; }
+.snack .flaps i:last-child { clip-path: polygon(0 30%, 92% 0, 100% 100%, 0 100%); }
+.snack .carton { background: var(--box); border: 1px solid #3a3a3c; border-radius: 0 0 6px 6px; padding: 12px; background-image: linear-gradient(90deg, transparent 49.6%, var(--box-dark) 49.6% 50.4%, transparent 50.4%); background-size: 100% 10px; background-repeat: no-repeat; }
+.snack .label { background: #fffdf8; border: 1px solid #3a3a3c; border-radius: 6px; padding: 10px 12px 12px; display: grid; gap: 7px; }
+.snack .sh { display: flex; align-items: center; gap: 8px; }
+.snack .sh span { font: 400 11px/1 var(--font-label); letter-spacing: .1em; text-transform: uppercase; color: #d6545a; }
+.snack .cx { margin-left: auto; width: 24px; height: 24px; border: 1px solid #3a3a3c; border-radius: 4px; background: #fff; font-size: 16px; line-height: 1; cursor: pointer; color: inherit; }
+.snack .sf { margin: 0; font: 400 16px/1.3 var(--font-display); }
+.snack .st { margin: 0; font-size: 13px; line-height: 1.35; color: #3a3a3c; padding-left: 10px; border-left: 2px solid var(--box); }
+.snack .ss { margin: 0; font-size: 11.5px; line-height: 1.35; color: #6b6b6e; }
+.snack .ss a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.snack .sn { justify-self: start; border: 1px solid #3a3a3c; border-radius: 4px; background: #fff; padding: 6px 10px; font: 400 12px/1 var(--font-label); cursor: pointer; color: inherit; }
+.snack .sn:hover, .snack .cx:hover { background: var(--box); }
+.snack a:focus-visible, .snack button:focus-visible { outline: 3px solid #d6545a; outline-offset: 2px; }
+`;
 // the popup styles go last in the page so nothing else overrides them
-document.body.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOARD_CSS}
+document.body.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOARD_CSS}${SNACK_CSS}
 /* nothing on the page is bold */
 *, *::before, *::after { font-weight: 400 !important; }</style>`);
 // each free desk has its own board; ?cal=1..20 shows one look on every desk instead
@@ -2776,6 +2857,13 @@ function openCal(i) {
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeCal(); });
 const tip = $("tip");
 cv.addEventListener("pointermove", e => {
+  const sb = snackBoxAt(toLogical(e));
+  cv.style.cursor = sb >= 0 ? "pointer" : "";
+  if (sb >= 0 && e.pointerType !== "touch") {
+    const [x, z] = SNACK_BOXES[sb], q = iso(x + 2.5, 2.8, z + 6);
+    tip.innerHTML = `<b>Snack box</b><small>Click for an employee snack fact</small>`;
+    tip.style.left = (q[0] / LW * 100) + "%"; tip.style.top = (q[1] / LH * 100) + "%"; tip.hidden = false; hoverDesk = -1; return;
+  }
   const i = deskAt(toLogical(e));
   hoverDesk = i;
   const m = members.find(o => o.desk === i);
@@ -2788,6 +2876,9 @@ cv.addEventListener("pointermove", e => {
 });
 cv.addEventListener("pointerleave", () => { hoverDesk = -1; tip.hidden = true; });
 cv.addEventListener("click", e => {
+  const sb = snackBoxAt(toLogical(e));
+  if (sb >= 0) { tip.hidden = true; openSnack(sb); return; }
+  closeSnack();
   const i = deskAt(toLogical(e));
   closeCal();
   if (i < 0) return;
