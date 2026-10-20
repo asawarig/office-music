@@ -153,11 +153,17 @@ button { font: inherit; color: inherit; }
 .btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--edge); }
 .btn:focus-visible, .role:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 /* musical / ambient switch: two halves of one button */
-.mode { display: inline-flex; border: 1px solid var(--edge); border-radius: 4px; overflow: hidden; background: var(--surface); }
-.mode button { border: 0; background: transparent; padding: 8px 12px; font: 700 13px/1 var(--font-label); cursor: pointer; color: var(--fg); }
-.mode button + button { border-left: 1px solid var(--edge); }
-.mode button.on { background: var(--fg); color: var(--surface); }
-.mode button:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+.mode { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 3px; border: 1px solid var(--edge); border-radius: 6px; background: var(--surface); }
+.mode .thumb { position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc(50% - 3px); border-radius: 4px; background: var(--fg); transition: transform .25s ease; }
+.mode[data-on="ambient"] .thumb { transform: translateX(100%); }
+.mode button { position: relative; display: grid; grid-template-columns: auto auto; grid-template-rows: auto auto; column-gap: 7px; align-items: center; text-align: left; border: 0; background: transparent; padding: 5px 12px 5px 9px; cursor: pointer; color: var(--fg); transition: color .25s; }
+.mode button svg { grid-row: 1 / 3; width: 16px; height: 16px; fill: currentColor; }
+.mode button b { font: 700 13px/1.1 var(--font-label); }
+.mode button small { font: 500 11px/1.2 var(--font-body); color: var(--muted); transition: color .25s; }
+.mode button.on, .mode button.on small { color: var(--surface); }
+.mode button:not(.on):hover small { color: var(--fg); }
+.mode button:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; border-radius: 4px; }
+@media (prefers-reduced-motion: reduce) { .mode .thumb, .mode button { transition: none; } }
 .btn.play {
   background: var(--accent);
   color: var(--surface);
@@ -384,8 +390,10 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
     <svg viewBox="0 0 14 14" aria-hidden="true"><path id="playIcon" d="M3 1h2v1h2v2h2v2h2v2h-2v2h-2v2h-2v1h-2z"/></svg>
     <span id="playLabel">Play</span>
   </button>
-  <div class="mode" role="radiogroup" aria-label="Sound">
-    <button type="button" role="radio" data-mode="musical">Musical</button><button type="button" role="radio" data-mode="ambient">Ambient</button>
+<div class="mode" role="radiogroup" aria-label="Sound mode" data-on="musical">
+    <span class="thumb" aria-hidden="true"></span>
+    <button type="button" role="radio" data-mode="musical" title="Everyone plays in time, like a band"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5 13 1v9.2a2.2 2.2 0 1 1-1.4-2V4.1L7.4 5v6.7a2.2 2.2 0 1 1-1.4-2z"/></svg><b>Musical</b><small>on the beat</small></button>
+    <button type="button" role="radio" data-mode="ambient" title="Everyone works at their own pace, like a quiet office"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 6c2-2 4-2 6 0s4 2 6 0M1 10c2-2 4-2 6 0s4 2 6 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><b>Ambient</b><small>office hum</small></button>
   </div>
 </div>
 <aside class="menu" id="menu" hidden>
@@ -397,8 +405,10 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
       <p class="lede">Every teammate makes one office noise: ringing phones, papers knocked into neat stacks, the coffee machine, typing, clicking, the claims stamp, a pen on a glass, the photocopier and the washroom flush. Thirteen people, each with their own seat. Call them in and their noises lock into one groove, or switch to Ambient and let the office hum along at its own pace.</p>
     </div>
     <div class="transport">
-      <div class="mode" role="radiogroup" aria-label="Sound">
-        <button type="button" role="radio" data-mode="musical">Musical</button><button type="button" role="radio" data-mode="ambient">Ambient</button>
+      <div class="mode" role="radiogroup" aria-label="Sound mode" data-on="musical">
+        <span class="thumb" aria-hidden="true"></span>
+        <button type="button" role="radio" data-mode="musical" title="Everyone plays in time, like a band"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5 13 1v9.2a2.2 2.2 0 1 1-1.4-2V4.1L7.4 5v6.7a2.2 2.2 0 1 1-1.4-2z"/></svg><b>Musical</b><small>on the beat</small></button>
+        <button type="button" role="radio" data-mode="ambient" title="Everyone works at their own pace, like a quiet office"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 6c2-2 4-2 6 0s4 2 6 0M1 10c2-2 4-2 6 0s4 2 6 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><b>Ambient</b><small>office hum</small></button>
       </div>
       <label class="tempo" for="tempo"><span id="tempoName">Tempo</span>
         <input type="range" id="tempo" min="70" max="120" value="88">
@@ -478,6 +488,7 @@ function initAudio() {
   const nd = A.noise.getChannelData(0);
   for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
   roomTone(ctx);
+  chatBus(ctx);
 
   members.forEach(ensureNodes);
   applyMix(0);
@@ -904,6 +915,7 @@ const ROLE_IDS = Object.keys(ROLES);
 /* ---------- Scheduler ---------- */
 function sixteenth() { return 60 / A.bpm / 4; }
 function scheduler() {
+  chatterTick(A.ctx.currentTime);
   if (A.mode === "ambient") { ambientTick(); return; }
   while (A.next < A.ctx.currentTime + 0.12) {
     const g = A.step % 64, s = g % 16, bar = g >> 4;
@@ -1034,6 +1046,40 @@ function ambientTick() {
     }
   }
 }
+/* Pantry chatter: when two or more people are at the kitchen, the water cooler or the copier,
+   they talk. Murmured syllables through vowel formants, low-passed and quiet, taking turns. */
+const PANTRY = new Set(["kitchen", "cooler", "copier"]);
+function chatterTick(ct) {
+  const group = members.filter(m => m.out && PANTRY.has(SEATS[m.desk].place));
+  if (group.length < 2) { A.chatNext = null; return; }
+  if (A.chatNext == null) A.chatNext = ct + rand(.4, 1.5);
+  while (A.chatNext < ct + 0.12) {
+    const others = group.filter(m => m !== A.chatLast), who = pick(others.length ? others : group, Math.random);
+    A.chatLast = who;
+    const t0 = Math.max(A.chatNext, ct + .02), f0 = 105 + (who.seed % 11) * 12;
+    let at = t0;
+    const n = Math.floor(rand(3, 10)), vs = Object.keys(VOWELS);
+    for (let i = 0; i < n; i++) {
+      const d = rand(.08, .2), f = f0 * (1 + rand(-.08, .12)) * (i === n - 1 ? .88 : 1);
+      if (chance(.4)) burstN(A.chat, at, .05, "bandpass", 3200, 2, .025);
+      const bank = formants(A.chat, at, VOWELS[pick(vs, Math.random)], VOWELS[pick(vs, Math.random)], d, f0 > 160 ? 1.15 : 1, [4, 6, 8]);
+      const o = voiced(at, f, d), g = envGain(at, .025, .1, d);
+      o.frequency.linearRampToValueAtTime(f * rand(.9, 1.08), at + d);
+      o.connect(g); g.connect(bank);
+      at += d + rand(.02, .08);
+    }
+    who.talkUntil = at;
+    A.chatPan.pan && A.chatPan.pan.setValueAtTime(Math.max(-1, Math.min(1, (SEATS[who.desk].sx - LW / 2) / (LW / 2) * .8)), t0);
+    // a quick reply, or a pause while they sip
+    A.chatNext = at + (chance(.65) ? rand(.15, .6) : rand(1.2, 4));
+  }
+}
+function chatBus(ctx) {
+  A.chat = ctx.createGain(); A.chat.gain.value = 1;
+  const lp = filt("lowpass", 1700, .6), rs = ctx.createGain(); rs.gain.value = .5;
+  A.chatPan = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
+  A.chat.connect(lp); lp.connect(A.chatPan); A.chatPan.connect(A.master); A.chatPan.connect(rs); rs.connect(A.rev);
+}
 // the visual queue stays sorted by time: ambient steps arrive out of order across people
 function queueVisual(ev) {
   let i = visualQueue.length;
@@ -1076,7 +1122,8 @@ function setMode(mode) {
 }
 function syncMode() {
   const amb = A.mode === "ambient";
-  document.querySelectorAll(".mode button").forEach(b => { const on = b.dataset.mode === A.mode; b.setAttribute("aria-checked", String(on)); b.classList.toggle("on", on); });
+  document.querySelectorAll(".mode").forEach(g => g.dataset.on = A.mode);
+  document.querySelectorAll(".mode button").forEach(b => { const on = b.dataset.mode === A.mode; b.setAttribute("aria-checked", String(on)); b.tabIndex = on ? 0 : -1; b.classList.toggle("on", on); });
   $("tempoName").textContent = amb ? "Busyness" : "Tempo";
   const el = $("tempo");
   el.value = amb ? 70 + A.busy * 50 : A.bpm;
@@ -1400,7 +1447,17 @@ function syncPlayBtn() {
   $("playBtn").setAttribute("aria-pressed", String(A.playing));
 }
 $("playBtn").addEventListener("click", () => A.playing ? stop() : start());
-document.querySelectorAll(".mode button").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
+document.querySelectorAll(".mode button").forEach(b => {
+  b.addEventListener("click", () => {
+    const was = A.mode;
+    setMode(b.dataset.mode); start();
+    if (was !== A.mode) toast(A.mode === "ambient" ? "Ambient: everyone works at their own pace" : "Musical: everyone plays on the beat");
+  });
+  b.addEventListener("keydown", e => {
+    if (!["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+    e.preventDefault(); const other = b.parentElement.querySelector(`button[data-mode="${b.dataset.mode === "musical" ? "ambient" : "musical"}"]`); other.focus(); other.click();
+  });
+});
 syncMode();
 const menu = $("menu"), menuBtn = $("menuBtn");
 function setMenu(open) { menu.hidden = !open; menuBtn.setAttribute("aria-expanded", String(open)); if (open) $("menuClose").focus(); }
@@ -1870,6 +1927,7 @@ function pose(m, seat, T) {
     R = [10.4, -3, deskZ - .1]; L = [10.4, 3, deskZ - .1];
   }
 
+  if (T.talk) { mouth = Math.sin(t * 19 + idle) > -.2 ? "open" : "smile"; nod += Math.sin(t * 5) * .03; }
   // torso and head; breathing lifts the chest a little
   const breath = Math.sin(t * 1.7 + idle) * .1, torso = 12.4;
   const neck = v3.add(hip, [Math.sin(lean) * torso, 0, Math.cos(lean) * torso + breath]);
@@ -2039,7 +2097,7 @@ function clockFor(m, now) {
   const ct = A.ctx && A.playing ? A.ctx.currentTime : null;
   const hit = ct != null && m.hitT != null ? Math.max(0, ct - m.hitT) : 99;
   const soon = ct != null && m.soonT != null && m.soonT > ct ? clamp01(1 - (m.soonT - ct) / .12) : 0;
-  return { t: now / 1000, hit, soon };
+  return { t: now / 1000, hit, soon, talk: ct != null && m.talkUntil > ct };
 }
 
 // one seat with its person: the order depends on whether the chair is in front of or behind the desk
@@ -2075,6 +2133,7 @@ function drawSeat(i, now) {
       if (lap) lapLaptop(F, lap, col);
       upper();
       roomFx(s, m, F);
+      if (clockFor(m, now).talk) speechBubble(F.S.head, now);
     } else hoverHint(i, s.x, s.y, now);
   }
 }
@@ -2178,6 +2237,15 @@ function drawDeskTop(i, s, m, col, lit, F) {
 function meetingTableTop() {
   box(g, 14, 36, 14.5, 50, 52, 16, { top: "#ffffff", left: PAL.wallShade, right: PAL.wallShade });
   plant(g, 32, 44, 16, .5);
+}
+// a small speech bubble with three dots, bobbing while someone talks
+function speechBubble([hx, hy], now) {
+  const x = hx + 4, y = hy - 9 + Math.sin(now / 160) * .4, w = 11, h = 6.5;
+  g.beginPath(); g.roundRect ? g.roundRect(x, y - h, w, h, 3) : g.rect(x, y - h, w, h);
+  g.moveTo(x + 2, y); g.lineTo(x + .5, y + 2.4); g.lineTo(x + 4.5, y);
+  g.fillStyle = "#ffffff"; g.fill(); g.strokeStyle = INK_LINE; g.lineWidth = .45; g.stroke();
+  g.fillStyle = INK_LINE;
+  for (let k = 0; k < 3; k++) { g.beginPath(); g.arc(x + 3 + k * 2.5, y - h / 2 + (Math.floor(now / 200) % 3 === k ? -.5 : 0), .55, 0, 7); g.fill(); }
 }
 // room effects: copier light, coffee steam, the flush swirl, a note from the cooler
 function roomFx(s, m, F) {
