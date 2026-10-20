@@ -364,7 +364,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
     <div class="brand">
       <p class="eyebrow"><span class="dot" id="beatDot"></span>A group health jam</p>
       <h1>Office <em>Pulse</em></h1>
-      <p class="lede">Every teammate makes one office noise: ringing phones, coughs, the coffee machine, typing, clicking, the claims stamp, a pen on a glass, the photocopier and the washroom flush. Hire them into the empty office and the noises lock into one groove. Cover all nine benefits to hear the whole band.</p>
+      <p class="lede">Every teammate makes one office noise: ringing phones, coughs, the coffee machine, typing, clicking, the claims stamp, a pen on a glass, the photocopier and the washroom flush. Everyone has their own seat. Call them in and their noises lock into one groove.</p>
     </div>
     <div class="transport">
       <button class="btn play" id="playBtn" aria-pressed="false">
@@ -375,40 +375,20 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
         <input type="range" id="tempo" min="70" max="120" value="88">
         <output id="tempoOut">88 bpm</output>
       </label>
-      <button class="btn" id="fillBtn">Cover everyone</button>
+      <button class="btn" id="fillBtn">Everyone in</button>
       <button class="btn" id="clearBtn">Empty office</button>
     </div>
   </header>
 
   <div class="stage" id="stage">
-    <canvas id="office" width="440" height="310" role="img" aria-label="An axonometric office plan with three pods of desks, a meeting room, kitchen, photocopier, water cooler, washroom and lounge. Each hire appears at a desk or in the room their sound belongs to, and acts it out when they play."></canvas>
+    <canvas id="office" width="440" height="310" role="img" aria-label="An axonometric office plan with three pods of desks, a meeting room, kitchen, photocopier, water cooler, washroom and lounge. Each person has their own seat at a desk or in the room their sound belongs to, and acts out their sound as it plays."></canvas>
     <div class="tags" id="tags"></div>
-    <div class="empty" id="empty" hidden><b>The office is empty and quiet</b><span>Hire someone below to start the music</span></div>
+    <div class="empty" id="empty" hidden><b>The office is empty and quiet</b><span>Click an empty seat, or Everyone in, to start the music</span></div>
     <div class="tip" id="tip" hidden></div>
   </div>
 
-  <section class="cover" aria-live="polite">
-    <div class="cover-head">
-      <div class="cover-label">Team cover</div>
-      <div class="cover-num" id="coverNum">0<span>/9</span></div>
-    </div>
-    <div class="cover-body">
-      <div class="bar" id="coverBar"></div>
-      <div class="chips" id="chips"></div>
-    </div>
-  </section>
-
-  <section style="display:grid;gap:14px">
-    <div class="section-head">
-      <h2>Hiring desk</h2>
-      <p class="hint">Click a card to hire, or drag it onto a desk. Click someone in the office to send them home.</p>
-    </div>
-    <div class="roles" id="roles"></div>
-  </section>
-
   <footer class="foot">
-    <span>12 desks · 8 office noises · 1 policy that covers the whole team.</span>
-    <span>Hire two of the same role and the second one plays a harmony part.</span>
+    <span>Hover over someone to see who they are. Click them to send them home, or click an empty seat to call its person back.</span>
   </footer>
 </div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
@@ -1182,7 +1162,6 @@ function personSprite(m) { return buildSprite(m.face, m.build, m.outfit, m.lower
 let members = [];
 let nextId = 1;
 const dist = (a, b) => Math.hypot(a.sx - b.sx, a.sy - b.sy);
-const coveredSet = () => new Set(members.map(m => m.role));
 
 // prefer a face nobody in the office has yet
 function pickFace(r) {
@@ -1190,11 +1169,11 @@ function pickFace(r) {
   const free = FACES.map((_, i) => i).filter(i => !used.has(i));
   return pick(free.length ? free : FACES.map((_, i) => i), r);
 }
-function makeMember(roleId, desk, name, seed) {
+function makeMember(roleId, desk, name, seed, variant = 0) {
   const r = rng(seed);
   const m = {
     id: nextId++, role: roleId, desk, name, seed,
-    variant: members.filter(o => o.role === roleId).length,
+    variant,
     face: pickFace(r), build: Math.floor(r() * BUILDS.length), outfit: Math.floor(r() * OUTFITS.length),
     lower: Math.floor(r() * LOWERS.length), shoe: Math.floor(r() * SHOES.length), mirror: r() < 0.35,
     memberNo: String(1000 + Math.floor(r() * 9000)),
@@ -1204,89 +1183,35 @@ function makeMember(roleId, desk, name, seed) {
   return m;
 }
 
-// where a new hire goes: their room if it has space, otherwise the asked-for desk or the nearest free one
-function seatFor(roleId, want) {
-  const taken = new Set(members.map(m => m.desk)), ids = SEATS.map((_, i) => i).filter(i => !taken.has(i));
-  const near = list => want == null ? pick(list, Math.random) : list.sort((a, b) => dist(SEATS[a], SEATS[want]) - dist(SEATS[b], SEATS[want]))[0];
-  const room = ids.filter(i => SEATS[i].roles && SEATS[i].roles.includes(roleId));
-  if (room.length) return near(room);
-  const desks = ids.filter(i => SEATS[i].kind === "desk");
-  if (!desks.length) return -1;
-  return want != null && desks.includes(want) ? want : near(desks);
-}
-function hire(roleId, deskIndex) {
-  deskIndex = seatFor(roleId, deskIndex);
-  if (deskIndex < 0) { toast("The office is full. Send someone home to make room."); return null; }
-  const used = new Set(members.map(m => m.name));
-  const name = pick(NAMES.filter(n => !used.has(n)), Math.random) || "Alex";
-  const role = ROLES[roleId];
-  const wasCovered = coveredSet().has(roleId);
-  const m = makeMember(roleId, deskIndex, name, Math.floor(Math.random() * 1e9));
+/* Everyone has one seat of their own: the same person, sound and look every time they come in. */
+const DESK_CAST = [
+  ["typing", "Kabir"], ["clicking", "Arjun"], ["cough", "Isha"], ["stamp", "Omar"],
+  ["stamp", "Leela"], ["typing", "Neel"], ["clicking", "Sara"], ["cough", "Vikram"],
+  ["clicking", "Maya"], ["cough", "Ananya"], ["typing", "Dev"], ["stamp", "Zoya"],
+];
+const SPOT_CAST = [["phone", "Meera"], ["phone", "Rohan"], ["copier", "Jay"], ["glass", "Tara"], ["coffee", "Priya"], ["coffee", "Sam"], ["flush", "Nina"], ["flush", "Kiran"]];
+const CAST = [...DESK_CAST, ...SPOT_CAST].map(([role, name], i, all) => ({ role, name, seed: 4099 + i * 131, variant: all.slice(0, i).filter(([r]) => r === role).length }));
+function callIn(seat) {
+  if (members.some(m => m.desk === seat)) return null;
+  const c = CAST[seat], m = makeMember(c.role, seat, c.name, c.seed, c.variant);
   members.push(m);
   ensureNodes(m);
   render();
-  const where = SEATS[deskIndex].kind === "spot" ? ` and headed to ${SEATS[deskIndex].label}` : "";
-  if (!wasCovered) toast(`${name} joined as ${role.title}${where}. ${role.covers} now covered.`);
-  else toast(`${name} joined as a second ${role.title} and plays a harmony part.`);
-  if (coveredSet().size === ROLE_IDS.length && !wasCovered) celebrate();
+  if (members.length === SEATS.length) celebrate();
   return m;
 }
 function fire(m) {
   members = members.filter(o => o !== m);
   releaseNodes(m);
-  // re-number variants so remaining copies of a role keep distinct parts
-  ROLE_IDS.forEach(id => members.filter(o => o.role === id).forEach((o, i) => {
-    if (o.variant !== i) { o.variant = i; if (ROLES[id].setup) ROLES[id].setup(o); }
-  }));
   burst(SEATS[m.desk].sx, SEATS[m.desk].sy - 20, ROLES[m.role].color, 12);
   render();
-  toast(`${m.name} headed home to rest. Still covered, of course.`);
 }
 
 /* ---------- DOM ---------- */
 const $ = id => document.getElementById(id);
-const rolesEl = $("roles"), chipsEl = $("chips"), tagsEl = $("tags"), barEl = $("coverBar");
-const cardIcons = [];
-barEl.style.setProperty("--n", Object.keys(ROLES).length);
-
-ROLE_IDS.forEach(id => {
-  const r = ROLES[id];
-  const b = document.createElement("button");
-  b.className = "role"; b.draggable = true; b.dataset.role = id;
-  b.style.setProperty("--c", r.color);
-  b.innerHTML = `<canvas width="11" height="11" aria-hidden="true"></canvas>
-    <span class="name">${r.title}</span>
-    <span class="snd">${r.sound}</span>
-    <span class="covers">Covers ${r.covers.toLowerCase()}</span>
-    <span class="count" hidden></span>`;
-  b.setAttribute("aria-label", `Hire a ${r.title}: plays ${r.sound}, covers ${r.covers}`);
-  b.addEventListener("click", () => { start(); hire(id); });
-  b.addEventListener("dragstart", e => { e.dataTransfer.setData("text/plain", id); e.dataTransfer.effectAllowed = "copy"; });
-  rolesEl.appendChild(b);
-  cardIcons.push({ id, c: b.querySelector("canvas").getContext("2d") });
-
-  const chip = document.createElement("span");
-  chip.className = "chip"; chip.dataset.role = id; chip.textContent = r.covers;
-  chipsEl.appendChild(chip);
-  barEl.appendChild(document.createElement("i"));
-});
+const tagsEl = $("tags");
 
 function render() {
-  const cov = coveredSet();
-  $("coverNum").innerHTML = `${cov.size}<span>/${ROLE_IDS.length}</span>`;
-  [...barEl.children].forEach((seg, i) => seg.classList.toggle("on", i < cov.size));
-  chipsEl.querySelectorAll(".chip").forEach(c => c.classList.toggle("on", cov.has(c.dataset.role)));
-  rolesEl.querySelectorAll(".role").forEach(b => {
-    const n = members.filter(m => m.role === b.dataset.role).length;
-    const badge = b.querySelector(".count");
-    badge.hidden = !n; badge.textContent = "×" + n;
-  });
-  tagsEl.replaceChildren(...members.map(m => {
-    const d = SEATS[m.desk], t = document.createElement("span");
-    t.className = "tag"; t.textContent = m.name;
-    t.style.left = (d.sx / LW * 100) + "%"; t.style.top = (d.tagY / LH * 100) + "%";
-    return t;
-  }));
   $("empty").hidden = members.length > 0;
 }
 
@@ -1301,17 +1226,14 @@ $("tempo").addEventListener("input", e => {
 });
 $("fillBtn").addEventListener("click", () => {
   start();
-  const cov = coveredSet();
-  const missing = ROLE_IDS.filter(id => !cov.has(id));
-  if (!missing.length) { toast("Everyone is already covered. Add extras for harmonies."); return; }
-  missing.forEach((id, i) => setTimeout(() => hire(id), i * 260));
+  const empty = SEATS.map((_, i) => i).filter(i => !members.some(m => m.desk === i));
+  empty.forEach((i, k) => setTimeout(() => callIn(i), k * 160));
 });
 $("clearBtn").addEventListener("click", () => {
   if (!members.length) return;
   members.forEach(releaseNodes);
   members = [];
   render();
-  toast("The office is empty and quiet.");
 });
 
 function toast(msg) {
@@ -1377,7 +1299,6 @@ const PAL = {
 let T = { outline: INK_LINE };
 function readTokens() {
   drawStatic();
-  cardIcons.forEach(({ id, c }) => { c.clearRect(0, 0, 11, 11); bitmap(c, 3, 3, ICONS[id], ROLES[id].color, INK_LINE); });
 }
 
 /* ---------- Static layer: the plan, walls, rooms and fixed furniture ---------- */
@@ -1556,7 +1477,6 @@ function note(x, y, color) {
   particles.push({ x: x + (Math.random() - .5) * 10, y, vx: (Math.random() - .5) * .25, vy: -.45 - Math.random() * .25, life: 1, color, kind: "note" });
 }
 function celebrate() {
-  toast("All nine benefits covered. This is what a healthy office sounds like.");
   if (reduceMotion) return;
   const cols = ROLE_IDS.map(id => ROLES[id].color);
   for (let i = 0; i < 120; i++) particles.push({ x: Math.random() * LW, y: -Math.random() * 120, vx: (Math.random() - .5) * .6, vy: Math.random() * .8 + .5, life: 2, color: pick(cols, Math.random), kind: "confetti" });
@@ -1614,20 +1534,16 @@ function reach(root, target, l1, l2, pole) {
 
 const SKINS = ["#f1c8a5", "#e0a77f", "#c68a5c", "#a46a3f", "#7a4b2a", "#f6d3b3"];
 const HAIRS = ["#1f1b19", "#3b2618", "#7a3f2a", "#c26a2a", "#9c9c9c", "#1f1b19"];
-const PANTS = ["#5a6fbf", "#2b2b2e", "#8a8f9c", "#3f5aa8", "#b98c66", "#e27aa6"];
+const TOPS = ["#2b2b2e", "#2c3a66", "#d94f3d", "#e2a23b", "#2f7f57", "#6a4fb3", "#e85a9a", "#3a8fd6"];
+const PANTS = ["#e85a9a", "#4c6fc2", "#2b2b2e", "#e2a23b", "#2f7f57", "#c0392b", "#8a8f9c"];
 const SHOE_COLS = ["#2b2b2e", "#5a3a28", "#ffffff", "#ee6f6a"];
-function mixHex(a, b, t) {
-  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), A1 = p(a), B1 = p(b);
-  return "#" + A1.map((v, i) => Math.round(v + (B1[i] - v) * t).toString(16).padStart(2, "0")).join("");
-}
-// a look from the member's seed; the jumper takes a soft version of their role colour
+// bold crayon colours: a plain jumper and trousers that never match, after the first crayon style
 function lookFor(m) {
   if (m.look) return m.look;
-  const r = rng(m.seed + 7), col = ROLES[m.role].color;
+  const r = rng(m.seed + 7), top = pick(TOPS, r);
   return m.look = {
     skin: pick(SKINS, r), hair: pick(HAIRS, r), hairStyle: pick(["short", "bun", "long", "bob", "short"], r),
-    top: mixHex(col, "#ffffff", .42), trim: shade(col, .85), pattern: pick(["stripes", "dots", "plain", "stripes"], r),
-    pants: pick(PANTS, r), pantsDots: r() < .3, shoes: pick(SHOE_COLS, r),
+    top, pattern: "plain", pants: pick(PANTS.filter(c => c !== top), r), pantsDots: false, shoes: pick(SHOE_COLS, r),
   };
 }
 
@@ -1950,7 +1866,6 @@ function drawSeat(i, now) {
       roomFx(s, m, F);
     } else hoverHint(i, s.x, s.y, now);
   }
-  if (m) badge(m, F ? F.S.head : iso(s.x, s.y, 30), col, lit);
 }
 function hoverHint(i, x, y, now) {
   if (!((i === hoverDesk || i === dragDesk) && (Math.floor(now / 260) % 2 || dragDesk === i))) return;
@@ -2066,19 +1981,14 @@ function deskAt(p) {
   for (const { seat: i } of DRAW_ORDER.filter(o => o.seat != null)) { const [a, b, c, d] = SEATS[i].box; if (p.x >= a && p.x <= c && p.y >= b && p.y <= d) hit = i; }
   return hit;
 }
-function nearestDesk(p) {
-  let best = 0;
-  SEATS.forEach((d, i) => { if (Math.hypot(d.sx - p.x, d.sy - 8 - p.y) < Math.hypot(SEATS[best].sx - p.x, SEATS[best].sy - 8 - p.y)) best = i; });
-  return best;
-}
 const tip = $("tip");
 cv.addEventListener("pointermove", e => {
   const i = deskAt(toLogical(e));
   hoverDesk = i;
   const m = members.find(o => o.desk === i);
-  if (m && e.pointerType !== "touch") {
-    const r = ROLES[m.role], d = SEATS[i];
-    tip.innerHTML = `<b>${m.name}</b> · ${r.title}<small>Member #${m.memberNo} · covers ${r.covers.toLowerCase()}</small><small>Click to send home</small>`;
+  if (i >= 0 && e.pointerType !== "touch") {
+    const d = SEATS[i];
+    tip.innerHTML = m ? `<b>${m.name}</b>` : `<b>${CAST[i].name}</b><small>Click to call in</small>`;
     tip.style.left = (d.sx / LW * 100) + "%"; tip.style.top = ((d.sy - 48) / LH * 100) + "%";
     tip.hidden = false;
   } else tip.hidden = true;
@@ -2090,21 +2000,8 @@ cv.addEventListener("click", e => {
   const m = members.find(o => o.desk === i);
   tip.hidden = true;
   if (m) { fire(m); return; }
-  // an empty room spot hires its own role; an empty desk hires a desk role that fills the biggest gap
   start();
-  if (SEATS[i].roles) { hire(SEATS[i].roles[0], i); return; }
-  const cov = coveredSet(), deskRoles = ROLE_IDS.filter(id => !SPOTS.some(sp => sp.roles.includes(id)));
-  const missing = deskRoles.filter(id => !cov.has(id));
-  hire(pick(missing.length ? missing : deskRoles, Math.random), i);
-});
-cv.addEventListener("dragover", e => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; dragDesk = nearestDesk(toLogical(e)); });
-cv.addEventListener("dragleave", () => { dragDesk = -1; });
-cv.addEventListener("drop", e => {
-  e.preventDefault();
-  const id = e.dataTransfer.getData("text/plain");
-  const i = nearestDesk(toLogical(e));
-  dragDesk = -1;
-  if (ROLES[id]) { start(); hire(id, i); }
+  callIn(i);
 });
 document.addEventListener("keydown", e => {
   if (e.code === "Space" && e.target === document.body) { e.preventDefault(); A.playing ? stop() : start(); }
@@ -2115,11 +2012,7 @@ readTokens();
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", readTokens);
 new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 document.fonts && document.fonts.ready.then(render);
-[["coffee", DESK_COUNT + 4, "Priya"], ["typing", 2, "Kabir"], ["phone", DESK_COUNT, "Meera"], ["clicking", 1, "Arjun"]].forEach(([id, desk, name], i) => {
-  const m = makeMember(id, desk, name, 1234 + i * 99);
-  m.born = -1e4;
-  members.push(m);
-});
+[DESK_COUNT + 4, 0, DESK_COUNT, 1].forEach(i => { const c = CAST[i]; members.push(Object.assign(makeMember(c.role, i, c.name, c.seed, c.variant), { born: -1e4 })); });
 render();
 requestAnimationFrame(frame);
 })();
