@@ -77,33 +77,63 @@ canvas { display: block; width: 100%; max-width: 100%; image-rendering: pixelate
 .decided { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .decided span { border: 2px solid var(--edge); background: var(--accent-soft); padding: 2px 10px; font-size: 13px; font-weight: 600; }
 @media (max-width: 760px) { .split { grid-template-columns: 1fr; } .outfits { grid-template-columns: repeat(3, 1fr); } }
+.tight { padding: 10px; gap: 8px; box-shadow: 3px 3px 0 var(--edge); }
+.outfit-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+figure { margin: 0; }
+figcaption { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.toggle { display: inline-flex; border: 2px solid var(--edge); box-shadow: 3px 3px 0 var(--edge); margin-top: 14px; }
+.toggle button { font: 600 13px var(--font-body); padding: 6px 12px; border: 0; background: var(--surface); color: var(--fg); cursor: pointer; }
+.toggle button + button { border-left: 2px solid var(--edge); }
+.toggle button[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
+.toggle button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <p class="eyebrow">Office Pulse · design review, round 2</p>
-    <h1>People with depth</h1>
-    <p class="lede">The 16 faces are now copied one by one from your reference sheet, in the same order. Below are two ways to give them isometric depth. Pick A or B, and an outfit. Nothing here is in the live office yet.</p>
+    <p class="eyebrow">Office Pulse · design review, round 3</p>
+    <h1>People, drawn like your sheet</h1>
+    <p class="lede">The faces are now read pixel for pixel from your image, so every head keeps its own shape and its slight turn to the right. Bodies are drawn flat in the same style and turned the same way, with no blocky extrusion. Flip a person and they face left.</p>
     <div class="decided"><span>Chairs: task chair at most desks</span><span>1 exercise ball</span><span>1 stool</span></div>
+    <div class="toggle" role="group" aria-label="Palette">
+      <button type="button" id="pal-skin" data-palette="skin" aria-pressed="true">Skin tones</button>
+      <button type="button" id="pal-two" data-palette="two" aria-pressed="false">Two-tone like the sheet</button>
+    </div>
   </header>
 
   <section>
     <div>
-      <h2>Faces from your reference</h2>
-      <p class="sub">Same grid as your image: four rows of four. Left in the reference's two-tone green, right with skin tones and blonde hair where the reference has light hair.</p>
+      <h2>Faces</h2>
+      <p class="sub">Left is your sheet redrawn exactly. Right is the same pixels in the office palette, with blonde hair on the three light-haired faces.</p>
     </div>
     <div class="two">
-      <div class="panel"><span class="cap">Reference palette</span><canvas id="facesGB"></canvas></div>
+      <div class="panel"><span class="cap">Your sheet</span><canvas id="facesGB"></canvas></div>
       <div class="panel"><span class="cap">Office palette</span><canvas id="facesOffice"></canvas></div>
     </div>
   </section>
 
-  <section id="options">
+  <section>
     <div>
-      <h2>Isometric depth</h2>
-      <p class="sub">Each option shows all 16 heads as blocks, the five outfits, and six desks seated with the agreed chairs. The office mixes the outfits so you can compare them side by side.</p>
+      <h2>Body variations</h2>
+      <p class="sub">Seven outfits, each in three builds. The outfit takes the teammate's role colour. Any face goes on any body.</p>
     </div>
+    <div class="outfit-grid" id="outfits"></div>
+  </section>
+
+  <section>
+    <div>
+      <h2>The whole cast</h2>
+      <p class="sub">All 16 faces on mixed bodies. Every fourth person is flipped to face left.</p>
+    </div>
+    <div class="panel"><div class="frame"><canvas id="cast"></canvas></div></div>
+  </section>
+
+  <section>
+    <div>
+      <h2>In the office</h2>
+      <p class="sub">Seated with the agreed chairs: task chairs, one exercise ball (top right) and one stool (bottom left). One desk is empty with its chair swivelled.</p>
+    </div>
+    <div class="panel"><div class="frame"><canvas id="scene"></canvas></div></div>
   </section>
 </div>
 
@@ -162,131 +192,114 @@ function box(c, x0, y0, z0, x1, y1, z1, top, side, side2, stroke = T.outline) {
   poly(c, [iso(x0, y0, z1), iso(x1, y0, z1), iso(x1, y1, z1), iso(x0, y1, z1)], top, stroke);
 }
 
-/* ---------- the 16 faces, transcribed from the reference (row by row, left to right) ----------
-   o = outline, h = dark hair, l = light hair, s = skin, w = white (lens glint, teeth, shine), b = blush */
+/* ---------- faces: read pixel for pixel from the reference sheet ----------
+   o = ink, s = light (skin, or light hair). Faces turn slightly to the viewer's right, like the sheet. */
 const FACES = [
-  // row 1: side-parted man with an ear · short hair · spiky cowlick · light hair swept over one eye
-  ["...ooooooo....", "..ohhhhhhhoo..", ".ohhhhhhhhhho.", ".ohhhhsssshho.", ".ohhsssssssso.", "oosssssssssso.", "osssossssosso.",
-   "oossossssosso.", ".osssssssssso.", ".ossossssosso.", ".osssoooossso.", "..osssssssso..", "...oooooooo...", ".............."],
-  ["...oooooooo...", "..ohhhhhhhho..", ".ohhhhhhhhhho.", ".ohhhhhhhhhho.", ".ohssssssssho.", ".osssssssssso.", ".ossossssosso.",
-   ".ossossssosso.", ".osssssssssso.", ".osssossossso.", ".ossssoosssso.", "..osssssssso..", "...oooooooo...", ".............."],
-  [".........o.o..", "...ooooohoho..", "..ohhhhhhhhho.", ".ohhhhhhhhhho.", ".ohhhshhhhsho.", ".ohssssssssho.", ".ossossssosso.",
-   ".ossossssosso.", ".osssssssssso.", ".osssssssssso.", ".ossssoosssso.", "..osssssssso..", "...oooooooo...", ".............."],
-  ["...oooooooo...", "..ollllllllo..", ".olllllllllllo", ".ollllollllllo", ".ollssssllllo.", ".ossssssslllo.", ".ossossssollo.",
-   ".ossossssollo.", ".ossssssssslo.", ".osssossossso.", ".ossssoosssso.", "..osssssssso..", "...oooooooo...", ".............."],
-  // row 2: bald with big glasses · light hair with bangs · dark hair with a shine band, happy eyes · bald, ears, eyebrows, stubble
-  ["..............", "....oooooo....", "..oossssssoo..", ".osssssssssso.", ".osssssssssso.", ".oooooooooooo.", ".oowoossoowoo.",
-   ".ooooossooooo.", ".osssssssssso.", ".osssssssssso.", ".osssoooossso.", "..osssssssso..", "...oooooooo...", ".............."],
-  ["...oooooooo...", "..ollllllllo..", ".ollllllllllo.", ".olllollllllo.", ".ollssssssllo.", ".olsssssssslo.", ".olsossssoslo.",
-   ".olsossssoslo.", ".olsssssssslo.", ".olsbssssbslo.", ".olsssoossslo.", "..osssssssso..", "...oooooooo...", ".............."],
-  ["...oooooooo...", "..ohhhhhhhho..", ".ohwwwwwwwwho.", ".ohhhhhhhhhho.", ".ohhhhhhhhhho.", ".ohssssssssho.", ".ossossssosso.",
-   ".ososossososo.", ".osssssssssso.", ".ossossssosso.", ".osssowwossso.", "..ossoooosso..", "...oooooooo...", ".............."],
-  ["..............", "....oooooo....", "..oossssssoo..", ".osssssssssso.", ".ohoossssooho.", "oossssssssssoo", "osssossssossso",
-   "oossossssossoo", ".osssssssssso.", ".ososossososo.", ".ossoooooosso.", "..osssssssso..", "...oooooooo...", ".............."],
-  // row 3: messy light hair, smirk · dark round bob · slick hair with shine · spiky hair, eyebrows, big laugh
-  ["....o..oo.....", "...oloolloo...", "..olllllllllo.", ".olllllllllllo", ".ollllssslllo.", ".olsssssssslo.", ".osssossssoso.",
-   ".osssossssoso.", ".osssssssssso.", ".osssssssosso.", ".ossssooossso.", "..osssssssso..", "...oooooooo...", ".............."],
-  ["...oooooooo...", "..ohhhhhhhho..", ".ohhhhhhhhhho.", "ohhhhhhhhhhhho", "ohhhsssssshhho", "ohhsssssssshho", "ohhsossssoshho",
-   "ohhsossssoshho", "ohhsssssssshho", "ohhssossosshho", "ohhsssoossshho", ".ohhsssssshho.", "..ohhoooohho..", "...oo....oo..."],
-  ["...oooooooo...", "..ohhhhhhhho..", ".ohhwwwhhhhho.", ".ohhhhhhhhhho.", ".ohhsssssshho.", ".osssssssssso.", ".ossossssosso.",
-   ".ossossssosso.", ".osssssssssso.", ".ossossssosso.", ".osssoooossso.", "..osssssssso..", "...oooooooo...", ".............."],
-  ["...oo.oo.oo...", "..ohhohhohho..", ".ohhhhhhhhhho.", ".ohhhhhhhhhho.", ".ohoossssooho.", ".osssssssssso.", ".ossossssosso.",
-   ".ossossssosso.", ".osssssssssso.", ".ossoooooosso.", ".ossowwwwosso.", "..osooooooso..", "...oooooooo...", ".............."],
-  // row 4: full beard with teeth · glasses, brows and beard · long hair with centre part · big curly hair and beard
-  ["...oooooooo...", "..ohhhhhhhho..", ".ohhhhhhhhhho.", ".ohhhhhhhhhho.", ".ohssssssssho.", ".ohssssssssho.", ".ohsossssosho.",
-   ".ohsossssosho.", ".ohhsssssshho.", ".ohhhhhhhhhho.", ".ohhhwwwwhhho.", "..ohhhhhhhho..", "...ohhhhhho...", "....oooooo...."],
-  ["...oooooooo...", "..ohhhhhhhho..", ".ohhhhhhhhhho.", ".ohssssssssho.", ".ooossssssooo.", ".oooooooooooo.", ".oowoossoowoo.",
-   ".ooooossooooo.", ".ohssssssssho.", ".ohhhhhhhhhho.", ".ohhhwwwwhhho.", "..ohhhhhhhho..", "...ohhhhhho...", "....oooooo...."],
-  ["...oooooooo...", "..ohhhhhhhho..", ".ohhhhhhhhhho.", "ohhhhhsshhhhho", "ohhhsssssshhho", "ohhsssssssshho", "ohhsossssoshho",
-   "ohhsossssoshho", "ohhsbssssbshho", "ohhssossosshho", "ohhsssoossshho", "ohhossssssohho", "ohhhoooooohhho", "oooo......oooo"],
-  ["..oooooooooo..", ".ohhhhhhhhhho.", "ohhhhhhhhhhhho", "ohhhhhhhhhhhho", "ohhhsssssshhho", "ohhsssssssshho", "ohhsossssoshho",
-   "ohhsossssoshho", "ohhhsssssshhho", "ohhhhhhhhhhhho", "ohhhhwwwwhhhho", ".ohhhhhhhhhho.", "..ohhhhhhhho..", "...oooooooo..."],
+  [".....oooooooo...", "....oooooooooo..", "...oooossooosoo.", "..oooossssoossoo", "..ooosssssssssso", "..ooossssoosooso", "..ooosssosssssoo", ".oooosssssssssso", "ossoossssosssoso", "osososssssssssso", ".ossssssssssssso", "..oossssossssoso", "....ossssoooosso", "....osssssssssso", ".....osssssssso.", "......oooooooo.."],
+  ["...ooooooooo....", "..ooooooooooo...", ".ooooooooooooo..", ".oooossssssssoo.", ".ooosssssssssso.", ".ooosssssssssso.", "ossossooossoooo.", "osossssossssoso.", "ossssssossssoso.", ".oossssssssssso.", "..ossssosssossso", "...ossssooosssso", "....ossssssssso.", ".....ooooooooo.."],
+  ["...ooooooo.oooo.", "..oooooooooooo..", ".oooosooooooo...", "ooossooosoooooo.", "oooooossssoooooo", "ooooossssssooo..", "oooossssssssoo..", "oooossosssosso..", "ossossosssosso..", "ossossosssossso.", ".oossssssssssso.", "..osssssoosssso.", "...ossssssssso..", "....ooooooooo..."],
+  ["...oooooooooo...", "..osssssssssso..", ".osssssssssssso.", "osssssosssssssso", "osssssoossssssso", "osssssososssssso", "osssssossoooooo.", "ossssossssssso..", "ossoossoossooo..", "osososssossoso..", "ososssssssssso..", ".osoossssoosso..", "..ossosssssso...", "...ooooooooo...."],
+  ["....ooooooo.....", "...ossssssso....", "..ossssssssso...", ".ossssssssssso..", ".osssssssssssso.", ".osssooosssoooo.", ".oooosssooossso.", "osssossoosossoo.", "osssosssosossso.", ".osssooosssoooo.", "..ossssssssssso.", "..osssssssssssso", "...osssssoosssso", "....ossssssssso.", ".....ooooooooo.."],
+  ["..oo............", ".ossooooooooo...", "ossossssssssso..", "osossssssssssso.", ".ossssssssssssso", ".ossssoossssssso", ".osssossoossssso", ".ossosssssoossso", ".oooossosssooooo", ".ossossosssosso.", ".ossossosssosso.", "..osssssssssssso", "..osssssssoossso", "...osssssssssso.", "....oooooooooo.."],
+  ["...oooooooooo...", "..oooooooooooo..", ".oooooooooooooo.", "oooosoooooooosoo", "ooooossssssssooo", "oooooooooooooooo", "oooooooooooooooo", "oooooosssssssoo.", "ooooossoossooo..", "ooososssssssso..", "ooossssssoosso..", ".oooosssssssso..", "..oooosssssso...", "...ooooooooo...."],
+  ["....oooooooo...", "...osssssssso..", "..osssssssssso.", ".osssssssssssso", ".osssssssssssso", ".ossssoosssooso", ".oossossosossoo", "ossssosssssssso", "osossossosossoo", ".ossssosssssoso", "..ossssssssssso", "..osssssossosso", "..ossssssoossso", "...ossssssssso.", "....ooooooooo.."],
+  ["...ooooooooo...", "..ossssssssso..", ".ossssssssssso.", "ossssssssssssso", "ossssoossssssso", "osssossoossssso", "osssossssooosso", "ooososssssssoo.", "ossoossossoso..", "ossssssossoso..", ".ossssssssssso.", ".ossssssooosso.", "..ossssssssso..", "...ooooooooo..."],
+  ["...ooooooooo....", "..ooooooooooo...", ".oooooosoooooo..", "oooooosssoooooo.", "ooooossssssssso.", "ooooossossossso.", "ooooossossosssso", "ooooosssssssssso", "ooooossossosssso", ".ooossssoosssso.", "..osssssssssso..", "...osssssssso...", "....osssssso....", ".....oooooo....."],
+  ["...oooooooooo...", "..osooooooooso..", ".ooossssssssooo.", ".ooooooooooooooo", ".oooossooooooooo", ".ooossssooooooo.", ".ooosssssssssso.", "ossosssoosssooo.", "osossssossssoso.", "ossssssossssoso.", ".oossssssssssso.", "..ossssosssossso", "...ossssooosssso", "....ossssssssso.", ".....ooooooooo.."],
+  ["...oooooooooo...", "..oooooooooooo.o", ".oooooooooooooo.", "oooooooooooooooo", "oooooooooooooooo", "oooosssssssooooo", "ooosssssssssoooo", ".osooosssooosooo", ".ossoosssoossoso", ".ossssssssssssso", ".osssooooosssso.", ".osssosssosssso.", "..osssooosssso..", "...osssssssso...", "....oooooooo...."],
+  [".....ooooo......", "....ooooooo.....", "...oooooooooo...", "..oooooooooooo..", "..oooooooooooo..", ".oooooooooooooo.", ".oooooooooooooo.", "oooooossssssooo.", "ossoossssssssoso", "ossoosoossoososo", ".osoossssosssoso", "..ooooossssoooo.", "..ooooosoooooo..", "...oooossssooo..", "....ooooooooo...", ".....ooooooo...."],
+  ["....ooooooooo...", "...ooooooooooo..", "..ooooooooooooo.", ".oooooossssssoo.", ".oooosssssssssoo", ".oooooosssssoooo", "osoosssosssossso", "ossossososososso", "oososssssssssso.", ".ooossssoooooso.", ".oooossoosssooo.", ".ooooooooooooooo", "..oooooooooooooo", "...ooooooooooooo", "....oooooooooooo", ".....oooooooooo."],
+  ["......ooooo.....", "....ooooooooo...", "...oooosoooooo..", "..oooooosoooooo.", ".ooooooossssoooo", ".oooooossssssooo", "oooooossssssssoo", "ooosoosooosooooo", "ooosoossssssssoo", "ooosoossssssssoo", "oooooossooosssoo", ".ooooossossssooo", ".ooooossssssooo.", "..ooooossssooo..", ".......oooo....."],
+  ["...oooooooooo...", "..oooooooooooo..", ".oooooooooooooo.", "oooooooosoooooo.", "ooooooossooooooo", "oooooossssssoooo", "oooosssssssssooo", "oooossooossoooo.", "oososssossssoso.", ".osssssssssssso.", "..osssssoooosso.", "..oosssoossooso.", "..ooooooooooooo.", "...oooooooooooo.", "....oooooooooo..", ".....oooooooo..."],
 ];
-
-/* ---------- outfits: front of the torso, 14 x 10 ----------
-   c = role colour, d = its shade, g = grey seam, w = white, k = lanyard, p = coral, s = hands */
-const OUTFITS = [
-  { name: "Tee",
-    rows: ["oooooooooooooo", "occccsssscccco", "occccoooocccco", "occcccccccccco", "ocdccccccccdco", "ocdccccccccdco", "ocdccccccccdco", "osdccccccccdso", "ocdccccccccdco", "oooooooooooooo"] },
-  { name: "Shirt and tie",
-    rows: ["oooooooooooooo", "owwwwsssswwwwo", "owwwwoccowwwwo", "owwwwwccwwwwwo", "owgwwwccwwwgwo", "owgwwccccwwgwo", "owgwwwccwwwgwo", "osgwwwwwwwwgso", "owgwwwwwwwwgwo", "oooooooooooooo"] },
-  { name: "Hoodie",
-    rows: ["oooooooooooooo", "odddcsssscdddo", "occcwccccwccco", "occcwccccwccco", "ocdccccccccdco", "ocdcoooooocdco", "ocdcoccccocdco", "osdcoooooocdso", "ocdccccccccdco", "oooooooooooooo"] },
-  { name: "Member ID lanyard",
-    rows: ["oooooooooooooo", "occkcssssckcco", "occckcccckccco", "occccckkccccco", "ocdccooooccdco", "ocdccowwoccdco", "ocdccoppoccdco", "osdccooooccdso", "ocdccccccccdco", "oooooooooooooo"] },
-  { name: "Blazer",
-    rows: ["oooooooooooooo", "occcwsssswccco", "occccowwocccco", "occccowwocccco", "ocdcccoocccdco", "ocdccccccccdco", "ocdcccoocccdco", "osdccccccccdso", "ocdccccccccdco", "oooooooooooooo"] },
-];
-
+// rows of light hair on the light-haired faces (sheet positions 4, 6 and 9), so skin tones don't paint their hair
+const LIGHT_HAIR = { 3: 6, 5: 4, 8: 6 };
 const SKINS = ["#f6d3b3", "#e8b48a", "#c98d5e", "#a46a3f", "#7a4b2a", "#f1c6a0"];
 const FACE_SKIN = [0, 1, 5, 0, 2, 0, 3, 5, 1, 4, 2, 0, 4, 3, 1, 2];
 const ROLE_COLORS = ["#ff6b5e", "#8e5bd6", "#2a9d8f", "#f2a93b", "#3aa6e8", "#19b38a", "#9a5b3c", "#2f6f9e"];
-const INK = "#2b2730", BLONDE = "#f2d28a";
+const INK = "#2b2730", CREAM = "#f3e6cf", BLONDE = "#f2d28a";
 
-function palette(skin, role) {
-  return { o: INK, h: INK, l: BLONDE, s: skin, w: "#ffffff", b: "#ff8f8f", c: role || "#888888", d: shade(role || "#888888", .72), g: "#c9ccd6", k: "#7a2e6e", p: "#ff6b5e" };
-}
-function flat(c, x, y, rows, pal) {
-  rows.forEach((row, j) => { for (let i = 0; i < row.length; i++) { const col = row[i] !== "." && pal[row[i]]; if (col) { c.fillStyle = col; c.fillRect(x + i, y + j, 1, 1); } } });
+/* ---------- bodies: upper body turned three-quarters to the right, to match the heads ----------
+   Built from a build (torso width) and an outfit painter. o ink, c role colour, d shade, l lighter,
+   w white, g grey, s skin, k lanyard, p coral. The far arm is one pixel, the near arm two. */
+const BUILDS = [{ name: "Slim", tw: 7 }, { name: "Regular", tw: 9 }, { name: "Broad", tw: 11 }];
+const OUTFITS = [
+  { name: "Tee", paint(g, n) { neck(g, n); } },
+  { name: "Scrubs", paint(g, n) {
+      g[1][n - 2] = g[1][n - 1] = g[1][n] = g[1][n + 1] = "s"; g[2][n - 1] = g[2][n] = "s";
+      g[2][n - 2] = g[2][n + 1] = "o"; g[3][n - 1] = g[3][n] = "o";
+      g[4][4] = g[4][5] = "d"; } },
+  { name: "Shirt and tie", paint(g, n) {
+      swap(g, { c: "w", d: "g" });
+      g[1][n - 1] = g[1][n] = "s"; g[1][n - 2] = g[1][n + 1] = "o"; g[2][n - 2] = g[2][n + 1] = "o";
+      for (let r = 2; r <= 6; r++) g[r][n - 1] = g[r][n] = "c";
+      g[2][n - 1] = "d"; } },
+  { name: "Hoodie", paint(g, n, tw) {
+      for (let x = n - 4; x <= n + 3; x++) if (g[1][x] === "c") g[1][x] = "d";
+      g[1][n - 1] = g[1][n] = "s";
+      for (let r = 2; r <= 4; r++) { g[r][n - 2] = "w"; g[r][n + 1] = "w"; }
+      for (let x = 4; x <= 2 + tw - 1; x++) g[5][x] = "o";
+      g[6][4] = g[6][2 + tw - 1] = "o"; } },
+  { name: "Member ID", paint(g, n) {
+      neck(g, n);
+      g[3][n - 2] = g[3][n + 1] = "k"; g[4][n - 1] = g[4][n] = "k";
+      for (let x = n - 2; x <= n + 1; x++) { g[5][x] = "o"; g[7][x] = "o"; }
+      g[6][n - 2] = g[6][n + 1] = "o"; g[6][n - 1] = "w"; g[6][n] = "p"; } },
+  { name: "Cardigan", paint(g, n) {
+      for (let r = 1; r <= 7; r++) { g[r][n - 1] = g[r][n] = "w"; }
+      g[1][n - 1] = g[1][n] = "s";
+      for (let r = 2; r <= 7; r++) { g[r][n - 2] = "d"; g[r][n + 1] = "d"; }
+      g[3][n + 1] = g[5][n + 1] = "o"; } },
+  { name: "Striped jumper", paint(g, n) {
+      for (const r of [3, 5]) for (let x = 1; x < g[r].length - 1; x++) if (g[r][x] === "c") g[r][x] = "l";
+      neck(g, n); } },
+];
+function neck(g, n) { for (let x = n - 2; x <= n + 1; x++) { g[1][x] = "s"; g[2][x] = "o"; } }
+function swap(g, map) { g.forEach(r => r.forEach((ch, i) => { if (map[ch]) r[i] = map[ch]; })); }
+
+function bodyRows(build, outfit) {
+  const tw = BUILDS[build].tw, W = tw + 7;
+  const g = [];
+  g.push([..."..", ..."o".repeat(W - 4), ".", "."]);
+  g.push([".", "o", ..."c".repeat(W - 4), "o", "."]);
+  for (let r = 2; r <= 6; r++) g.push(["o", "c", "d", ..."c".repeat(tw), "d", "c", "c", "o"]);
+  g.push(["o", "s", "d", ..."c".repeat(tw), "d", "s", "s", "o"]);
+  g.push([..."o".repeat(W)]);
+  const n = 3 + Math.floor(tw / 2);   // neck sits a little toward the near (right) side
+  OUTFITS[outfit].paint(g, n, tw);
+  return { rows: g.map(r => r.join("")), neck: n };
 }
 
-/* ---------- extrusion: turns a flat front sprite into an isometric block ----------
-   The front is drawn on the plane facing you-left. Copies of it step back one world unit at a time
-   (one pixel right, half a pixel up), shaded, to form the side and top. With shear on, the front
-   itself follows the isometric slope like the desks; with shear off it stays upright (3/4 view). */
+/* ---------- a whole person as one sprite ---------- */
 const spriteCache = new Map();
-function extrude(rows, pal, depth, shear, key) {
+function person(faceIdx, build, outfit, role, skinMode) {
+  const key = [faceIdx, build, outfit, role, skinMode].join("-");
   if (spriteCache.has(key)) return spriteCache.get(key);
-  const tw = rows[0].length, th = rows.length, lift = Math.ceil(depth / 2), sh = shear ? Math.ceil(tw / 2) : 0;
-  const W = tw + depth + 2, H = th + sh + lift + 2;
-  const col = Array.from({ length: H }, () => new Array(W).fill(null));
-  const layer = Array.from({ length: H }, () => new Array(W).fill(-1));
-  // outline pixels on the front take an inside neighbour's colour when extruded, so the sides aren't all ink
-  const inside = (i, j) => {
-    const ch = rows[j][i];
-    if (ch !== "o") return ch;
-    for (const [di, dj] of [[-1, 0], [0, 1], [0, -1], [1, 0]]) { const n = rows[j + dj] && rows[j + dj][i + di]; if (n && n !== "o" && n !== ".") return n; }
-    return "o";
-  };
-  for (let k = depth; k >= 0; k--) {
-    for (let j = 0; j < th; j++) for (let i = 0; i < tw; i++) {
-      const ch = rows[j][i];
-      if (ch === ".") continue;
-      const x = 1 + i + k, y = 1 + lift + j + (shear ? Math.floor(i / 2) : 0) - Math.floor((k + 1) / 2);
-      let c;
-      if (k === 0) c = pal[ch];
-      else if (k === depth) c = pal.o;
-      else { const n = inside(i, j); c = n === "o" ? pal.o : shade(pal[n], 0.76); }
-      col[y][x] = c; layer[y][x] = k;
-    }
-  }
-  // close the far silhouette (top and right) with an outline
-  const edge = [];
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    if (col[y][x]) continue;
-    const l = x > 0 ? layer[y][x - 1] : -1, b = y + 1 < H ? layer[y + 1][x] : -1;
-    if (l > 0 || b > 0) edge.push([x, y]);
-  }
-  edge.forEach(([x, y]) => col[y][x] = pal.o);
+  const face = FACES[faceIdx], body = bodyRows(build, outfit);
+  const hw = face[0].length, hh = face.length, bw = body.rows[0].length;
+  const headX0 = Math.round(body.neck - 0.5 - (hw - 1) / 2);
+  const left = Math.min(0, headX0), W = Math.max(bw, headX0 + hw) - left, H = hh + body.rows.length - 1;
   const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
   const c = cv.getContext("2d");
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (col[y][x]) { c.fillStyle = col[y][x]; c.fillRect(x, y, 1, 1); }
-  const out = { cv, ax: 1, ay: lift + th };   // anchor: bottom-left pixel of the front face
+  const skin = skinMode ? SKINS[FACE_SKIN[faceIdx]] : CREAM;
+  const pal = { o: INK, c: role, d: shade(role, .72), l: shade(role, 1.35), w: "#ffffff", g: "#c9ccd6", s: skin, k: "#7a2e6e", p: "#ff6b5e" };
+  const put = (x, y, col) => { c.fillStyle = col; c.fillRect(x, y, 1, 1); };
+  body.rows.forEach((r, j) => [...r].forEach((ch, i) => { if (ch !== ".") put(i - left, hh - 1 + j, pal[ch]); }));
+  face.forEach((r, j) => [...r].forEach((ch, i) => {
+    if (ch === ".") return;
+    let col = ch === "o" ? INK : skin;
+    if (ch === "s" && skinMode && LIGHT_HAIR[faceIdx] != null && j <= LIGHT_HAIR[faceIdx]) col = BLONDE;
+    put(headX0 + i - left, j, col);
+  }));
+  const out = { cv, W, H, cx: headX0 - left + hw / 2 };
   spriteCache.set(key, out);
   return out;
 }
-
-// head stacked on a torso as one front sprite, so they extrude together
-function characterRows(face, outfit) {
-  const rows = Array.from({ length: 22 }, () => ".".repeat(14).split(""));
-  outfit.rows.forEach((r, j) => [...r].forEach((ch, i) => { rows[12 + j][i] = ch; }));
-  face.forEach((r, j) => [...r].forEach((ch, i) => { if (ch !== ".") rows[j][i] = ch; }));
-  return rows.map(r => r.join(""));
-}
-function drawCharacter(c, sx, sy, faceIdx, outfitIdx, role, shear) {
-  const skin = SKINS[FACE_SKIN[faceIdx]];
-  const spr = extrude(characterRows(FACES[faceIdx], OUTFITS[outfitIdx]), palette(skin, role), 5, shear, `c${faceIdx}-${outfitIdx}-${role}-${shear}`);
-  c.drawImage(spr.cv, sx - spr.ax, sy - spr.ay);
+// draw with feet-line (bottom of the body) at sx, sy; mirror to face left
+function drawPerson(c, sx, sy, p, mirror) {
+  const x = Math.round(sx - p.W / 2), y = sy - p.H;
+  if (!mirror) { c.drawImage(p.cv, x, y); return; }
+  c.save(); c.translate(x + p.W, y); c.scale(-1, 1); c.drawImage(p.cv, 0, 0); c.restore();
 }
 
 /* ---------- chairs (task, stool, ball) ---------- */
@@ -379,83 +392,79 @@ function drawDesk(c, x0, y0) {
   box(c, x1 - 5, y0 + 8, 13, x1 - 2, y0 + 11, 17, T.paper, shade(T.paper, .85), shade(T.paper, .7));
 }
 
-/* ---------- office scene with the agreed chair mix ---------- */
+
+/* ---------- page ---------- */
+let skinMode = true;
+
 const ROOM = { W: 150, D: 130, H: 64, w: 292, h: 226, ox: 136, oy: 76 };
+// desk, chair, face, build, outfit, role colour, mirrored (null face = empty desk)
 const SEATS = [
-  { x0: 10, y0: 40, chair: "task", face: 0, role: 0 },
-  { x0: 58, y0: 40, chair: "task", face: 9, role: 1 },
-  { x0: 106, y0: 40, chair: "ball", face: 6, role: 2 },
-  { x0: 10, y0: 92, chair: "stool", face: 3, role: 3 },
+  { x0: 10, y0: 40, chair: "task", face: 0, build: 1, outfit: 1, role: 0 },
+  { x0: 58, y0: 40, chair: "task", face: 9, build: 0, outfit: 4, role: 1, mirror: true },
+  { x0: 106, y0: 40, chair: "ball", face: 11, build: 2, outfit: 0, role: 2 },
+  { x0: 10, y0: 92, chair: "stool", face: 3, build: 1, outfit: 6, role: 3 },
   { x0: 58, y0: 92, chair: "task", face: null, d: 1 },
-  { x0: 106, y0: 92, chair: "task", face: 15, role: 4 },
+  { x0: 106, y0: 92, chair: "task", face: 15, build: 2, outfit: 3, role: 4, mirror: true },
 ];
-function scene(canvas, shear) {
+function scene(canvas) {
   const c = setup(canvas, ROOM.w, ROOM.h);
   OX = ROOM.ox; OY = ROOM.oy;
   drawRoom(c, ROOM.W, ROOM.D, ROOM.H);
-  SEATS.forEach((s, k) => {
+  SEATS.forEach(s => {
     const px = s.x0 + 18, py = s.y0 - 8;
     if (s.face == null) { CHAIR.task(c, px + 6, py - 4, s.d); drawDesk(c, s.x0, s.y0); return; }
-    CHAIR[s.chair](c, px, py - 1, 0);
-    const [sx, sy] = iso(px - 7, py + 4, s.chair === "ball" ? 11 : 9);
-    drawCharacter(c, sx, sy, s.face, k % OUTFITS.length, ROLE_COLORS[s.role], shear);
+    // the ball and stool sit a little further back from the desk so they stay visible
+    const back = s.chair === "task" ? 0 : 3;
+    CHAIR[s.chair](c, px, py - 1 - back, 0);
+    const [sx, sy] = iso(px, py + 2 - back, s.chair === "ball" ? 18 : s.chair === "stool" ? 12 : 10);
+    drawPerson(c, sx, sy + 1, person(s.face, s.build, s.outfit, ROLE_COLORS[s.role], skinMode), s.mirror);
     drawDesk(c, s.x0, s.y0);
   });
   CHAIR.task(c, 142, 120, 3);   // one chair pushed out into the aisle
 }
 
-/* ---------- page ---------- */
-const OPTIONS = [
-  { id: "A", title: "True isometric", shear: true,
-    note: "Faces and bodies sit on the same slanted plane as the desks and chairs, so everything follows one grid. Heads look turned toward the lower left, like the furniture." },
-  { id: "B", title: "Upright with depth", shear: false,
-    note: "Faces stay straight on, exactly like your reference, with the side and top of the head and shoulders showing as a block behind them. The faces read more clearly." },
-];
-const optEls = OPTIONS.map(o => {
-  const el = document.createElement("article");
-  el.className = "panel";
-  el.innerHTML = `<div class="opt-head"><span class="num">Option ${o.id}</span><h3>${o.title}</h3><p>${o.note}</p></div>
-    <div class="view"><span class="cap">All 16 heads</span><div class="frame"><canvas class="heads"></canvas></div></div>
-    <div class="split">
-      <div class="view"><span class="cap">Outfits</span>
-        <div class="outfits">${OUTFITS.map(f => `<figure><div class="frame"><canvas class="outfit"></canvas></div><figcaption class="cap">${f.name}</figcaption></figure>`).join("")}</div>
-      </div>
-      <div class="view"><span class="cap">In the office</span><div class="frame"><canvas class="scene"></canvas></div></div>
-    </div>`;
-  document.getElementById("options").appendChild(el);
-  return el;
-});
+// cards for the outfits, each showing slim, regular and broad
+const outfitGrid = document.getElementById("outfits");
+OUTFITS.forEach((o, i) => outfitGrid.insertAdjacentHTML("beforeend",
+  `<figure class="panel tight"><div class="frame"><canvas data-outfit="${i}"></canvas></div><figcaption><b>${o.name}</b><span class="cap">Slim · regular · broad</span></figcaption></figure>`));
 
 function drawAll() {
   readTokens();
   spriteCache.clear();
-  const cell = 22, W = 4 * cell + 2, H = 4 * cell + 2;
+  // faces, exactly as on the sheet, in both palettes
+  const cell = 22, W = 4 * cell + 4, H = 4 * cell + 4;
   const gb = setup(document.getElementById("facesGB"), W, H);
-  gb.fillStyle = T["gb-bg"]; gb.fillRect(0, 0, W, H);
-  const of = setup(document.getElementById("facesOffice"), W, H);
-  of.fillStyle = T.paper; of.fillRect(0, 0, W, H);
+  gb.fillStyle = "#86c06c"; gb.fillRect(0, 0, W, H);
+  const fo = setup(document.getElementById("facesOffice"), W, H);
+  fo.fillStyle = T.paper; fo.fillRect(0, 0, W, H);
   FACES.forEach((f, i) => {
     const x = 5 + (i % 4) * cell, y = 5 + Math.floor(i / 4) * cell;
-    flat(gb, x, y, f, { o: T["gb-ink"], h: T["gb-ink"], l: T["gb-face"], s: T["gb-face"], w: T["gb-face"], b: T["gb-face"] });
-    flat(of, x, y, f, palette(SKINS[FACE_SKIN[i]]));
+    f.forEach((r, j) => [...r].forEach((ch, k) => {
+      if (ch === ".") return;
+      gb.fillStyle = ch === "o" ? "#071820" : "#dff8d0"; gb.fillRect(x + k, y + j, 1, 1);
+      fo.fillStyle = ch === "o" ? INK : (LIGHT_HAIR[i] != null && j <= LIGHT_HAIR[i] ? BLONDE : SKINS[FACE_SKIN[i]]);
+      fo.fillRect(x + k, y + j, 1, 1);
+    }));
   });
-
-  OPTIONS.forEach((o, oi) => {
-    const el = optEls[oi];
-    const hc = setup(el.querySelector("canvas.heads"), 8 * 26 + 6, 2 * 34 + 8);
-    hc.fillStyle = T.bg; hc.fillRect(0, 0, hc.canvas.width, hc.canvas.height);
-    FACES.forEach((f, i) => {
-      const spr = extrude(f, palette(SKINS[FACE_SKIN[i]]), 6, o.shear, `h${i}-${o.shear}`);
-      hc.drawImage(spr.cv, 4 + (i % 8) * 26 - spr.ax + 1, 4 + Math.floor(i / 8) * 34 + 24 - spr.ay);
-    });
-    el.querySelectorAll("canvas.outfit").forEach((cv, k) => {
-      const c = setup(cv, 26, 42);
-      c.fillStyle = T.bg; c.fillRect(0, 0, 26, 42);
-      drawCharacter(c, 2, 28, [1, 10, 9, 5, 13][k], k, ROLE_COLORS[k], o.shear);
-    });
-    scene(el.querySelector("canvas.scene"), o.shear);
+  // outfits x builds
+  document.querySelectorAll("canvas[data-outfit]").forEach(cv => {
+    const o = +cv.dataset.outfit, c = setup(cv, 66, 30);
+    c.fillStyle = T.bg; c.fillRect(0, 0, 66, 30);
+    BUILDS.forEach((b, k) => drawPerson(c, 11 + k * 22, 29, person((o * 3 + k * 5) % 16, k, o, ROLE_COLORS[(o + k) % ROLE_COLORS.length], skinMode), false));
   });
+  // the whole cast, alternating the direction they face
+  const cast = setup(document.getElementById("cast"), 8 * 22 + 4, 2 * 30 + 4);
+  cast.fillStyle = T.bg; cast.fillRect(0, 0, cast.canvas.width, cast.canvas.height);
+  FACES.forEach((f, i) => drawPerson(cast, 13 + (i % 8) * 22, 31 + Math.floor(i / 8) * 30,
+    person(i, i % 3, i % OUTFITS.length, ROLE_COLORS[i % ROLE_COLORS.length], skinMode), i % 4 === 3));
+  scene(document.getElementById("scene"));
 }
+
+document.querySelectorAll("[data-palette]").forEach(b => b.addEventListener("click", () => {
+  skinMode = b.dataset.palette === "skin";
+  document.querySelectorAll("[data-palette]").forEach(o => o.setAttribute("aria-pressed", String(o === b)));
+  drawAll();
+}));
 drawAll();
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawAll);
 new MutationObserver(drawAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
