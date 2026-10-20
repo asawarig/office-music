@@ -8,7 +8,7 @@
 <meta name="description" content="Hire a team, cover their health, and hear what a healthy office sounds like.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Figtree:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Figtree:wght@400;500;600;700&family=Poppins:wght@400;500&display=swap">
 <style>
 /* Layout: one column. Header with transport controls, the axonometric office plan as the hero,
    a coverage strip that fills as roles are hired, then the hiring desk of nine role cards.
@@ -1047,38 +1047,97 @@ function ambientTick() {
   }
 }
 /* Pantry chatter: when two or more people are at the kitchen, the water cooler or the copier,
-   they talk. Murmured syllables through vowel formants, low-passed and quiet, taking turns. */
+   they talk now and then. Speech is built syllable by syllable: a glottal source with a little
+   breath, consonant onsets (stops, hisses, hums), vowel formants that glide into each other, and
+   sentence melody that starts high and settles. Heard from across the room, it is muffled. */
 const PANTRY = new Set(["kitchen", "cooler", "copier"]);
+const SPEECH_V = { i: [270, 2290, 3010], e: [530, 1840, 2480], a: [730, 1090, 2440], o: [570, 840, 2410], u: [300, 870, 2240], "ə": [500, 1500, 2500], ai: [660, 1400, 2500] };
+// a voice per person: lower or higher, set by their seed
+function voiceOf(m) {
+  if (m.voice) return m.voice;
+  const r = rng(m.seed + 31), high = r() < .5;
+  return m.voice = { f0: high ? 185 + r() * 45 : 98 + r() * 30, fs: high ? 1.17 : 1, rate: .9 + r() * .25 };
+}
+// one syllable: an optional consonant, then a vowel gliding from the last one
+function syllable(t, V, vowel, prev, cons, dur, amp, fA, fB) {
+  const ctx = A.ctx, out = A.chat;
+  let vt = t;
+  if (cons === "stop") { burstN(out, t + .025, amp * .35, "bandpass", 2600 * V.fs, 1.2, .018); vt = t + .045; }
+  else if (cons === "hiss") { burstN(out, t, amp * .22, "bandpass", 5200, 1.6, .055, .015); vt = t + .06; }
+  else if (cons === "hum") {
+    const o = ctx.createOscillator(); o.setPeriodicWave(A.glottal); o.frequency.setValueAtTime(fA, t);
+    const lp = filt("lowpass", 320, 1), g = envGain(t, .01, amp * .5, .05); o.connect(lp); lp.connect(g); g.connect(out); o.start(t); o.stop(t + .08); vt = t + .04;
+  }
+  const from = SPEECH_V[prev] || SPEECH_V["ə"], to = SPEECH_V[vowel];
+  const bank = ctx.createGain(), mix = ctx.createGain(); mix.gain.value = 2.4; mix.connect(out);
+  [...to, 3500].forEach((f, i) => {
+    const bp = filt("bandpass", (from[i] || 3500) * V.fs, [5, 7, 9, 10][i]);
+    bp.frequency.setValueAtTime((from[i] || 3500) * V.fs, vt); bp.frequency.linearRampToValueAtTime(f * V.fs, vt + Math.min(.05, dur * .4));
+    const gg = ctx.createGain(); gg.gain.value = [1, .55, .28, .12][i]; bank.connect(bp); bp.connect(gg); gg.connect(mix);
+  });
+  const o = ctx.createOscillator(); o.setPeriodicWave(A.glottal);
+  o.frequency.setValueAtTime(fA, vt); o.frequency.linearRampToValueAtTime(fB, vt + dur);
+  const env = ctx.createGain(); env.gain.setValueAtTime(.0001, vt);
+  env.gain.linearRampToValueAtTime(amp, vt + .015); env.gain.setValueAtTime(amp * .85, vt + dur * .7); env.gain.exponentialRampToValueAtTime(.0001, vt + dur + .04);
+  o.connect(env); env.connect(bank); o.start(vt); o.stop(vt + dur + .08);
+  const n = noiseSrc(vt, dur + .06), ng = envGain(vt, .02, amp * .12, dur); n.connect(ng); ng.connect(bank);   // breath
+  return vt + dur;
+}
+const VOW = ["a", "e", "i", "o", "u", "ə", "ə", "a", "e", "ai"], CONS = ["stop", "stop", "hiss", "hum", "none", "none", "stop", "hum"];
+// a sentence: a few words of one to three syllables, pitch falling across it, one stressed word
+function sentence(who, t0, kind) {
+  const V = voiceOf(who);
+  let at = t0, prev = "ə";
+  if (kind === "back") {   // "mm-hm" or "yeah"
+    at = syllable(at, V, "ə", "ə", "hum", .12, .07, V.f0 * 1.05, V.f0 * .95) + .05;
+    return syllable(at, V, chance(.5) ? "ə" : "e", "ə", "hum", .16, .06, V.f0 * 1.15, V.f0 * 1.05);
+  }
+  if (kind === "laugh") {
+    for (let k = 0; k < Math.floor(rand(3, 6)); k++) at = syllable(at, V, "a", "a", "hiss", .07, .08 * (1 - k * .12), V.f0 * (1.35 - k * .05), V.f0 * 1.25) + .06;
+    return at;
+  }
+  const words = Math.floor(rand(3, 9)), question = chance(.2), stress = Math.floor(rand(0, words));
+  const total = words * 2;
+  let k = 0;
+  for (let w = 0; w < words; w++) {
+    const syl = chance(.5) ? 1 : chance(.7) ? 2 : 3;
+    for (let i = 0; i < syl; i++, k++) {
+      const p = k / total, fall = question && w === words - 1 ? 1 + i * .12 : 1.12 - p * .28;
+      const hit = w === stress && i === 0, d = rand(.07, .16) / V.rate * (hit ? 1.3 : 1);
+      const vowel = pick(VOW, Math.random), fA = V.f0 * fall * (hit ? 1.18 : 1) * (1 + rand(-.03, .03));
+      at = syllable(at, V, vowel, prev, i === 0 ? pick(CONS, Math.random) : chance(.5) ? "stop" : "none", d, hit ? .11 : rand(.06, .085), fA, fA * rand(.94, 1.0));
+      prev = vowel;
+    }
+    at += chance(.85) ? rand(.015, .05) : rand(.12, .25);   // a gap between words, sometimes a pause
+  }
+  return at;
+}
 function chatterTick(ct) {
   const group = members.filter(m => m.out && PANTRY.has(SEATS[m.desk].place));
-  if (group.length < 2) { A.chatNext = null; return; }
-  if (A.chatNext == null) A.chatNext = ct + rand(.4, 1.5);
+  if (group.length < 2) { A.chatNext = null; A.chatTalk = 0; return; }
+  // conversations come and go: talk for a while, then a long quiet stretch
+  if (A.chatNext == null) { A.chatNext = ct + rand(2, 6); A.chatTalk = Math.floor(rand(3, 8)); }
   while (A.chatNext < ct + 0.12) {
+    if (A.chatTalk <= 0) { A.chatTalk = Math.floor(rand(3, 8)); A.chatNext = ct + rand(18, 40); return; }
     const others = group.filter(m => m !== A.chatLast), who = pick(others.length ? others : group, Math.random);
-    A.chatLast = who;
-    const t0 = Math.max(A.chatNext, ct + .02), f0 = 105 + (who.seed % 11) * 12;
-    let at = t0;
-    const n = Math.floor(rand(3, 10)), vs = Object.keys(VOWELS);
-    for (let i = 0; i < n; i++) {
-      const d = rand(.08, .2), f = f0 * (1 + rand(-.08, .12)) * (i === n - 1 ? .88 : 1);
-      if (chance(.4)) burstN(A.chat, at, .05, "bandpass", 3200, 2, .025);
-      const bank = formants(A.chat, at, VOWELS[pick(vs, Math.random)], VOWELS[pick(vs, Math.random)], d, f0 > 160 ? 1.15 : 1, [4, 6, 8]);
-      const o = voiced(at, f, d), g = envGain(at, .025, .1, d);
-      o.frequency.linearRampToValueAtTime(f * rand(.9, 1.08), at + d);
-      o.connect(g); g.connect(bank);
-      at += d + rand(.02, .08);
-    }
-    who.talkUntil = at;
+    const t0 = Math.max(A.chatNext, ct + .02);
     A.chatPan.pan && A.chatPan.pan.setValueAtTime(Math.max(-1, Math.min(1, (SEATS[who.desk].sx - LW / 2) / (LW / 2) * .8)), t0);
-    // a quick reply, or a pause while they sip
-    A.chatNext = at + (chance(.65) ? rand(.15, .6) : rand(1.2, 4));
+    const kind = A.chatLast && chance(.18) ? "back" : chance(.07) ? "laugh" : "say";
+    const end = sentence(who, t0, kind);
+    who.talkUntil = end;
+    A.chatLast = who; A.chatTalk--;
+    A.chatNext = end + (kind === "back" ? rand(.05, .3) : chance(.7) ? rand(.2, .7) : rand(1, 2.5));
   }
 }
 function chatBus(ctx) {
   A.chat = ctx.createGain(); A.chat.gain.value = 1;
-  const lp = filt("lowpass", 1700, .6), rs = ctx.createGain(); rs.gain.value = .5;
+  // a glottal pulse: harmonics falling away, so voices sound like throats rather than buzzers
+  const N = 48, re = new Float32Array(N), im = new Float32Array(N);
+  for (let n = 1; n < N; n++) im[n] = 1 / Math.pow(n, 1.6);
+  A.glottal = ctx.createPeriodicWave(re, im);
+  const lp = filt("lowpass", 1250, .5), hp = filt("highpass", 140, .5), rs = ctx.createGain(); rs.gain.value = .7;
   A.chatPan = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
-  A.chat.connect(lp); lp.connect(A.chatPan); A.chatPan.connect(A.master); A.chatPan.connect(rs); rs.connect(A.rev);
+  A.chat.connect(hp); hp.connect(lp); lp.connect(A.chatPan); A.chatPan.connect(A.master); A.chatPan.connect(rs); rs.connect(A.rev);
 }
 // the visual queue stays sorted by time: ambient steps arrive out of order across people
 function queueVisual(ev) {
@@ -1733,7 +1792,7 @@ function drawVitals(now) {
     const W = 31, H = 29;
     g.fillStyle = PAL.screen; g.fillRect(0, 0, W, H);
     g.fillStyle = glow > .3 ? PAL.coral : shade(PAL.coral, .7);
-    g.font = "600 4px Archivo, sans-serif"; g.textBaseline = "top";
+    g.font = "400 4px Archivo, sans-serif"; g.textBaseline = "top";
     g.fillText("♥", 2, 2);
     g.fillStyle = PAL.ecg; g.fillText(A.mode === "ambient" ? "CALM" : `${A.bpm} BPM`, 7, 2);
     g.fillStyle = hexA(PAL.ecg, .6); g.fillText(`${members.length} IN TODAY`, 2, H - 6);
@@ -2194,7 +2253,7 @@ function lapLaptop(F, lap, col) {
 function hoverHint(i, x, y, now) {
   if (!CAST[i] || !((i === hoverDesk || i === dragDesk) && (Math.floor(now / 260) % 2 || dragDesk === i))) return;
   ellipseFloor(g, x, y, 7, .2, null, PAL.cobalt); const p = iso(x, y, 22);
-  g.fillStyle = PAL.cobalt; g.font = "700 9px Archivo, sans-serif"; g.textAlign = "center"; g.fillText("+", p[0], p[1]); g.textAlign = "start";
+  g.fillStyle = PAL.cobalt; g.font = "400 9px Archivo, sans-serif"; g.textAlign = "center"; g.fillText("+", p[0], p[1]); g.textAlign = "start";
 }
 function badge(m, head, col, lit) {
   const p = [head[0], head[1] - 9 - m.pulse * 1.5], r = 4.4;
@@ -2303,7 +2362,7 @@ function frame(now) {
     if (p.life <= 0 || p.y > LH) { particles.splice(i, 1); continue; }
     g.globalAlpha = Math.min(1, p.life);
     g.fillStyle = p.color;
-    if (p.kind === "note") { g.font = "700 9px Archivo, sans-serif"; g.fillText("♪", p.x, p.y); }
+    if (p.kind === "note") { g.font = "400 9px Archivo, sans-serif"; g.fillText("♪", p.x, p.y); }
     else if (p.kind === "confetti") g.fillRect(p.x, p.y, 2.2, 1.2);
     else { g.beginPath(); g.arc(p.x, p.y, 1, 0, Math.PI * 2); g.fill(); }
     g.globalAlpha = 1;
@@ -2639,7 +2698,9 @@ const BOARD_CSS = `
 `;
 CAL_VARIANTS.push(...WALL_VARIANTS, ...BOARD_VARIANTS);   // wall calendars are 11 to 15, pinboards 16 to 20
 // the popup styles go last in the page so nothing else overrides them
-document.body.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOARD_CSS}</style>`);
+document.body.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOARD_CSS}
+/* nothing on the page is bold */
+*, *::before, *::after { font-weight: 400 !important; }</style>`);
 // each free desk has its own board; ?cal=1..20 shows one look on every desk instead
 const CAL_ASK = +new URLSearchParams(location.search).get("cal") || 0;
 const CAL_PICK = Math.max(0, Math.min(CAL_VARIANTS.length - 1, CAL_ASK - 1));
