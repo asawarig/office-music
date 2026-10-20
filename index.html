@@ -2867,37 +2867,47 @@ function drawWhiteboard(c) {
 }
 const WB_BOX = () => { const pts = [iso(7, 0, 51.4), iso(55, 0, 51.4), iso(55, 0, 24.6), iso(7, 0, 24.6)]; const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
 function whiteboardAt(p) { const [a, b, c2, d] = WB_BOX(); return p.x >= a && p.x <= c2 && p.y >= b && p.y <= d; }
-let wbEl = null;
+let wbEl = null, wbNext = 0;
+// a hand-drawn bar pair: [label, value, colour] each, values in percent of the taller one
+const wbBars = (l, r, cap) => `<svg viewBox="0 0 200 130" aria-hidden="true">
+  <path d="M18 8 C17 50 19 90 18 110 L190 111" fill="none" stroke="#23296b" stroke-width="2.2" stroke-linecap="round"/>
+  ${[l, r].map(([t, v, c, txt], i) => { const x = 46 + i * 76, h = Math.max(6, v * .92); return `<path d="M${x} 110 L${x + 1} ${110 - h} L${x + 46} ${110 - h - 1} L${x + 45} 110" fill="${c}" fill-opacity=".32" stroke="${c}" stroke-width="2.2" stroke-linejoin="round"/>
+    <text x="${x + 2}" y="${104 - h}" font-family="Caveat, cursive" font-size="24" fill="${c}">${txt}</text><text x="${x}" y="126" font-family="Caveat, cursive" font-size="16" fill="#6b6b6e">${t}</text>`; }).join("")}
+  ${cap ? `<path d="M88 ${70} C 100 46 112 36 124 30 M116 29 l9 0 -2 8" fill="none" stroke="#2f7f57" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>` : ""}</svg>`;
+const wbUp = (txt, c) => `<svg viewBox="0 0 200 130" aria-hidden="true"><path d="M20 112 C60 104 96 86 128 58 S170 22 182 14" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round"/><path d="M168 12 l15 1 -4 14" fill="none" stroke="${c}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 8 C17 50 19 90 18 114 L190 115" fill="none" stroke="#23296b" stroke-width="2" stroke-linecap="round"/>${[0, 1, 2].map(k => `<circle cx="${56 + k * 44}" cy="${[100, 82, 50][k]}" r="4" fill="${c}"/>`).join("")}</svg>`;
+const wbDots = (n, of, hot) => `<div class="dots" style="--cols:${of > 20 ? 10 : 10}">${[...Array(of)].map((_, k) => `<i class="${k < n ? "hot" : ""}"></i>`).join("")}</div>`;
+const wbPie = (pct, c) => { const a = pct / 100 * Math.PI * 2, x = 65 + 52 * Math.sin(a), y = 65 - 52 * Math.cos(a);
+  return `<svg viewBox="0 0 200 130" aria-hidden="true"><circle cx="65" cy="65" r="52" fill="none" stroke="#23296b" stroke-width="2.2"/><path d="M65 65 L65 13 A52 52 0 ${pct > 50 ? 1 : 0} 1 ${x.toFixed(1)} ${y.toFixed(1)} Z" fill="${c}" fill-opacity=".35" stroke="${c}" stroke-width="2.2" stroke-linejoin="round"/><path d="M140 100 C150 80 160 64 176 50 M166 49 l11 0 -2 10" fill="none" stroke="#2f7f57" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><text x="128" y="120" font-family="Caveat, cursive" font-size="16" fill="#2f7f57">+22%, 2 yrs</text></svg>`; };
+const WB_STATS = [
+  { big: "5% → 23%", text: "of employers now offer comprehensive health benefits", art: () => wbBars(["before", 22, "#7f93d6", "5%"], ["now", 100, "#d6545a", "23%"], true), src: "Media Brief on Plum's 2026 report", url: "https://mediabrief.com/plum-employee-health-benefits-india-2026-report/" },
+  { big: "88%", text: "of claims spend comes from just 5% of employees", art: () => wbDots(1, 20), src: "Plum, SOEB 2026–27" },
+  { big: "+53%", text: "more companies give health cover above ₹5 lakh", art: () => wbUp("+53%", "#23296b"), src: "Plum, SOEB 2026–27" },
+  { big: "+155%", text: "more companies offer maternity cover above ₹75,000", art: () => wbUp("+155%", "#d6545a"), src: "Plum, SOEB 2026–27" },
+  { big: "34%", text: "of claims spend is for chronic illness, and it grew 22% in two years", art: () => wbPie(34, "#d6545a"), src: "Plum, SOEB 2026–27" },
+  { big: "−13%", text: "fewer chronic-disease claims where preventive care is in place", art: () => wbBars(["without", 100, "#7f93d6", "100"], ["with care", 87, "#2f7f57", "87"]), src: "Media Brief on Plum's 2026 report", url: "https://mediabrief.com/plum-employee-health-benefits-india-2026-report/" },
+  { big: "26% vs 10%", text: "of financial services firms give cover above ₹5 lakh, against other Indian companies", art: () => wbBars(["fin. services", 100, "#d6545a", "26%"], ["others", 38, "#7f93d6", "10%"]), src: "Plum, SOEB 2026–27" },
+  { big: "₹7.5 lakh", text: "is the median group health cover at an MNC or GCC in India, parents included", art: () => wbUp("₹7.5L", "#2f7f57"), src: "Plum, SOEB 2026–27" },
+];
 function closeWB() { if (wbEl) { wbEl.remove(); wbEl = null; } }
 function openWB() {
   closeWB(); closeSnack(); closeCal();
-  const board = cv.parentElement, people = [...Array(20)].map((_, k) => `<i class="${k === 0 ? "hot" : ""}"></i>`).join("");
+  const board = cv.parentElement;
   wbEl = document.createElement("div"); wbEl.className = "wbpop"; wbEl.setAttribute("role", "dialog"); wbEl.setAttribute("aria-label", "Whiteboard: Standard of Employee Benefits 2026–27");
   wbEl.innerHTML = `<div class="wbf"><button class="cx" aria-label="Close">×</button>
     <p class="wh">Standard of Employee Benefits <span>2026–27</span></p>
-    <div class="wgrid">
-      <figure class="wbar"><svg viewBox="0 0 150 120" aria-hidden="true">
-        <path d="M14 8 C13 40 15 80 14 100 L140 101" fill="none" stroke="#23296b" stroke-width="2" stroke-linecap="round"/>
-        <path d="M30 100 L31 93 L57 92.5 L56 100" fill="rgba(159,180,230,.55)" stroke="#23296b" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M84 100 L85 22 L113 21 L112 100" fill="rgba(214,84,90,.35)" stroke="#d6545a" stroke-width="2.2" stroke-linejoin="round"/>
-        <path d="M86 40 l24 -12 M86 58 l24 -12 M86 76 l24 -12 M86 94 l24 -12" stroke="#d6545a" stroke-width="1.2" opacity=".6"/>
-        <text x="34" y="86" font-family="Caveat, cursive" font-size="20" fill="#23296b">5%</text>
-        <text x="84" y="15" font-family="Caveat, cursive" font-size="22" fill="#d6545a">23%</text>
-        <path d="M58 80 C66 54 72 40 80 30 M73 30 l8 -1 -1 8" fill="none" stroke="#2f7f57" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <text x="20" y="116" font-family="Caveat, cursive" font-size="15" fill="#6b6b6e">before</text><text x="88" y="116" font-family="Caveat, cursive" font-size="15" fill="#6b6b6e">now</text>
-      </svg><figcaption>Employers offering comprehensive health benefits</figcaption></figure>
-      <figure class="wbig"><p><b>88%</b></p><p class="sub">of claims spend comes from just <u>5% of employees</u></p><div class="dots">${people}</div></figure>
-    </div>
-    <div class="notes">
-      <span class="n1"><b>+53%</b> more companies give cover above ₹5 lakh</span>
-      <span class="n2"><b>+155%</b> more offer maternity cover above ₹75,000</span>
-      <span class="n3"><b>34%</b> of claims spend is chronic illness, up 22% in two years</span>
-      <span class="n4"><b>−13%</b> chronic claims where preventive care is in place</span>
-    </div>
-    <p class="wsrc">From 15,312 benefit plans and 5.2 lakh claims. Source: <a href="https://www.plumhq.com/standard-of-employee-benefits" target="_blank" rel="noopener">Plum, The Standard of Employee Benefits 2026–27</a></p>
+    <div class="slide" aria-live="polite"></div>
+    <div class="wnav"><button class="sn" type="button">Next stat →</button><span class="wcount"></span></div>
+    <p class="wsrc"></p>
     <div class="tray"><i class="m1"></i><i class="m2"></i><i class="m3"></i><i class="er"></i></div></div>`;
-  board.appendChild(wbEl);
+  const show = n => {
+    const f = WB_STATS[n % WB_STATS.length];
+    wbEl.querySelector(".slide").innerHTML = `<div class="wart">${f.art()}</div><div class="wtext"><p class="wbig">${f.big}</p><p class="wsub">${f.text}</p></div>`;
+    wbEl.querySelector(".wcount").textContent = `${n % WB_STATS.length + 1} of ${WB_STATS.length}`;
+    wbEl.querySelector(".wsrc").innerHTML = `From 15,312 benefit plans and 5.2 lakh claims. Source: <a href="${f.url || "https://www.plumhq.com/standard-of-employee-benefits"}" target="_blank" rel="noopener">${f.src}</a>`;
+  };
+  board.appendChild(wbEl); show(wbNext);
   wbEl.querySelector(".cx").onclick = closeWB;
+  wbEl.querySelector(".sn").onclick = () => show(++wbNext);
   wbEl.addEventListener("click", e => e.stopPropagation());
   const bw = board.clientWidth, bh = board.clientHeight, fit = Math.min(1, (bw - 16) / wbEl.offsetWidth, (bh - 16) / wbEl.offsetHeight);
   if (fit < 1) { wbEl.style.transform = `scale(${fit})`; wbEl.style.transformOrigin = "0 0"; }
@@ -2912,23 +2922,18 @@ const WB_CSS = `
 .wbpop .cx { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border: 1px solid #3a3a3c; border-radius: 4px; background: #fff; font-size: 16px; line-height: 1; cursor: pointer; color: #3a3a3c; }
 .wbpop .wh { margin: 0 30px 8px 0; font: 400 30px/1 Caveat, cursive; }
 .wbpop .wh span { color: #d6545a; }
-.wbpop .wgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
-.wbpop figure { margin: 0; }
-.wbpop .wbar svg { width: 100%; height: auto; display: block; }
-.wbpop figcaption { font: 400 19px/1.05 Caveat, cursive; margin-top: 2px; }
-.wbpop .wbig p { margin: 0; }
-.wbpop .wbig b { font: 400 76px/.9 Caveat, cursive; color: #d6545a; display: inline-block; padding: 4px 14px 0; border: 2.5px solid #d6545a; border-radius: 52% 48% 55% 45% / 60% 50% 50% 40%; transform: rotate(-3deg); }
-.wbpop .wbig .sub { font: 400 21px/1.05 Caveat, cursive; margin-top: 10px; }
-.wbpop .wbig u { text-decoration-color: #d6545a; text-decoration-thickness: 2px; }
-.wbpop .dots { display: grid; grid-template-columns: repeat(10, 12px); gap: 6px 5px; margin-top: 10px; }
-.wbpop .dots i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid rgba(35,41,107,.55); }
+.wbpop .slide { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: center; height: 214px; }
+.wbpop .wart svg { width: 100%; height: auto; display: block; }
+.wbpop .wbig { margin: 0; font: 400 46px/1 Caveat, cursive; color: #d6545a; white-space: nowrap; }
+.wbpop .wsub { margin: 6px 0 0; font: 400 24px/1.05 Caveat, cursive; color: #23296b; }
+.wbpop .dots { display: grid; grid-template-columns: repeat(5, 22px); gap: 10px; justify-content: center; }
+.wbpop .dots i { width: 20px; height: 20px; border-radius: 50%; border: 2px solid rgba(35,41,107,.55); }
 .wbpop .dots i.hot { background: #d6545a; border-color: #d6545a; }
-.wbpop .notes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-top: 14px; }
-.wbpop .notes span { padding: 8px 10px 10px; font: 400 17px/1.05 Caveat, cursive; color: #2b2b2e; box-shadow: 2px 3px 0 rgba(58,58,60,.12); border: 1px solid rgba(58,58,60,.35); }
-.wbpop .notes b { display: block; font: 400 27px/1 Caveat, cursive; color: #23296b; }
-.wbpop .n1 { background: #ffe78a; transform: rotate(-2deg); } .wbpop .n2 { background: #f8c9d0; transform: rotate(1.5deg); }
-.wbpop .n3 { background: #c9ecdc; transform: rotate(1deg); } .wbpop .n4 { background: #d6e6f8; transform: rotate(-1.5deg); }
-.wbpop .wsrc { margin: 14px 0 0; font-size: 12px; line-height: 1.35; color: #6b6b6e; }
+.wbpop .wnav { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.wbpop .sn { border: 1.5px solid #23296b; border-radius: 999px; background: #fff; color: #23296b; padding: 6px 14px; font: 400 20px/1 Caveat, cursive; cursor: pointer; }
+.wbpop .sn:hover { background: #fdeaa0; }
+.wbpop .wcount { font: 400 18px/1 Caveat, cursive; color: #6b6b6e; }
+.wbpop .wsrc { min-height: 2.7em; margin: 8px 0 0; font-size: 12px; line-height: 1.35; color: #6b6b6e; }
 .wbpop .wsrc a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .wbpop .tray { position: absolute; left: 40px; right: 40px; bottom: -9px; height: 14px; background: #d8d8d6; border: 1px solid #3a3a3c; border-radius: 0 0 4px 4px; display: flex; gap: 8px; align-items: center; padding: 0 14px; }
 .wbpop .tray i { height: 7px; width: 38px; border-radius: 3px; border: 1px solid #3a3a3c; }
