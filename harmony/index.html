@@ -1226,7 +1226,7 @@ const SPOTS = [
   { place: "meeting", label: "the meeting room", x: 22, y: 30, f: "S", seated: true, roles: ["phone"] },
   { place: "copier", label: "the photocopier", x: 79, y: 21, f: "N", roles: ["copier"] },
   { place: "cooler", label: "the water cooler", x: 96, y: 19, f: "S", roles: ["glass"] },
-  { place: "kitchen", label: "the kitchen", x: 125, y: 20.5, f: "N", roles: ["coffee"] },
+  { place: "kitchen", label: "the kitchen", x: 125, y: 18, f: "N", roles: ["coffee"] },
   { place: "washroom", label: "the washroom", x: 216, y: 17.5, f: "N", roles: ["flush"] },
   { place: "beanbag", label: "the reading corner", x: 212, y: 96, f: "S", seated: true, roles: ["typing"] },
   { place: "couch", label: "the sofa", x: 14, y: 174, f: "E", seated: true, roles: ["clicking"] },
@@ -1738,7 +1738,7 @@ function drawStatic() {
   box(c, 112, 0, 0, 182, 14, 22, { top: "#ffffff", left: PAL.mint, right: PAL.mintDark });
   for (let x = 114; x < 179; x += 11) poly(c, quadY(14.05, x, x + 9.5, 3, 19), null, INK_LINE, .35);
   [42, 56].forEach(z => box(c, 106, 0, z, 180, 6, z + 1.4, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }));
-  SNACK_BOXES.forEach(([x, z, k]) => box(c, x, 1, z, x + 5, 4.6, z + 6, { top: shade(PAL[k], 1.08), left: PAL[k], right: shade(PAL[k], .85) }));
+  SNACK_BOXES.forEach(([x, z, k], i) => drawSnack(c, x, z, PAL[k], i));
   box(c, 184, 0, 0, 202, 16, 52, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); seg(c, iso(186, 16.1, 30), iso(186, 16.1, 46), INK_LINE, .8); seg(c, iso(186, 16.1, 12), iso(186, 16.1, 26), INK_LINE, .8); seg(c, iso(184, 16.1, 28), iso(202, 16.1, 28));
   drawEspresso(c, 118, 2);
   ellipseFloor(c, 160, 7, 3.5, 22.2, "#e4e4e2"); seg(c, iso(160, 3, 22), iso(160, 3, 30)); seg(c, iso(160, 3, 30), iso(164, 3, 30));
@@ -1746,7 +1746,14 @@ function drawStatic() {
   // washroom: blue grid tiles up the walls, a sink, a WC and a round mirror
   poly(c, quadY(.25, 206, 240, 0, WH - 10), "#ffffff");
   onWallY(c, 206, WH - 10, () => { c.strokeStyle = PAL.cobalt; c.lineWidth = .3; for (let u = 0; u <= 34; u += 3) { c.beginPath(); c.moveTo(u, 0); c.lineTo(u, WH - 10); c.stroke(); } for (let v = 0; v <= WH - 10; v += 3) { c.beginPath(); c.moveTo(0, v); c.lineTo(34, v); c.stroke(); } });
-  onWallY(c, 206, 52, () => { c.fillStyle = "#ffffff"; c.strokeStyle = INK_LINE; c.lineWidth = .4; c.beginPath(); c.arc(9, 8, 6, 0, Math.PI * 2); c.fill(); c.stroke(); });
+  // an arched mirror centred over the sink, with a slim frame, a soft reflection and a shelf under it
+  onWallY(c, 211.2, 45, () => {
+    const arch = (inset) => { const w = 9.6 - inset * 2, r = w / 2, x0 = inset, y1 = 17 - inset; c.beginPath(); c.moveTo(x0, y1); c.lineTo(x0, inset + r); c.arc(x0 + r, inset + r, r, Math.PI, 0); c.lineTo(x0 + w, y1); c.closePath(); };
+    arch(0); c.fillStyle = "#d8d8d6"; c.fill(); c.strokeStyle = INK_LINE; c.lineWidth = .4; c.stroke();
+    arch(.8); c.fillStyle = "#e7f2f8"; c.fill(); c.strokeStyle = INK_LINE; c.lineWidth = .3; c.stroke();
+    c.save(); arch(.8); c.clip(); c.strokeStyle = "rgba(255,255,255,.95)"; c.lineWidth = 1.1; c.beginPath(); c.moveTo(2, 12); c.lineTo(6.5, 4.5); c.stroke(); c.lineWidth = .5; c.beginPath(); c.moveTo(3.8, 14); c.lineTo(8, 7); c.stroke(); c.restore();
+  });
+  box(c, 211.6, 0, 26.4, 220.8, 2.2, 27.2, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }, .3);
   box(c, 228, 0, 0, 238, 5, 16, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
   box(c, 230.5, 5, 0, 235.5, 12, 6, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
   cylinder(c, 233, 11, 6, 8.2, 4.6, "#ffffff", .45); ellipseFloor(c, 233, 11, 3.2, 8.25, "#e8eef9");
@@ -1949,20 +1956,21 @@ function pose(m, seat, T) {
     R = [7, -1.2, 15.5]; L = [7, 1.2, 15.5]; nod = .35;
     props.push({ kind: "mobile" });
   } else if (act === "kitchen") {
+    // standing at the machine (forward is toward it, +across is to his left), watching the cup fill
     if (v === 0) {
-      // knocking the portafilter on the knock box
-      const down = Math.max(strike, back);
-      R = v3.mix([6.4, -2.6, 28], [7.2, -2.6, 25.8], down);
-      props.push({ kind: "portafilter", hand: "R" });
-      lean = .12 + down * .05; nod = .1;
+      // right hand on the portafilter handle, giving it a small firm push on each beat; left hand on the counter
+      const push = Math.max(strike, back);
+      R = [4 + push * .35, -1.2, 28.6 - push * .35];
+      L = [5, 2.6, 22.5];
+      lean = .1 + push * .02; nod = .16 + Math.sin(t * .9 + idle) * .02;
     } else {
-      // swirling a milk jug under the steam wand
-      const w = t * 5;
-      R = [7.4 + Math.cos(w) * .35, -1.4 + Math.sin(w) * .35, 26.5 + back * .4];
-      props.push({ kind: "jug", hand: "R" });
-      nod = .14;
+      // swirling a milk jug under the steam wand with the left hand, right hand on the counter
+      const w = t * 4;
+      L = [7.6 + Math.cos(w) * .3, 5.8 + Math.sin(w) * .3, 26 + back * .3];
+      R = [5, -2.4, 22.5];
+      props.push({ kind: "jug", hand: "L" });
+      nod = .14; turn = .12;
     }
-    L = [7.6, 3, 22.6];
   } else if (act === "copier") {
     const press = Math.max(strike, back);
     R = v3.mix([6.8, -3.6, 23.2], [7.6, -3.6, 21], press);
@@ -2297,6 +2305,33 @@ function drawEspresso(c, x, y) {
   seg(c, iso(x + 9.75, y + 8.1, 33), iso(x + 10.4, y + 8.1, 33.6), "#d6545a", .35);
   seg(c, iso(x + 12, y + 7.5, 32), iso(x + 13.2, y + 8, 26.6), "#9a9a9c", .7);                              // steam wand
   ellipseFloor(c, x + 2.6, y + 1.8, .9, 35.1, "#ffffff"); ellipseFloor(c, x + 5, y + 1.8, .9, 35.1, "#ffffff");
+  cylinder(c, x + 6, y + 6.4, 25.05, 26.9, 1.1, "#ffffff", .35);                                          // a cup under the spout
+  ellipseFloor(c, x + 6, y + 6.4, .8, 26.85, "#7a4a2a", null);
+}
+// the pantry shelf: a cereal box, a jar of nuts, a tin, a jar of makhana and a box of bars
+function drawSnack(c, x, z, col, i) {
+  const lw = .35, cx = x + 2.5, cy = 2.8;
+  if (i === 0 || i === 4) {
+    // a carton: coloured box, a white label panel on the front and a little window
+    const h = i === 0 ? 7 : 4.6;
+    box(c, x + .5, 1.3, z, x + 4.5, 4.3, z + h, { top: shade(col, 1.1), left: col, right: shade(col, .84) }, lw);
+    poly(c, quadY(4.32, x + 1, x + 4, z + h * .35, z + h * .8), "#ffffff", INK_LINE, .25);
+    poly(c, quadY(4.33, x + 1.6, x + 3.4, z + h * .45, z + h * .65), i === 0 ? PAL.yellow : "#7a4a2a", null);
+  } else if (i === 1 || i === 3) {
+    // a glass jar with a coloured lid and snacks inside
+    const fill = i === 1 ? "#c98d5e" : "#f6efe0";
+    cylinder(c, cx, cy, z, z + 4.6, 1.8, "rgba(214,235,247,.75)", lw);
+    cylinder(c, cx, cy, z, z + 3.4, 1.55, fill, .2);
+    const dots = mulberry(i * 7);
+    for (let k = 0; k < 9; k++) { const q = iso(cx + (dots() - .5) * 2.4, cy + 1.3, z + .5 + dots() * 2.6); c.fillStyle = shade(fill, .8); c.beginPath(); c.arc(q[0], q[1], .28, 0, 7); c.fill(); }
+    cylinder(c, cx, cy, z + 4.6, z + 5.6, 1.9, col, lw);
+  } else {
+    // a tin with a paper band round its middle
+    cylinder(c, cx, cy, z, z + 5, 1.9, "#d8d8d6", lw);
+    const k = 1.9 / Math.SQRT2;
+    poly(c, [iso(cx - k, cy + k, z + 1.3), iso(cx + k, cy - k, z + 1.3), iso(cx + k, cy - k, z + 3.7), iso(cx - k, cy + k, z + 3.7)], col, INK_LINE, .25);
+    ellipseFloor(c, cx, cy, 1.9, z + 5, "#e8e8e6");
+  }
 }
 function drawCopier(c) {
   const lw = .4, grey = "#e4e4e2";
@@ -2481,6 +2516,7 @@ function roomFx(s, m, F) {
     // the scan light leaks out from under the lid as it sweeps along
     if (hit < barLen) { const x = 71 + k * 15; g.globalAlpha = .9; poly(g, [iso(x, 11, 18.4), iso(x + 1.8, 11, 18.4), iso(x + 1.8, 11, 19.5), iso(x, 11, 19.5)], "#fff4b0", null); g.globalAlpha = .45; poly(g, floorRect(x - .6, 1.2, x + 2.4, 10.8, 19.65), "#fff4b0", null); g.globalAlpha = 1; }
   } else if (s.place === "kitchen" && hit < 1) {
+    if (m.variant % 2 === 0 && hit < .45) { g.globalAlpha = 1 - hit / .45; seg(g, iso(124, 8.4, 28.4), iso(124, 8.4, 26.9), "#7a4a2a", .55); g.globalAlpha = 1; }
     const p = iso(s.x - 1, 7, 34), a = 1 - hit; g.globalAlpha = a; g.strokeStyle = "#9a9a9c"; g.lineWidth = .45;
     for (let k = 0; k < 2; k++) { const x = p[0] - 1.5 + k * 3, ph = performance.now() / 250 + k; g.beginPath(); g.moveTo(x, p[1]); g.bezierCurveTo(x + Math.sin(ph) * 2, p[1] - 3 - hit * 4, x - Math.sin(ph) * 2, p[1] - 6 - hit * 6, x, p[1] - 9 - hit * 8); g.stroke(); }
     g.globalAlpha = 1;
