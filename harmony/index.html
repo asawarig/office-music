@@ -165,15 +165,17 @@ button { font: inherit; color: inherit; }
 .btn:focus-visible, .role:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 /* the bar's panel: the Musical / Ambient switch and the tempo, on one slab */
 .panel { display: flex; align-items: center; gap: 12px; padding: 5px 12px 5px 10px; background: #fff; color: #2b2b2d; border: 1px solid #3a3a3c; box-shadow: 1px 1px 0 #cfd6e2, 2px 2px 0 #cfd6e2, 3px 3px 0 #cfd6e2, 4px 4px 0 #cfd6e2, 4px 4px 0 1px #3a3a3c; }
-.modeswitch { display: flex; align-items: center; gap: 8px; }
-.modeswitch .ml { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 4px 2px; font: 400 13px/1 var(--font-label); color: #8a8a8f; cursor: pointer; transition: color .2s; }
-.modeswitch .ml svg { width: 15px; height: 15px; fill: currentColor; }
+.modeswitch { position: relative; display: flex; align-items: center; gap: 6px; }
+.modehint { position: absolute; top: calc(100% + 14px); left: 50%; transform: translateX(-50%); white-space: nowrap; font: 400 12px/1 var(--font-label); background: #2b2b2d; color: #fff; padding: 6px 8px; opacity: 0; pointer-events: none; transition: opacity .15s; }
+.modeswitch:hover .modehint, .modeswitch:focus-within .modehint { opacity: 1; }
+.modeswitch .ml { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; padding: 4px 3px; font: 400 13px/1 var(--font-label); color: #a2a2a7; cursor: pointer; transition: color .2s; }
+.modeswitch .ml svg { width: 16px; height: 16px; fill: currentColor; }
 .modeswitch .ml.on, .modeswitch .ml:hover { color: #2b2b2d; }
 /* the switch: a sunken pill slot with a round knob that rolls across; coral for Musical, sky for Ambient */
-.sw { position: relative; flex: none; width: 50px; height: 26px; padding: 0; border: 1px solid #3a3a3c; border-radius: 999px; background: #fbe4e2; cursor: pointer; box-shadow: inset 2px 2px 0 rgba(58,58,60,.16); transition: background-color .25s ease; }
-.sw i { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #ee6f6a; border: 1px solid #3a3a3c; box-shadow: 1px 1px 0 #b9494a, 2px 2px 0 #b9494a, 2px 2px 0 1px #3a3a3c; transition: transform .25s cubic-bezier(.3, 1.4, .5, 1), background-color .25s ease, box-shadow .25s ease; }
+.sw { position: relative; flex: none; width: 42px; height: 24px; padding: 0; border: 1px solid #3a3a3c; border-radius: 999px; background: #fbe4e2; cursor: pointer; box-shadow: inset 2px 2px 0 rgba(58,58,60,.16); transition: background-color .25s ease; }
+.sw i { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #ee6f6a; border: 1px solid #3a3a3c; box-shadow: 1px 1px 0 #b9494a, 2px 2px 0 #b9494a, 2px 2px 0 1px #3a3a3c; transition: transform .25s cubic-bezier(.3, 1.4, .5, 1), background-color .25s ease, box-shadow .25s ease; }
 .sw[aria-checked="true"] { background: #e3f0f9; }
-.sw[aria-checked="true"] i { transform: translateX(24px); background: #9fd3ec; box-shadow: 1px 1px 0 #5f9cc0, 2px 2px 0 #5f9cc0, 2px 2px 0 1px #3a3a3c; }
+.sw[aria-checked="true"] i { transform: translateX(18px); background: #9fd3ec; box-shadow: 1px 1px 0 #5f9cc0, 2px 2px 0 #5f9cc0, 2px 2px 0 1px #3a3a3c; }
 .sw:focus-visible, .modeswitch .ml:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .panel .tempo { border-left: 1px solid #d9d7d1; padding-left: 12px; color: #6b6b6e; font-size: 12px; }
 .panel .tempo input { width: 84px; accent-color: #ee6f6a; }
@@ -424,9 +426,10 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
   </button>
 <div class="panel">
     <div class="modeswitch">
-      <button type="button" class="ml" data-mode="musical" title="Everyone plays in time, like a band"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5 13 1v9.2a2.2 2.2 0 1 1-1.4-2V4.1L7.4 5v6.7a2.2 2.2 0 1 1-1.4-2z"/></svg>Musical</button>
+      <button type="button" class="ml" data-mode="musical" aria-label="Musical: everyone plays in time"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5 13 1v9.2a2.2 2.2 0 1 1-1.4-2V4.1L7.4 5v6.7a2.2 2.2 0 1 1-1.4-2z"/></svg></button>
       <button type="button" class="sw" id="modeSwitch" role="switch" aria-checked="false" aria-label="Ambient mode"><i></i></button>
-      <button type="button" class="ml" data-mode="ambient" title="Everyone works at their own pace, like a quiet office"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 6c2-2 4-2 6 0s4 2 6 0M1 10c2-2 4-2 6 0s4 2 6 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Ambient</button>
+      <span class="modehint" id="modeHint" aria-hidden="true"></span>
+      <button type="button" class="ml" data-mode="ambient" aria-label="Ambient: everyone works at their own pace"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 6c2-2 4-2 6 0s4 2 6 0M1 10c2-2 4-2 6 0s4 2 6 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
     </div>
     <label class="tempo" for="tempo"><span id="tempoName">Tempo</span>
       <input type="range" id="tempo" min="70" max="120" value="88">
@@ -1215,6 +1218,7 @@ function syncMode() {
   const amb = A.mode === "ambient";
   $("modeSwitch").setAttribute("aria-checked", String(amb));
   document.querySelectorAll(".modeswitch .ml").forEach(b => b.classList.toggle("on", b.dataset.mode === A.mode));
+  $("modeHint").textContent = (amb ? "Ambient, office hum" : "Musical, on the beat") + " · click to switch";
   $("tempoName").textContent = amb ? "Busyness" : "Tempo";
   const el = $("tempo");
   el.value = amb ? 70 + A.busy * 50 : A.bpm;
@@ -1241,7 +1245,7 @@ const LAYOUT = {
   // the second pod keeps only its pair away from the right-hand wall; that wall becomes a reading corner
   desks: [...pod4(108, 106), [180, 99, "S"], [180, 113, "N"], ...pod4x(150, 172)],
   rugs: [[66, 74, 150, 138, "mint"], [156, 74, 204, 138, "sky"], [208, 78, 238, 136, "coralLight"], [112, 144, 188, 202, "coralLight"]],
-  plants: [[152, 80, 1, "snake", "concrete"], [152, 132, .9, "agave", "white"], [92, 160, 1.1, "palm", "basket"], [196, 158, .9, "fern", "terracotta"]],
+  plants: [[152, 80, 1, "snake", "yellow"], [152, 132, .9, "agave", "white"], [92, 160, 1.05, "palm", "mint"], [187, 158, .9, "fern", "pink"]],
   hot: [2, 5, 7, 8],   // free desks that still look used: a jacket on the chair, a bag, a mug
   wallShelf: [230, 74, 238, 140, 8],   // a long low bookcase against the right-hand wall
   beanbags: [],
@@ -1651,124 +1655,85 @@ function glassLayer() {
 const GLASS = { meet: glassLayer(), washX: glassLayer(), washY: glassLayer() };
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/* Plants: eight kinds in five pots, so no two in the office are the same.
-   Each is drawn in screen space from the top of its pot; size scales the whole plant. */
-const POTS = {
-  white: { top: "#ffffff", left: "#ffffff", right: "#f3f3f1" },
-  basket: { top: "#e8cf96", left: "#e2c27a", right: "#c9a65a" },
-  terracotta: "#d9825b", cobalt: "#5b6ee1", concrete: "#cfcfcc",
-};
-const LEAF = "#5aa67a", LEAF_DARK = "#2f7f57", LEAF_SAGE = "#8fbf9f";
-function leaf(c, b, ang, len, wid, fill, rib = true) {
-  const tip = [b[0] + Math.cos(ang) * len, b[1] + Math.sin(ang) * len], nx = -Math.sin(ang) * wid, ny = Math.cos(ang) * wid;
-  const m = [b[0] + Math.cos(ang) * len * .5, b[1] + Math.sin(ang) * len * .5];
-  c.beginPath(); c.moveTo(...b); c.quadraticCurveTo(m[0] + nx, m[1] + ny, ...tip); c.quadraticCurveTo(m[0] - nx, m[1] - ny, ...b);
-  c.fillStyle = fill; c.fill(); c.strokeStyle = INK_LINE; c.lineWidth = .3; c.stroke();
-  if (rib) seg(c, b, [b[0] + Math.cos(ang) * len * .85, b[1] + Math.sin(ang) * len * .85], shade(fill, 1.25), .25);
+/* Plants: eight kinds, all drawn like the agave: flat faceted leaves in the two greens with a thin ink line,
+   standing in a square pot in one of the office colours. size scales the whole plant. */
+const POT_COLS = { white: "#ffffff", mint: PAL.mint, pink: PAL.coralLight, yellow: PAL.yellow, sky: PAL.sky };
+// a faceted leaf: base, two shoulders and a tip, like the agave's
+function facet(c, b, ang, len, wid, fill, at = .45) {
+  const dx = Math.cos(ang), dy = Math.sin(ang), nx = -dy * wid, ny = dx * wid, m = [b[0] + dx * len * at, b[1] + dy * len * at];
+  poly(c, [b, [m[0] + nx, m[1] + ny], [b[0] + dx * len, b[1] + dy * len], [m[0] - nx, m[1] - ny]], fill, INK_LINE, .3);
 }
 function pot(c, x, y, z, s, kind) {
-  const h = 7 * s;
-  if (kind === "white" || kind === "basket") {
-    box(c, x - 3 * s, y - 3 * s, z, x + 3 * s, y + 3 * s, z + h, POTS[kind]);
-    if (kind === "basket") for (let k = 1; k < 4; k++) { const zz = z + h * k / 4; seg(c, iso(x - 3 * s, y + 3 * s, zz), iso(x + 3 * s, y + 3 * s, zz), "#b8954c", .3); seg(c, iso(x + 3 * s, y + 3 * s, zz), iso(x + 3 * s, y - 3 * s, zz), "#b8954c", .3); }
-  } else {
-    cylinder(c, x, y, z, z + h, 3.1 * s, POTS[kind], .35);
-    if (kind === "terracotta") cylinder(c, x, y, z + h * .78, z + h, 3.4 * s, "#e39470", .35);
-  }
-  ellipseFloor(c, x, y, 2.4 * s, z + h + .05, "#6b4a35", null);
+  const col = POT_COLS[kind], h = 7 * s;
+  box(c, x - 3 * s, y - 3 * s, z, x + 3 * s, y + 3 * s, z + h, { top: col, left: col, right: col === "#ffffff" ? PAL.wallShade : shade(col, .9) });
   return iso(x, y, z + h);
 }
+const GREEN = k => k % 2 ? PAL.leaf : PAL.leafDark;
 const PLANTS = {
   agave(c, [px, py], s) {
     for (let k = 0; k < 9; k++) {
       const a = -Math.PI / 2 + (k - 4) * .32, len = (9 + (k % 3) * 3.5) * s;
       const tip = [px + Math.cos(a) * len, py + Math.sin(a) * len];
       const l = [px + Math.cos(a - .5) * len * .45, py + Math.sin(a - .5) * len * .45], r = [px + Math.cos(a + .5) * len * .45, py + Math.sin(a + .5) * len * .45];
-      poly(c, [[px, py], l, tip, r], k % 2 ? LEAF : LEAF_DARK, INK_LINE, .3);
+      poly(c, [[px, py], l, tip, r], GREEN(k), INK_LINE, .3);
     }
   },
-  // tall upright swords with yellow edges
-  snake(c, [px, py], s, r) {
-    [-2.2, -1.1, 0, 1, 2.1, -.5, .6].forEach((dx, k) => {
-      const h = (15 + r() * 9) * s, lean = dx * .12 + (r() - .5) * .1, w = 1.3 * s, b = [px + dx * s, py];
-      const tip = [b[0] + Math.sin(lean) * h, b[1] - h];
-      poly(c, [[b[0] - w, b[1]], [tip[0] - w * .3, tip[1] + h * .25], tip, [tip[0] + w * .3, tip[1] + h * .25], [b[0] + w, b[1]]], k % 2 ? "#3f8f62" : LEAF_DARK, "#d9c35a", .45);
-      seg(c, [b[0], b[1] - h * .2], [b[0] + Math.sin(lean) * h * .7, b[1] - h * .75], "#7fbf8f", .3);
+  // tall narrow blades standing almost straight up
+  snake(c, [px, py], s) {
+    [-.2, .16, -.08, .26, -.3, .05].forEach((a, k) => facet(c, [px + (k - 2.5) * .9 * s, py], -Math.PI / 2 + a, (16 + (k % 3) * 4) * s, 1.5 * s, GREEN(k), .3));
+  },
+  // broad leaves held out on stems
+  broadleaf(c, [px, py], s) {
+    [-1.25, -.75, -.25, .25, .75, 1.25].forEach((a, k) => {
+      const ang = -Math.PI / 2 + a * .42, len = (8 + (k % 2) * 3) * s, end = [px + Math.cos(ang) * len, py + Math.sin(ang) * len];
+      seg(c, [px, py], end, PAL.leafDark, .4);
+      facet(c, end, ang, 9 * s, 3.4 * s, GREEN(k), .5);
     });
   },
-  // big split heart leaves on long stems
-  monstera(c, [px, py], s, r) {
-    [[-2.3, .9], [-1.5, 1.1], [-.6, 1.3], [.4, 1.25], [1.3, 1.05], [2.2, .85]].forEach(([a, k], n) => {
-      const ang = -Math.PI / 2 + a * .42, len = 13 * s * k, end = [px + Math.cos(ang) * len, py + Math.sin(ang) * len];
-      seg(c, [px, py], end, LEAF_DARK, .45);
-      c.save(); c.translate(...end); c.rotate(ang + Math.PI / 2 * .2);
-      c.beginPath(); c.ellipse(0, 0, 5.4 * s, 4.2 * s, 0, 0, 7); c.fillStyle = n % 2 ? LEAF_DARK : "#3f8f62"; c.fill(); c.strokeStyle = INK_LINE; c.lineWidth = .3; c.stroke();
-      c.strokeStyle = "#ffffff"; c.lineWidth = .5; for (let t = -2; t <= 2; t++) { if (!t) continue; c.beginPath(); c.moveTo(t * 1.1 * s, -.6 * s); c.lineTo(t * 2.4 * s, (t > 0 ? 1 : -1) * 1.8 * s); c.stroke(); }
-      seg(c, [-4.8 * s, 0], [4.8 * s, 0], "#7fbf8f", .3);
-      c.restore();
-    });
-  },
-  // a fiddle-leaf fig: a thin trunk with broad leaves up its top half
-  fiddle(c, [px, py], s, r) {
-    const top = [px + .8 * s, py - 24 * s];
-    seg(c, [px, py], top, "#7a5236", 1.1 * s);
-    for (let k = 0; k < 11; k++) {
-      const t = .4 + k / 11 * .6, at = [px + (top[0] - px) * t, py + (top[1] - py) * t], side = k % 2 ? 1 : -1;
-      leaf(c, at, -Math.PI / 2 + side * (.7 + r() * .5), (5.5 + r() * 2) * s, 2.6 * s, k % 3 ? LEAF_DARK : "#3f8f62");
+  // a thin trunk with leaves up its top half
+  fiddle(c, [px, py], s) {
+    const top = [px, py - 22 * s];
+    seg(c, [px, py], top, "#7a5236", 1);
+    for (let k = 0; k < 9; k++) {
+      const t = .45 + k / 9 * .55, at = [px, py + (top[1] - py) * t], side = k % 2 ? 1 : -1;
+      facet(c, at, -Math.PI / 2 + side * (.95 - t * .45), 6.5 * s, 2.4 * s, GREEN(k));
     }
-    leaf(c, top, -Math.PI / 2, 6 * s, 2.6 * s, LEAF);
+    facet(c, top, -Math.PI / 2, 6 * s, 2.2 * s, PAL.leaf);
   },
-  // an areca palm: arching fronds lined with thin leaflets
-  palm(c, [px, py], s, r) {
-    [-1.3, -.8, -.3, .25, .75, 1.25, 0].forEach((a, k) => {
-      const len = (16 + r() * 6) * s, ang = -Math.PI / 2 + a * .7, ctrl = [px + Math.cos(ang) * len * .6, py + Math.sin(ang) * len * .9 - 5 * s], end = [px + Math.cos(ang) * len, py + Math.sin(ang) * len * .55];
-      c.beginPath(); c.moveTo(px, py); c.quadraticCurveTo(...ctrl, ...end); c.strokeStyle = "#4e8f3a"; c.lineWidth = .6; c.stroke();
-      for (let t = .25; t < 1; t += .09) {
-        const u = 1 - t, q = [u * u * px + 2 * u * t * ctrl[0] + t * t * end[0], u * u * py + 2 * u * t * ctrl[1] + t * t * end[1]];
-        const l = (1 - t) * 3.2 * s + .8;
-        seg(c, q, [q[0] - l * .7, q[1] + l], k % 2 ? LEAF : "#6fb86a", .55); seg(c, q, [q[0] + l * .7, q[1] + l], k % 2 ? LEAF : "#6fb86a", .55);
-      }
+  // long fronds bowing outwards and down at the ends
+  palm(c, [px, py], s) {
+    [-1.15, -.7, -.25, .25, .7, 1.15, 0].forEach((a, k) => {
+      const ang = -Math.PI / 2 + a, len = (12 + (k % 3) * 3) * s, dx = Math.cos(ang), dy = Math.sin(ang);
+      const mid = [px + dx * len * .55, py + dy * len * .55 - 2.5 * s], tip = [px + dx * len, py + dy * len * .45 + 1.5 * s];
+      poly(c, [[px, py], [mid[0] - dy * 1.8 * s, mid[1] + dx * 1.8 * s], tip, [mid[0] + dy * 1.8 * s, mid[1] - dx * 1.8 * s]], GREEN(k), INK_LINE, .3);
     });
   },
-  // a soft mound of small fronds
-  fern(c, [px, py], s, r) {
-    for (let k = 0; k < 15; k++) {
-      const ang = Math.PI + k / 14 * Math.PI, len = (8 + r() * 4) * s;
-      leaf(c, [px + Math.cos(ang) * s, py - 1.5 * s], ang + (r() - .5) * .3, len, 1.6 * s, k % 2 ? "#6fb86a" : LEAF, false);
-    }
+  // a low dome of small leaves
+  fern(c, [px, py], s) {
+    for (let k = 0; k < 13; k++) { const ang = Math.PI * (1.05 + k / 12 * .9); facet(c, [px, py - 1.2 * s], ang, (7 + (k % 3) * 1.6) * s, 1.8 * s, GREEN(k)); }
   },
-  // pothos: a few leaves on top and vines spilling down over the pot
-  pothos(c, [px, py], s, r) {
-    [[-1, 1], [1, 1], [-.3, -1], [.6, -1]].forEach(([d, dir], v) => {
-      let q = [px + d * 2 * s, py]; const n = dir > 0 ? 6 : 3;
-      for (let k = 0; k < n; k++) {
-        const nq = [q[0] + d * 1.6 * s, q[1] + dir * 2.6 * s];
-        seg(c, q, nq, "#4e8f3a", .4);
-        leaf(c, nq, (k % 2 ? 0 : Math.PI) + (dir > 0 ? .6 : -.6) * (k % 2 ? -1 : 1), 3 * s, 1.5 * s, (k + v) % 2 ? LEAF : "#8bc34a", false);
-        q = nq;
-      }
-    });
+  // trailing: leaves fanned out and tipping down over the rim of the pot
+  pothos(c, [px, py], s) {
+    [-2.5, -2.05, -1.6, -1.1, -.65].forEach((a, k) => facet(c, [px, py], a, (5.5 + (k % 2)) * s, 2.2 * s, GREEN(k), .5));
+    [[-1, .5], [1, .5], [-1, .95], [1, .95]].forEach(([d, a], k) => facet(c, [px + d * 2.4 * s, py], d > 0 ? a : Math.PI - a, 5 * s, 1.9 * s, GREEN(k + 1), .5));
   },
-  cactus(c, [px, py], s) {
-    const col = (x0, y0, w, h) => { c.beginPath(); c.roundRect(x0 - w / 2, y0 - h, w, h, w / 2); c.fillStyle = "#4f9a5e"; c.fill(); c.strokeStyle = INK_LINE; c.lineWidth = .35; c.stroke(); seg(c, [x0 - w * .2, y0 - h + w * .4], [x0 - w * .2, y0], "#7fbf8f", .3); seg(c, [x0 + w * .2, y0 - h + w * .4], [x0 + w * .2, y0], "#7fbf8f", .3); };
-    col(px + 2.6 * s, py - 4 * s, 2.4 * s, 6 * s); col(px, py, 4 * s, 14 * s);
-    c.beginPath(); c.arc(px, py - 14 * s, 1.1 * s, 0, 7); c.fillStyle = "#f28aa0"; c.fill();
+  // a block cactus with one arm, built like the boxes in the office
+  cactus(c, p, s, x, y, z) {
+    const g = { top: PAL.leaf, left: PAL.leaf, right: PAL.leafDark }, h = 7 * s;
+    box(c, x - 1.6 * s, y - 1.6 * s, z + h, x + 1.6 * s, y + 1.6 * s, z + h + 13 * s, g, .3);
+    box(c, x + 1.6 * s, y - .8 * s, z + h + 5 * s, x + 3.2 * s, y + .8 * s, z + h + 6.4 * s, g, .3);
+    box(c, x + 2.2 * s, y - .8 * s, z + h + 6.4 * s, x + 3.2 * s, y + .8 * s, z + h + 10 * s, g, .3);
   },
-  // a rosette of fat pointed leaves
+  // a flat rosette of short pointed leaves
   succulent(c, [px, py], s) {
-    [[8, 5.5, LEAF_SAGE], [7, 4, "#a9d0b5"], [5, 2.6, "#c6e3cf"]].forEach(([n, len, col], ring) => {
-      for (let k = 0; k < n; k++) { const ang = Math.PI * (1.05 + k / (n - 1) * .9) + ring * .2; leaf(c, [px, py - ring * .8 * s], ang, len * s, 1.6 * s, col, false); }
-    });
+    for (let k = 0; k < 9; k++) facet(c, [px, py], Math.PI * (1.05 + k / 8 * .9), (5 + (k % 2) * 1.5) * s, 1.9 * s, GREEN(k));
+    for (let k = 0; k < 5; k++) facet(c, [px, py - .6 * s], Math.PI * (1.2 + k / 4 * .6), 3.4 * s, 1.5 * s, GREEN(k + 1));
   },
 };
-const PLANT_KINDS = Object.keys(PLANTS);
-// kind and pot can be named; otherwise they come from the plant's place, so each spot keeps its own
-function plant(c, x, y, z = 0, size = 1, kind, potKind) {
-  const r = mulberry(Math.round(x * 31 + y * 17 + z));
-  kind = kind || PLANT_KINDS[Math.floor(r() * PLANT_KINDS.length)];
-  potKind = potKind || ["white", "terracotta", "cobalt", "basket", "concrete"][Math.floor(r() * 5)];
+// every plant names its kind and pot, so each one in the office is different
+function plant(c, x, y, z = 0, size = 1, kind = "agave", potKind = "white") {
   ellipseFloor(c, x, y, 3.2 * size, z, "#ffffff");
-  PLANTS[kind](c, pot(c, x, y, z, size, potKind), size, r);
+  PLANTS[kind](c, pot(c, x, y, z, size, potKind), size, x, y, z);
 }
 function lowWall(c, pts, h = 6, t = 3) {
   // cut wall: a white slab of height h along a run of plan points
@@ -1906,17 +1871,17 @@ function drawStatic() {
   chairSimple(c, 22, 30, PAL.coral, "y"); chairSimple(c, 42, 30, PAL.coral, "y");
   box(c, 14, 36, 14.5, 50, 52, 16, { top: "#ffffff", left: PAL.wallShade, right: PAL.wallShade });
   [[16, 38], [48, 38], [16, 50], [48, 50]].forEach(([x, y]) => seg(c, iso(x, y, 0), iso(x, y, 14.5), INK_LINE, .5));
-  plant(c, 32, 44, 16, .5, "succulent", "white");
+  plant(c, 32, 44, 16, .5, "succulent", "pink");
   chairSimple(c, 22, 58, PAL.coral, "-y"); chairSimple(c, 42, 58, PAL.coral, "-y");
   // the meeting room's glass goes on its own layer, over whoever sits inside
   GLASS.meet.paint(c => { glassWallX(c, 64, 0, 50); glassWallY(c, 78, 0, 44); });   // the meeting room stays open at its front corner
-  plant(c, 8, 70, 0, 1.1, "fiddle", "basket");
+  plant(c, 8, 70, 0, 1.1, "fiddle", "mint");
 
   // lounge: a coral sofa against the wall, a cobalt armchair turned to it, side table and plants
   drawSofa(c);
   drawArmchair(c, 44, 160);
-  ellipseFloor(c, 34, 140, 5, 14, "#ffffff"); seg(c, iso(34, 140, 0), iso(34, 140, 14), INK_LINE, .6); plant(c, 34, 140, 14, .55, "pothos", "cobalt");
-  plant(c, 6, 204, 0, 1.3, "monstera", "terracotta");
+  ellipseFloor(c, 34, 140, 5, 14, "#ffffff"); seg(c, iso(34, 140, 0), iso(34, 140, 14), INK_LINE, .6); plant(c, 34, 140, 14, .55, "pothos", "sky");
+  plant(c, 8, 202, 0, 1.05, "broadleaf", "white");
   // knock box for the espresso grounds, beside the machine
   box(c, 132, 9, 22, 135.5, 12.5, 24.6, { top: "#2b2b2e", left: "#3a3a3c", right: "#2b2b2e" }, .35);
 
@@ -2363,7 +2328,7 @@ function drawSeat(i, now) {
       if (lap) lapLaptop(F, lap, col, "base");
       upper();
       if (lap) lapLaptop(F, lap, col, "lid");
-      if (plantAfter) plant(g, 32, 44, 16, .5, "succulent", "white");
+      if (plantAfter) plant(g, 32, 44, 16, .5, "succulent", "pink");
       roomFx(s, m, F);
       if (clockFor(m, now).talk) speechBubble(F.S.head, now);
     } else hoverHint(i, s.x, s.y, now);
@@ -2373,7 +2338,7 @@ function bookshelf(x0, y0, x1, y1, h) {
   box(g, x0, y0, 0, x1, y1, h, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
   const cols = [PAL.coral, PAL.yellow, PAL.cobalt, PAL.mintDark, PAL.sky, PAL.coralLight], r = mulberry(5);
   [2, 11].forEach(z => { for (let x = x0 + 2; x < x1 - 3;) { const w = 1.4 + r() * 1.8, hh = 5 + r() * 2.5; poly(g, quadY(y1 + .05, x, x + w, z, z + hh), cols[Math.floor(r() * cols.length)], INK_LINE, .25); x += w + .3 + (r() < .15 ? 3 : 0); } });
-  plant(g, x1 - 6, (y0 + y1) / 2, h, .5, "cactus", "terracotta");
+  plant(g, x1 - 6, (y0 + y1) / 2, h, .5, "cactus", "white");
 }
 // a low bookcase along a wall: books stand on top and the end shows its spines
 function wallShelf(x0, y0, x1, y1, h) {
@@ -2387,7 +2352,7 @@ function wallShelf(x0, y0, x1, y1, h) {
     for (let k = 0; k < n && y < y1 - 4; k++) { const d = 1 + r() * .8, hh = 4 + r() * 2.5, c = cols[Math.floor(r() * cols.length)]; box(g, x0 + 2, y, h, x1 - 2.5, y + d, h + hh, { top: shade(c, 1.1), left: c, right: shade(c, .85) }, .22); y += d + .15; }
     y += 3;
   }
-  plant(g, (x0 + x1) / 2, y0 + 20, h, .45, "succulent", "concrete"); plant(g, (x0 + x1) / 2, y1 - 10, h, .55, "pothos", "white");
+  plant(g, (x0 + x1) / 2, y0 + 20, h, .45, "succulent", "yellow"); plant(g, (x0 + x1) / 2, y1 - 10, h, .55, "snake", "white");
   seg(g, iso((x0 + x1) / 2, y0 + 6, h), iso((x0 + x1) / 2, y0 + 6, h + 13), INK_LINE, .5);
   box(g, (x0 + x1) / 2 - 2.5, y0 + 3.5, h + 11, (x0 + x1) / 2 + 2.5, y0 + 8.5, h + 15, { top: PAL.yellow, left: PAL.yellow, right: shade(PAL.yellow, .85) }, .3);
 }
