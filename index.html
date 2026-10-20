@@ -2328,24 +2328,24 @@ const BOARD_VARIANTS = [
   { name: "Cork board", board: true, html: (D, k = 0) => { const b = BITS[k % BITS.length]; return boardHead(D) + scene("cork",
     boardCal(D, 88, 22, -1.5) + pinSvg("#ee6f6a", 166, 16) + polaroid(b.photo, b.caption, 12, 30, -7) + pinSvg("#ffd95c", 38, 26) +
     sticky(b.sticky, "#ffd95c", 262, 30, 5, 78) + pinSvg("#5b6ee1", 294, 24) + torn(b.list, 8, 136, 3, 90) + pinSvg("#2f7f57", 46, 146) +
-    sticky("♥", "#f6c9cf", 272, 140, -8, 46) + plantSvg(276, 196, 1.05)) } },
+    sticky("♥", "#f6c9cf", 272, 140, -8, 46)) } },
   { name: "Pegboard", board: true, html: (D, k = 1) => { const b = BITS[k % BITS.length]; return boardHead(D) + scene("peg",
     `<span class="hook" style="left:166px;top:12px"></span>` + boardCal(D, 90, 18, 0, PIC.crayon("pc" + k), "swatch") +
-    `<span class="shelf" style="left:262px;top:156px"></span>` + plantSvg(262, 112, .85) + `<span class="mug" style="left:298px;top:132px"></span>` +
+    `<span class="shelf" style="left:262px;top:156px"></span>` + `<span class="mug" style="left:298px;top:132px"></span>` +
     sticky(b.sticky, "#9fe3c8", 264, 30, -4, 62) + polaroid(b.photo, b.caption, 14, 20, 5) + tape(26, 14, -8) +
     torn(b.list, 12, 148, -3, 86) + `<span class="scissors" style="left:288px;top:186px">✂</span>`) } },
   { name: "Desk screen", board: true, html: (D, k = 2) => { const b = BITS[k % BITS.length]; return boardHead(D) + scene("felt",
     boardCal(D, 86, 18, 1, PIC.vitals(D), "mint") + pinSvg("#ee6f6a", 100, 16) + pinSvg("#ee6f6a", 238, 16) +
     `<span class="postcard" style="left:240px;top:34px">${PHOTOS[b.photo]}<i>${b.caption}</i></span>` + tape(250, 28, 12, "rgba(238,111,106,.55)") +
     sticky(b.sticky, "#ffd95c", 14, 34, -6, 76) + torn(b.list, 248, 140, 4, 82) + pinSvg("#5b6ee1", 282, 136) +
-    sticky("call amma", "#f6c9cf", 16, 148, 4, 66) + plantSvg(6, 196, .95)) } },
+    sticky("call amma", "#f6c9cf", 16, 148, 4, 66)) } },
   { name: "Whiteboard", board: true, html: (D, k = 3) => { const b = BITS[k % BITS.length]; return boardHead(D) + scene("white",
     `<svg class="doodle" viewBox="0 0 340 250" aria-hidden="true"><path d="M8 238h30l5-8 5 8h8l4-16 6 26 4-10h14" fill="none" stroke="#ee6f6a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text x="262" y="196" font-family="Figtree, sans-serif" font-size="13" font-style="italic" fill="#5b6ee1">see you</text><text x="268" y="212" font-family="Figtree, sans-serif" font-size="13" font-style="italic" fill="#5b6ee1">soon :)</text><path d="M262 218c20 3 46 2 66-4" fill="none" stroke="#5b6ee1" stroke-width="1.5" stroke-linecap="round"/></svg>` +
     boardCal(D, 92, 16, 0, PIC.tiles, "tile") + magnet("#ee6f6a", 102, 12) + magnet("#5b6ee1", 240, 12) +
     sticky(b.sticky, "#ffd95c", 250, 30, 4, 78) + sticky("Q4 deck", "#9fe3c8", 254, 104, -5, 70) +
     polaroid(b.photo, b.caption, 14, 22, -5) + magnet("#ffd95c", 40, 18) + torn(b.list, 14, 120, 2, 80) + `<span class="marker" style="left:262px;top:236px"></span>`) } },
   { name: "Wire grid", board: true, html: (D, k = 0) => { const b = BITS[k % BITS.length]; return boardHead(D) + scene("wire",
-    ivySvg(262, -4) + boardCal(D, 84, 18, 0, PIC.rug, "sun") + clipSvg(120, 10) + clipSvg(196, 10) +
+    boardCal(D, 84, 18, 0, PIC.rug, "sun") + clipSvg(120, 10) + clipSvg(196, 10) +
     polaroid(b.photo, b.caption, 12, 26, -4) + clipSvg(32, 18) + polaroid("hills", "home", 14, 128, 5) + clipSvg(34, 120) +
     sticky(b.sticky, "#f6c9cf", 252, 104, 3, 80) + torn(b.list, 246, 156, -2, 86) + `<span class="ticket" style="left:20px;top:214px">ADMIT ONE · 7:30pm</span>`) } },
 ];
