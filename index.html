@@ -2824,7 +2824,7 @@ function openSnack(b) {
 }
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeSnack(); });
 // clicking the empty page around the office closes any open popup
-document.getElementById("stage").addEventListener("click", e => { if (e.target === e.currentTarget || e.target.classList.contains("board")) { closeSnack(); closeCal(); closeWB(); } });
+document.getElementById("stage").addEventListener("click", e => { if (e.target === e.currentTarget || e.target.classList.contains("board")) { closeSnack(); closeCal(); closeWB(); closeShelf(); } });
 const SNACK_CSS = `
 .snack { position: absolute; z-index: 4; width: 288px; font-family: var(--font-body); color: #23296b; }
 .snack .lbl { position: relative; background: var(--box-tint); border-radius: 20px; padding: 20px 20px 16px; transform: rotate(-2deg); box-shadow: inset 0 0 0 8px var(--box-tint), inset 0 0 0 9.5px #23296b, 5px 6px 0 rgba(35,41,107,.16); display: grid; gap: 0; }
@@ -2956,8 +2956,71 @@ const WB_CSS = `
 .wbpop .tray .er { margin-left: auto; width: 46px; height: 10px; background: #3a3a3c; }
 .wbpop a:focus-visible, .wbpop button:focus-visible { outline: 3px solid #d6545a; outline-offset: 2px; }
 `;
+
+/* ---------- The bookcase: Plum's reports and guides ----------
+   Each book links to the resource on plumhq.com. Put a cover image in `cover` (a URL or a data URI)
+   and the book shows it; until then it shows a plain cover with the title. */
+const SHELF_BOOKS = [
+  { title: "The Standard of Employee Benefits 2026–27", kind: "Report", url: "https://www.plumhq.com/standard-of-employee-benefits", col: "#d6545a", cover: "" },
+  { title: "Employee Health Report 2025", kind: "Report", url: "https://www.plumhq.com/resources/overview", col: "#5b6ee1", cover: "" },
+  { title: "State of Employee Benefits 2024", kind: "Report", url: "https://www.plumhq.com/state-of-eb", col: "#2f7f57", cover: "" },
+  { title: "Health Report of Corporate India 2023", kind: "Report", url: "https://www.plumhq.com/corporate-health-report-2023", col: "#e2a23b", cover: "" },
+  { title: "Employee Benefits in India for MNCs", kind: "Guide", url: "https://www.plumhq.com/india-benefits-stack", col: "#2c3a66", cover: "" },
+  { title: "Health insurance by company size", kind: "Guide", url: "https://www.plumhq.com/blog/employee-health-insurance-company-size", col: "#c2407a", cover: "" },
+];
+function shelfAt(p) {
+  const [x0, y0, x1, y1, h] = LAYOUT.wallShelf, pts = [iso(x0, y1, 0), iso(x1, y0, 0), iso(x1, y1, 0), iso(x0, y0, h + 8), iso(x1, y0, h + 8), iso(x0, y1, h + 8), iso(x1, y1, h + 8)];
+  const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+  // the bookcase runs diagonally, so test against the line along it rather than a box
+  if (p.x < Math.min(...xs) || p.x > Math.max(...xs) || p.y < Math.min(...ys) || p.y > Math.max(...ys)) return false;
+  const a = iso(x0, y0, 0), b = iso(x0, y1, 0), t = Math.max(0, Math.min(1, (p.x - a[0]) / (b[0] - a[0]))), yLine = a[1] + (b[1] - a[1]) * t;
+  return p.y > yLine - (h + 10) * K && p.y < yLine + 6;
+}
+let shelfEl = null;
+function closeShelf() { if (shelfEl) { shelfEl.remove(); shelfEl = null; } }
+function openShelf() {
+  closeShelf(); closeSnack(); closeCal(); closeWB();
+  const board = cv.parentElement;
+  shelfEl = document.createElement("div"); shelfEl.className = "shelfpop"; shelfEl.setAttribute("role", "dialog"); shelfEl.setAttribute("aria-label", "Plum resources bookshelf");
+  shelfEl.innerHTML = `<div class="shh"><span>The bookshelf</span><button class="cx" aria-label="Close">×</button></div>
+    <p class="shl">Reports and guides from Plum. Pick one off the shelf.</p>
+    <div class="case"><div class="row">${SHELF_BOOKS.map((b, i) => `<a class="book" href="${b.url}" target="_blank" rel="noopener" style="--c:${b.col};--t:${[-1.5, 1, -.5, 1.5, -1, .5][i]}deg">
+      ${b.cover ? `<img src="${b.cover}" alt="">` : `<span class="plain"><small>${b.kind}</small><b>${b.title}</b><i>plum</i></span>`}<span class="sr">${b.title}</span></a>`).join("")}
+      </div><div class="ledge"></div></div>`;
+  board.appendChild(shelfEl);
+  shelfEl.querySelector(".cx").onclick = closeShelf;
+  shelfEl.addEventListener("click", e => e.stopPropagation());
+  const bw = board.clientWidth, bh = board.clientHeight, fit = Math.min(1, (bw - 16) / shelfEl.offsetWidth, (bh - 16) / shelfEl.offsetHeight);
+  if (fit < 1) { shelfEl.style.transform = `scale(${fit})`; shelfEl.style.transformOrigin = "0 0"; }
+  const [ax, ay] = iso(234, 100, 8), w = shelfEl.offsetWidth * fit, h = shelfEl.offsetHeight * fit;
+  shelfEl.style.left = Math.max(8, Math.min(bw - w - 8, ax / LW * bw - w / 2)) + "px";
+  shelfEl.style.top = Math.max(8, Math.min(bh - h - 8, ay / LH * bh - h - 12)) + "px";
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeShelf(); });
+const SHELF_CSS = `
+.shelfpop { position: absolute; z-index: 5; width: 640px; padding: 14px 16px 16px; background: #fff; border: 1px solid #3a3a3c; border-radius: 6px; box-shadow: 5px 6px 0 rgba(58,58,60,.14); font-family: var(--font-body); color: #2b2b2e; }
+.shelfpop .shh { display: flex; align-items: center; }
+.shelfpop .shh span { font: 400 11px/1 var(--font-label); letter-spacing: .1em; text-transform: uppercase; color: #d6545a; }
+.shelfpop .cx { margin-left: auto; width: 26px; height: 26px; border: 1px solid #3a3a3c; border-radius: 4px; background: #fff; font-size: 16px; line-height: 1; cursor: pointer; color: inherit; }
+.shelfpop .shl { margin: 4px 0 12px; font: 400 18px/1.2 var(--font-display); }
+.shelfpop .case { border: 1px solid #3a3a3c; background: #f6c9cf; padding: 14px 12px 0; border-radius: 4px 4px 0 0; }
+.shelfpop .row { display: flex; align-items: flex-end; gap: 10px; height: 170px; }
+.shelfpop .book { position: relative; flex: none; width: 84px; height: 156px; display: block; border: 1px solid #3a3a3c; border-radius: 2px 4px 4px 2px; background: var(--c); color: #fff; text-decoration: none; overflow: hidden; transform: rotate(var(--t)); transform-origin: bottom center; transition: transform .2s ease; box-shadow: inset 5px 0 0 rgba(0,0,0,.14), 2px 2px 0 rgba(58,58,60,.15); }
+.shelfpop .book:hover, .shelfpop .book:focus-visible { transform: translateY(-10px) rotate(0deg); }
+.shelfpop .book:focus-visible { outline: 3px solid #23296b; outline-offset: 2px; }
+.shelfpop .book img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shelfpop .plain { position: absolute; inset: 0; padding: 10px 7px 8px 11px; display: flex; flex-direction: column; gap: 6px; }
+.shelfpop .plain small { font: 400 9px/1 var(--font-label); letter-spacing: .12em; text-transform: uppercase; opacity: .85; }
+.shelfpop .plain b { font: 400 11.5px/1.18 var(--font-display); overflow-wrap: anywhere; hyphens: auto; }
+.shelfpop .plain i { margin-top: auto; font: 400 11px/1 var(--font-display); font-style: normal; opacity: .9; }
+.shelfpop .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.shelfpop .plant { margin-left: auto; flex: none; width: 46px; height: 60px; background: linear-gradient(#fff, #fff) bottom/34px 26px no-repeat; border-bottom: 0; position: relative; }
+.shelfpop .plant::before { content: ""; position: absolute; bottom: 0; left: 6px; width: 32px; height: 26px; background: #fff; border: 1px solid #3a3a3c; }
+.shelfpop .plant::after { content: ""; position: absolute; bottom: 26px; left: 2px; width: 40px; height: 34px; background: #5aa67a; border: 1px solid #2f7f57; border-radius: 50% 50% 30% 30%; }
+.shelfpop .ledge { height: 14px; margin: 0 -13px; background: #fff; border: 1px solid #3a3a3c; border-left: 0; border-right: 0; }
+`;
 // the popup styles go last in the page so nothing else overrides them
-document.body.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOARD_CSS}${SNACK_CSS}${WB_CSS}
+document.body.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOARD_CSS}${SNACK_CSS}${WB_CSS}${SHELF_CSS}
 /* nothing on the page is bold */
 *, *::before, *::after { font-weight: 400 !important; }</style>`);
 // each free desk has its own board; ?cal=1..20 shows one look on every desk instead
@@ -2988,6 +3051,11 @@ function openCal(i) {
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeCal(); });
 const tip = $("tip");
 cv.addEventListener("pointermove", e => {
+  if (shelfAt(toLogical(e)) && e.pointerType !== "touch") {
+    const q = iso(234, 104, 18); cv.style.cursor = "pointer";
+    tip.innerHTML = `<b>Bookshelf</b><small>Click for Plum's reports and guides</small>`;
+    tip.style.left = (q[0] / LW * 100) + "%"; tip.style.top = (q[1] / LH * 100) + "%"; tip.hidden = false; hoverDesk = -1; return;
+  }
   if (whiteboardAt(toLogical(e)) && e.pointerType !== "touch") {
     const q = iso(31, 0, 51); cv.style.cursor = "pointer";
     tip.innerHTML = `<b>Whiteboard</b><small>Click for the Standard of Employee Benefits 2026–27</small>`;
@@ -3014,6 +3082,8 @@ cv.addEventListener("pointerleave", () => { hoverDesk = -1; tip.hidden = true; }
 cv.addEventListener("click", e => {
   if (whiteboardAt(toLogical(e))) { tip.hidden = true; openWB(); return; }
   closeWB();
+  if (shelfAt(toLogical(e))) { tip.hidden = true; openShelf(); return; }
+  closeShelf();
   const sb = snackBoxAt(toLogical(e));
   if (sb >= 0) { tip.hidden = true; openSnack(sb); return; }
   closeSnack();
