@@ -938,10 +938,13 @@ const FACE = { S: [0, 1], N: [0, -1], E: [1, 0], W: [-1, 0] };
 const pod4 = (x, y) => [[x - 16, y - 7, "S"], [x + 16, y - 7, "S"], [x - 16, y + 7, "N"], [x + 16, y + 7, "N"]];
 const pod4x = (x, y) => [[x - 7, y - 16, "E"], [x - 7, y + 16, "E"], [x + 7, y - 16, "W"], [x + 7, y + 16, "W"]];
 const LAYOUT = {
-  desks: [...pod4(108, 106), ...pod4(196, 106), ...pod4x(150, 172)],
-  rugs: [[66, 74, 150, 138, "mint"], [154, 74, 238, 138, "sky"], [112, 144, 188, 202, "coralLight"]],
-  plants: [[152, 80, 1], [152, 132, .9], [110, 196, 1], [196, 158, .9]],
-  hot: [2, 5, 6, 7, 9, 10],   // free desks that still look used: a jacket on the chair, a bag, a mug
+  // the second pod keeps only its pair away from the right-hand wall; that wall becomes a reading corner
+  desks: [...pod4(108, 106), [180, 99, "S"], [180, 113, "N"], ...pod4x(150, 172)],
+  rugs: [[66, 74, 150, 138, "mint"], [156, 74, 204, 138, "sky"], [208, 78, 238, 136, "coralLight"], [112, 144, 188, 202, "coralLight"]],
+  plants: [[152, 80, 1], [152, 132, .9], [92, 160, 1.1], [196, 158, .9]],
+  hot: [2, 5, 7, 8],   // free desks that still look used: a jacket on the chair, a bag, a mug
+  wallShelf: [230, 74, 238, 140, 8],   // a long low bookcase against the right-hand wall
+  beanbags: [[213, 124, "cobalt"]],
 };
 // room spots: the role that plays there, where the person stands or sits, and the way they face
 const SPOTS = [
@@ -950,7 +953,7 @@ const SPOTS = [
   { place: "cooler", label: "the water cooler", x: 96, y: 19, f: "S", roles: ["glass"] },
   { place: "kitchen", label: "the kitchen", x: 125, y: 20.5, f: "N", roles: ["coffee"] },
   { place: "washroom", label: "the washroom", x: 216, y: 17.5, f: "N", roles: ["flush"] },
-  { place: "beanbag", label: "the reading corner", x: 86, y: 172, f: "S", seated: true, roles: ["typing"] },
+  { place: "beanbag", label: "the reading corner", x: 212, y: 96, f: "S", seated: true, roles: ["typing"] },
   { place: "couch", label: "the sofa", x: 14, y: 174, f: "E", seated: true, roles: ["clicking"] },
 ];
 // a point in a desk's own space: u across the desk (-16..16), v from the sitter's edge (-7) to the far edge (7)
@@ -980,7 +983,8 @@ const DESK_COUNT = LAYOUT.desks.length;
 const DRAW_ORDER = [
   ...SEATS.map((s, i) => ({ depth: s.depth, seat: i })),
   ...LAYOUT.plants.map(([x, y, k]) => ({ depth: x + y, plant: [x, y, k] })),
-  { depth: 150, draw: () => bookshelf(64, 140, 106, 146, 20) },
+  { depth: 420, draw: () => wallShelf(...LAYOUT.wallShelf) },
+  ...LAYOUT.beanbags.map(([x, y, col]) => ({ depth: x + y, draw: () => beanbag(x, y, PAL[col]) })),
 ].sort((a, b) => a.depth - b.depth);
 
 /* ---------- Role icons (5 x 5) ---------- */
@@ -1195,10 +1199,10 @@ function makeMember(roleId, desk, name, seed, variant = 0) {
 }
 
 /* Everyone has one seat of their own: the same person, sound and look every time they come in. */
-// thirteen people: six at desks (the other six are hot desks) and seven around the rooms
+// thirteen people: six at the ten desks (the other four are hot desks) and seven around the rooms
 const DESK_CAST = [
   ["typing", "Kabir"], ["clicking", "Arjun"], null, ["cough", "Isha"],
-  ["stamp", "Omar"], null, null, null,
+  ["stamp", "Omar"], null,
   ["cough", "Vikram"], null, null, ["stamp", "Zoya"],
 ];
 const SPOT_CAST = [["phone", "Meera"], ["copier", "Jay"], ["glass", "Tara"], ["coffee", "Priya"], ["flush", "Nina"], ["typing", "Neel"], ["clicking", "Sara"]];
@@ -1893,7 +1897,7 @@ function drawSeat(i, now) {
     if (!m && LAYOUT.hot.includes(i)) hotDesk(s, i);
     if (!m) hoverHint(i, cx, cy, now);
   } else {
-    if (s.place === "beanbag") beanbag(s.x - 1, s.y, PAL.yellow);
+    if (s.place === "beanbag") beanbag(s.x - 1, s.y - 1, PAL.yellow, !!m);
     if (m) {
       if (s.place !== "beanbag" && s.place !== "couch") shadowAt(s.x, s.y, 5);
       lower();
@@ -1911,8 +1915,38 @@ function bookshelf(x0, y0, x1, y1, h) {
   [2, 11].forEach(z => { for (let x = x0 + 2; x < x1 - 3;) { const w = 1.4 + r() * 1.8, hh = 5 + r() * 2.5; poly(g, quadY(y1 + .05, x, x + w, z, z + hh), cols[Math.floor(r() * cols.length)], INK_LINE, .25); x += w + .3 + (r() < .15 ? 3 : 0); } });
   plant(g, x1 - 6, (y0 + y1) / 2, h, .5);
 }
-function beanbag(x, y, col) {
-  ellipseFloor(g, x, y, 6, 0, shade(col, .85)); ellipseFloor(g, x, y, 6.4, 2.5, col); ellipseFloor(g, x - .5, y - .5, 4.8, 5.5, shade(col, 1.08));
+// a low bookcase along a wall: books stand on top and the end shows its spines
+function wallShelf(x0, y0, x1, y1, h) {
+  box(g, x0, y0, 0, x1, y1, h, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
+  const cols = [PAL.coral, PAL.yellow, PAL.cobalt, PAL.mintDark, PAL.sky, PAL.coralLight, "#2c3a66"], r = mulberry(9);
+  [1.5].forEach(z => { for (let x = x0 + 1; x < x1 - 1.4;) { const w = 1 + r() * 1.2, hh = 4 + r() * 1.6; poly(g, quadY(y1 + .05, x, x + w, z, z + hh), cols[Math.floor(r() * cols.length)], INK_LINE, .22); x += w + .25; } });
+  // on top: runs of books standing up, a lamp and a couple of plants
+  for (let y = y0 + 3; y < y1 - 4;) {
+    if (r() < .22) { y += 6; continue; }
+    const n = 3 + Math.floor(r() * 5);
+    for (let k = 0; k < n && y < y1 - 4; k++) { const d = 1 + r() * .8, hh = 4 + r() * 2.5, c = cols[Math.floor(r() * cols.length)]; box(g, x0 + 2, y, h, x1 - 2.5, y + d, h + hh, { top: shade(c, 1.1), left: c, right: shade(c, .85) }, .22); y += d + .15; }
+    y += 3;
+  }
+  plant(g, (x0 + x1) / 2, y0 + 20, h, .45); plant(g, (x0 + x1) / 2, y1 - 10, h, .55);
+  seg(g, iso((x0 + x1) / 2, y0 + 6, h), iso((x0 + x1) / 2, y0 + 6, h + 13), INK_LINE, .5);
+  box(g, (x0 + x1) / 2 - 2.5, y0 + 3.5, h + 11, (x0 + x1) / 2 + 2.5, y0 + 8.5, h + 15, { top: PAL.yellow, left: PAL.yellow, right: shade(PAL.yellow, .85) }, .3);
+}
+// a slouchy beanbag: a soft lump, taller at the back where it props you up, with a dent where you sit
+function beanbag(x, y, col, sat) {
+  const [cx, cy] = iso(x, y, 0), rx = 9, ry = 4.4, h = sat ? 6.2 : 8.4;
+  shadowAt(x, y, 7.5);
+  g.beginPath(); g.moveTo(cx - rx, cy);
+  g.bezierCurveTo(cx - rx * 1.08, cy - h * .7, cx - rx * .6, cy - h * 1.05, cx - rx * .05, cy - h);
+  g.bezierCurveTo(cx + rx * .45, cy - h * 1.35, cx + rx * 1.05, cy - h * 1.2, cx + rx * 1.02, cy - h * .3);
+  g.bezierCurveTo(cx + rx * 1.02, cy + ry * .9, cx + rx * .3, cy + ry * 1.2, cx - rx * .1, cy + ry * 1.05);
+  g.bezierCurveTo(cx - rx * .6, cy + ry, cx - rx * .98, cy + ry * .55, cx - rx, cy);
+  g.closePath(); g.fillStyle = col; g.fill(); g.strokeStyle = INK_LINE; g.lineWidth = HAIR; g.lineJoin = "round"; g.stroke();
+  // the dip in the seat, a seam over the top and a soft highlight
+  g.beginPath(); g.ellipse(cx - rx * .12, cy - h * .62, rx * .5, ry * .55, -.12, 0, Math.PI * 2); g.fillStyle = shade(col, .86); g.fill();
+  g.beginPath(); g.moveTo(cx + rx * .35, cy - h * 1.2); g.bezierCurveTo(cx + rx * .2, cy - h * .4, cx + rx * .3, cy + ry * .2, cx + rx * .15, cy + ry * 1.1);
+  g.strokeStyle = shade(col, .75); g.lineWidth = .35; g.stroke();
+  g.beginPath(); g.moveTo(cx - rx * .75, cy - h * .35); g.quadraticCurveTo(cx - rx * .6, cy - h * .85, cx - rx * .25, cy - h * .95);
+  g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = .7; g.stroke();
 }
 // a free desk that is clearly someone's: a jacket over the chair, a bag on the floor, a closed laptop
 function hotDesk(s, i) {
