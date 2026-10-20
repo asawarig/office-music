@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Silkscreen&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: one column. Header with transport controls, the isometric pixel office as the hero,
-   a coverage strip that fills as roles are hired, then the hiring desk of nine role cards.
+   a coverage strip that fills as roles are hired, then the hiring desk of eight role cards.
    UI chrome borrows the pixel look: hard 2px outlines and offset shadows, no soft blur. */
 :root {
   --bg: #e7eef5;
@@ -365,7 +365,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
     <div class="brand">
       <p class="eyebrow"><span class="dot" id="beatDot"></span>A group health jam</p>
       <h1>Office <em>Pulse</em></h1>
-      <p class="lede">Every teammate makes one office noise: ringing phones, yawns, coughs, the coffee machine, typing, clicking, the claims stamp, a pen on a glass and the photocopier. Hire them into the empty office and the noises lock into one groove. Cover all nine benefits to hear the whole band.</p>
+      <p class="lede">Every teammate makes one office noise: ringing phones, coughs, the coffee machine, typing, clicking, the claims stamp, a pen on a glass and the photocopier. Hire them into the empty office and the noises lock into one groove. Cover all eight benefits to hear the whole band.</p>
     </div>
     <div class="transport">
       <button class="btn play" id="playBtn" aria-pressed="false">
@@ -391,7 +391,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
   <section class="cover" aria-live="polite">
     <div class="cover-head">
       <div class="cover-label">Team cover</div>
-      <div class="cover-num" id="coverNum">0<span>/9</span></div>
+      <div class="cover-num" id="coverNum">0<span>/8</span></div>
     </div>
     <div class="cover-body">
       <div class="bar" id="coverBar"></div>
@@ -408,7 +408,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
   </section>
 
   <footer class="foot">
-    <span>12 desks · 9 office noises · 1 policy that covers the whole team.</span>
+    <span>12 desks · 8 office noises · 1 policy that covers the whole team.</span>
     <span>Hire two of the same role and the second one plays a harmony part.</span>
   </footer>
 </div>
@@ -472,10 +472,6 @@ function initAudio() {
   A.dly.connect(lp); lp.connect(fb); fb.connect(A.dly); lp.connect(dOut); dOut.connect(A.master);
   setDelayTime();
 
-  // glottal source: harmonics rolling off faster than a sawtooth, so the voice is soft instead of buzzy
-  const H = 48, re = new Float32Array(H), im = new Float32Array(H);
-  for (let n = 1; n < H; n++) im[n] = 1 / Math.pow(n, 1.7);
-  A.glottal = ctx.createPeriodicWave(re, im);
   A.clip = new Float32Array(256).map((_, i) => Math.tanh((i / 128 - 1) * 4));
   A.noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
   const nd = A.noise.getChannelData(0);
@@ -546,7 +542,7 @@ function tone(dest, t, freq, dur, o = {}) {
   osc.connect(f); f.connect(g); g.connect(dest); osc.start(t); osc.stop(t + dur + (o.release || 0.08) + 0.05);
 }
 
-// vowel formants (Hz) for the human sounds: yawns, coughs, sneezes
+// vowel formants (Hz) for the human sounds: coughs and sneezes
 const VOWELS = { a: [800, 1150, 2900], o: [450, 800, 2830], u: [325, 700, 2530], h: [700, 1220, 2600] };
 // parallel band-pass bank that glides from one vowel to another; returns the node to feed a source into
 function formants(dest, t, from, to, dur, scale = 1, q = [6, 9, 12], gains = [1, .6, .3]) {
@@ -560,12 +556,6 @@ function formants(dest, t, from, to, dur, scale = 1, q = [6, 9, 12], gains = [1,
   });
   return inp;
 }
-const YAWN_VOWELS = {
-  h: { f: [650, 1150, 2500, 3400], bw: [250, 300, 350, 400] },
-  a: { f: [730, 1090, 2440, 3400], bw: [90, 110, 170, 250] },
-  o: { f: [520, 840, 2410, 3300], bw: [80, 100, 160, 250] },
-  m: { f: [260, 1100, 2300, 3200], bw: [60, 200, 300, 400] },
-};
 function voiced(t, f, dur) { const o = A.ctx.createOscillator(); o.type = "sawtooth"; o.frequency.setValueAtTime(f, t); o.start(t); o.stop(t + dur + 0.1); return o; }
 
 const SND = {
@@ -660,47 +650,6 @@ const SND = {
     tone(d, t, f, dur, { vel: v, attack: 0.004, release: 0.02 });
     tone(d, t, f * 1.5, dur, { vel: v * 0.3, attack: 0.004, release: 0.02 });
   },
-  // a yawn: breathy unvoiced inhale, then a voiced "HAAA" that starts a fifth up and slides down to the
-  // chord root while the mouth goes "ah" > "oh" > "mm". Soft glottal wave, pitch jitter and breath keep it human.
-  yawn(d, t, f, v, scale = 1) {
-    const ctx = A.ctx, inh = 0.55, ex = 1.55, t1 = t + inh, end = t1 + ex;
-    const out = ctx.createGain(); out.gain.value = 2.4;
-    const lp = filt("lowpass", 5000, 0.5);
-    lp.frequency.setValueAtTime(5000, t); lp.frequency.setValueAtTime(5000, end - 0.4); lp.frequency.linearRampToValueAtTime(650, end);
-    out.connect(lp); lp.connect(d);
-    const inp = ctx.createGain();
-    const seq = [[t, "h"], [t1 + 0.05, "a"], [t1 + ex * 0.55, "o"], [end - 0.3, "o"], [end - 0.05, "m"]];
-    for (let i = 0; i < 4; i++) {
-      const bp = ctx.createBiquadFilter(); bp.type = "bandpass";
-      seq.forEach(([at, vw], k) => {
-        const F = YAWN_VOWELS[vw].f[i] * scale, Q = F / YAWN_VOWELS[vw].bw[i];
-        if (k === 0) { bp.frequency.setValueAtTime(F, at); bp.Q.setValueAtTime(Q, at); }
-        else { bp.frequency.linearRampToValueAtTime(F, at); bp.Q.linearRampToValueAtTime(Q, at); }
-      });
-      const g = ctx.createGain(); g.gain.value = [1, 0.5, 0.22, 0.1][i];
-      inp.connect(bp); bp.connect(g); g.connect(out);
-    }
-    // voice
-    const o = ctx.createOscillator(); o.setPeriodicWave(A.glottal);
-    o.frequency.setValueAtTime(f * 1.45, t1 - 0.05);
-    o.frequency.linearRampToValueAtTime(f * 1.55, t1 + 0.22);
-    o.frequency.exponentialRampToValueAtTime(f, t1 + ex * 0.78);
-    [[4.7, 0.008], [0.9, 0.014]].forEach(([rate, depth]) => {
-      const l = ctx.createOscillator(), lg = ctx.createGain();
-      l.frequency.value = rate; lg.gain.value = f * depth; l.connect(lg); lg.connect(o.frequency); l.start(t1); l.stop(end + 0.1);
-    });
-    const vg = ctx.createGain();
-    vg.gain.setValueAtTime(0.0001, t1 - 0.04); vg.gain.linearRampToValueAtTime(v, t1 + 0.14);
-    vg.gain.linearRampToValueAtTime(v * 0.75, t1 + ex * 0.6); vg.gain.linearRampToValueAtTime(v * 0.35, end - 0.25);
-    vg.gain.exponentialRampToValueAtTime(0.0001, end);
-    o.connect(vg); vg.connect(inp); o.start(t1 - 0.05); o.stop(end + 0.1);
-    // breath: the inhale, then breathiness under the voice
-    const n = noiseSrc(t, inh + ex + 0.1), hp = filt("highpass", 350, 0.5), ng = ctx.createGain();
-    ng.gain.setValueAtTime(0.0001, t); ng.gain.linearRampToValueAtTime(v * 0.9, t + inh * 0.85);
-    ng.gain.linearRampToValueAtTime(v * 0.3, t1 + 0.12); ng.gain.linearRampToValueAtTime(v * 0.18, end - 0.3);
-    ng.gain.exponentialRampToValueAtTime(0.0001, end);
-    n.connect(hp); hp.connect(ng); ng.connect(inp);
-  },
   // a dry cough: glottal click, chest thump, then a rough voiced "ugh"
   cough(d, t, v, f0 = 150) {
     burstN(d, t, v * 0.3, "highpass", 2000, 1, 0.005);
@@ -794,22 +743,6 @@ const ROLES = {
       if (!p) return false;
       const dur = c.sixteenth * p.len * 0.85;
       m.variant % 2 ? SND.beep(m.out, t, mtof(p.n), dur, 0.25) : SND.ring(m.out, t, mtof(p.n), dur, 0.5);
-      return true;
-    },
-  },
-  yawn: {
-    title: "Night-Shift Napper", sound: "Yawning", covers: "Sleep and mental wellness", color: "#8e5bd6",
-    gain: 0.5, rev: 0.4, dly: 0.1,
-    play(m, s, t, c) {
-      if (s !== 0) return false;
-      // call and response: the first yawner takes bars 1 and 3, a second one answers higher on 2 and 4
-      if (m.variant % 2 === 0) {
-        if (c.bar % 2) return false;
-        SND.yawn(m.out, t, mtof(c.chord[0]), 0.5);
-      } else {
-        if (c.bar % 2 === 0) return false;
-        SND.yawn(m.out, t + c.sixteenth * 2, mtof(c.chord[0] + 12), 0.4, 1.17);
-      }
       return true;
     },
   },
@@ -991,7 +924,6 @@ const ICONS = {
   copier:   ["#####", "#...#", "#####", "#.#.#", "#####"],
   heart:    [".#.#.", "#####", "#####", ".###.", "..#.."],
   phone:    ["#####", "#...#", ".###.", "#####", "#####"],
-  yawn:     ["#####", "...#.", "..#..", ".#...", "#####"],
   cough:    ["#.#.#", ".###.", "##.##", ".###.", "#.#.#"],
   coffee:   ["..#.#", ".#.#.", "####.", "#####", "###.."],
   typing:   [".....", "#####", "#.#.#", "#####", "....."],
@@ -1326,7 +1258,7 @@ function note(x, y, color) {
   particles.push({ x: x + (Math.random() - .5) * 10, y, vx: (Math.random() - .5) * .25, vy: -.45 - Math.random() * .25, life: 1, color, kind: "note" });
 }
 function celebrate() {
-  toast("All nine benefits covered. This is what a healthy office sounds like.");
+  toast("All eight benefits covered. This is what a healthy office sounds like.");
   if (reduceMotion) return;
   const cols = ROLE_IDS.map(id => ROLES[id].color);
   for (let i = 0; i < 120; i++) particles.push({ x: Math.random() * LW, y: -Math.random() * 120, vx: (Math.random() - .5) * .6, vy: Math.random() * .8 + .5, life: 2, color: pick(cols, Math.random), kind: "confetti" });

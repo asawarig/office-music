@@ -5,7 +5,6 @@ An isometric pixel-art office where every hire adds an office noise to the band:
 | Teammate | Noise | Part | Second hire adds |
 |---|---|---|---|
 | Teleconsult Caller | Phone rings | Lead melody | Digital desk-phone beeps |
-| Night-Shift Napper | Yawning | Chords (call and response) | A higher yawn answering on the off bars |
 | Flu-Season Survivor | Coughing | Snare on the backbeat | Small coughs and an "ah-ah-CHOO" fill |
 | Espresso Addict | Coffee machine buzz | Bass, plus knock-box kick | Steam wand, grinder, drips |
 | Deadline Typist | Typing | Hi-hats, spacebar | Fast burst into an Enter-key slam |
@@ -14,7 +13,7 @@ An isometric pixel-art office where every hire adds an office noise to the band:
 | Hydration Hero | Pen on a glass of water | Bell melody | A higher answering line |
 | Policy Photocopier | Photocopier sweep | Whoosh and sub bass each bar | Buzzy paper-feed stabs |
 
-Each teammate covers one benefit on a group health policy. Cover all nine to hear the full band.
+Each teammate covers one benefit on a group health policy. Cover all eight to hear the full band.
 
 Everything is in one static `index.html`: Web Audio synthesis (no samples) and a hand-rasterised canvas.
 
