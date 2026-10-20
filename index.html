@@ -2310,28 +2310,32 @@ function drawDeskTop(i, s, m, col, lit, F) {
   const L = s.L, act = F ? F.P.act : null;
   [[-15, -6], [15, -6], [-15, 6], [15, 6]].forEach(([u, v]) => { const [x, y] = L(u, v); seg(g, iso(x, y, 0), iso(x, y, 14), INK_LINE, .55); });
   lbox(g, L, -16, -7, 14, 16, 7, 15.6, { top: "#ffffff", left: PAL.wallShade, right: PAL.wallShade });
+  // things on the desk are drawn back to front, so nothing lies on top of something in front of it
+  const items = [], put = (u, v, fn) => { const [x, y] = L(u, v); items.push({ d: x + y, fn }); };
   // laptop, screen toward the sitter; the lid takes the role colour (moved aside for paperwork)
   const lu = act === "stamp" ? 8 : 0, hot = !m && LAYOUT.hot.includes(i);
-  if (!hot) {
+  if (!hot) put(lu, -1, () => {
     lbox(g, L, lu - 5, -5, 15.6, lu + 5, 2, 16.2, { top: "#eeeeec", left: "#e2e2e0", right: "#e2e2e0" });
     const lidCol = col ? (lit ? shade(col, 1.25) : col) : "#ffffff";
     poly(g, [iso(...L(lu - 5, 2, 16.2)), iso(...L(lu + 5, 2, 16.2)), iso(...L(lu + 5, 3.5, 23.5)), iso(...L(lu - 5, 3.5, 23.5))], lidCol);
-  }
+  });
   const [mx, my] = L(12, 3);
-  if (act !== "stamp") mug(mx, my, 15.6, col || "#ffffff");
-  if (act !== "clicking" && act !== "stamp") poly(g, [L(-13, -3), L(-7, -3), L(-7, 4), L(-13, 4)].map(([x, y]) => iso(x, y, 15.7)), i % 2 ? PAL.yellow : PAL.mint, INK_LINE, .35);
-  if (!F) return;
-  const W = F.W;
-  for (const pr of F.P.props) {
-    if (pr.kind === "mouse") { const p = W(pr.at); cylinder(g, p[0], p[1], 15.6, 16.3 - (pr.down ? .15 : 0), 1.2, "#ffffff", .35); }
-    if (pr.kind === "papers") { const [a, b] = W(pr.at); poly(g, floorRect(a - 3.5, b - 3.5, a + 3.5, b + 3.5, 15.75), "#ffffff", INK_LINE, .35); if (m.hits % 2) poly(g, floorRect(a - 1.4, b - 1.4, a + 1.4, b + 1.4, 15.8), null, PAL.coral, .5); }
-    if (pr.kind === "pile") {
+  if (act !== "stamp") put(12, 3, () => mug(mx, my, 15.6, col || "#ffffff"));
+  if (act !== "clicking" && act !== "stamp") put(-10, .5, () => poly(g, [L(-13, -3), L(-7, -3), L(-7, 4), L(-13, 4)].map(([x, y]) => iso(x, y, 15.7)), i % 2 ? PAL.yellow : PAL.mint, INK_LINE, .35));
+  const W = F ? F.W : null;
+  for (const pr of F ? F.P.props : []) {
+    const at = pr.at && W(pr.at), add = fn => items.push({ d: at[0] + at[1], fn });
+    if (pr.kind === "mouse") add(() => cylinder(g, at[0], at[1], 15.6, 16.3 - (pr.down ? .15 : 0), 1.2, "#ffffff", .35));
+    if (pr.kind === "papers") add(() => { const [a, b] = at; poly(g, floorRect(a - 3.5, b - 3.5, a + 3.5, b + 3.5, 15.75), "#ffffff", INK_LINE, .35); if (m.hits % 2) poly(g, floorRect(a - 1.4, b - 1.4, a + 1.4, b + 1.4, 15.8), null, PAL.coral, .5); });
+    if (pr.kind === "pile") add(() => {
       // a few books and folders waiting their turn
-      const [a, b] = W(pr.at); let z = 15.6;
+      const [a, b] = at; let z = 15.6;
       [["#5b6ee1", 3.4, 1.2], [PAL.coral, 3, 1], [PAL.yellow, 3.2, .9], ["#2f7f57", 2.8, 1.1]].forEach(([c, r, h], k) => { box(g, a - r + k * .3, b - r * .7, z, a + r - k * .2, b + r * .7, z + h, { top: shade(c, 1.12), left: c, right: shade(c, .85) }, .3); z += h; });
-    }
-    if (pr.kind === "stapler") { const [a, b] = W(pr.at); box(g, a - 1, b - 1, 15.6, a + 1, b + 1, 16.6 - pr.down * .4, { top: "#2b2b2e", left: "#2b2b2e", right: "#2b2b2e" }, .3); }
+    });
+    if (pr.kind === "stapler") add(() => { const [a, b] = at; box(g, a - 1, b - 1, 15.6, a + 1, b + 1, 16.6 - pr.down * .4, { top: "#2b2b2e", left: "#2b2b2e", right: "#2b2b2e" }, .3); });
   }
+  // flat paper goes under anything standing at about the same depth
+  items.sort((p, q) => p.d - q.d).forEach(it => it.fn());
 }
 function meetingTableTop() {
   box(g, 14, 36, 14.5, 50, 52, 16, { top: "#ffffff", left: PAL.wallShade, right: PAL.wallShade });
