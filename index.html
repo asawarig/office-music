@@ -911,7 +911,7 @@ for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) {
   const [sx, sy] = iso(px, py);
   DESKS.push({
     x0, y0, px, py, sx, sy, depth: x0 + y0,
-    box: [iso(x0, y0 + 14)[0] - 3, sy - 42, iso(x0 + 32, y0)[0] + 3, iso(x0 + 32, y0 + 14)[1] + 3],
+    box: [iso(x0, y0 + 14)[0] - 3, sy - 50, iso(x0 + 32, y0)[0] + 3, iso(x0 + 32, y0 + 14)[1] + 3],
     tagY: iso(px, y0 + 14)[1] + 3,
   });
 }
@@ -940,19 +940,156 @@ const NOTE = ["0111", "0101", "0100", "0100", "1100", "1100"];
 /* ---------- Office state ---------- */
 const NAMES = ["Priya", "Arjun", "Meera", "Kabir", "Ananya", "Rohan", "Zoya", "Dev", "Isha", "Neel", "Sara", "Vikram",
                "Tara", "Aman", "Leela", "Omar", "Nina", "Ravi", "Maya", "Jay", "Fatima", "Sam", "Kiran", "Aisha"];
-const SKINS = ["#f6d3b3", "#e8b48a", "#c98d5e", "#a46a3f", "#7a4b2a", "#f1c6a0"];
-const HAIRS = ["#2b1b14", "#4a2c1a", "#111111", "#7a4a22", "#c9a26a", "#5b2a4a", "#8a8a8a"];
+/* ---------- People: faces read pixel for pixel from the reference sheet ----------
+   o = ink, s = light (skin, or light hair). Faces turn slightly to the viewer's right; a flipped person
+   turns left, head, body and legs together. */
+const FACES = [
+  [".....oooooooo...", "....oooooooooo..", "...oooossooosoo.", "..oooossssoossoo", "..ooosssssssssso", "..ooossssoosooso", "..ooosssosssssoo", ".oooosssssssssso", "ossoossssosssoso", "osososssssssssso", ".ossssssssssssso", "..oossssossssoso", "....ossssoooosso", "....osssssssssso", ".....osssssssso.", "......oooooooo.."],
+  ["...ooooooooo....", "..ooooooooooo...", ".ooooooooooooo..", ".oooossssssssoo.", ".ooosssssssssso.", ".ooosssssssssso.", "ossossooossoooo.", "osossssossssoso.", "ossssssossssoso.", ".oossssssssssso.", "..ossssosssossso", "...ossssooosssso", "....ossssssssso.", ".....ooooooooo.."],
+  ["...ooooooo.oooo.", "..oooooooooooo..", ".oooosooooooo...", "ooossooosoooooo.", "oooooossssoooooo", "ooooossssssooo..", "oooossssssssoo..", "oooossosssosso..", "ossossosssosso..", "ossossosssossso.", ".oossssssssssso.", "..osssssoosssso.", "...ossssssssso..", "....ooooooooo..."],
+  ["...oooooooooo...", "..osssssssssso..", ".osssssssssssso.", "osssssosssssssso", "osssssoossssssso", "osssssososssssso", "osssssossoooooo.", "ossssossssssso..", "ossoossoossooo..", "osososssossoso..", "ososssssssssso..", ".osoossssoosso..", "..ossosssssso...", "...ooooooooo...."],
+  ["....ooooooo.....", "...ossssssso....", "..ossssssssso...", ".ossssssssssso..", ".osssssssssssso.", ".osssooosssoooo.", ".oooosssooossso.", "osssossoosossoo.", "osssosssosossso.", ".osssooosssoooo.", "..ossssssssssso.", "..osssssssssssso", "...osssssoosssso", "....ossssssssso.", ".....ooooooooo.."],
+  ["..oo............", ".ossooooooooo...", "ossossssssssso..", "osossssssssssso.", ".ossssssssssssso", ".ossssoossssssso", ".osssossoossssso", ".ossosssssoossso", ".oooossosssooooo", ".ossossosssosso.", ".ossossosssosso.", "..osssssssssssso", "..osssssssoossso", "...osssssssssso.", "....oooooooooo.."],
+  ["...oooooooooo...", "..oooooooooooo..", ".oooooooooooooo.", "oooosoooooooosoo", "ooooossssssssooo", "oooooooooooooooo", "oooooooooooooooo", "oooooosssssssoo.", "ooooossoossooo..", "ooososssssssso..", "ooossssssoosso..", ".oooosssssssso..", "..oooosssssso...", "...ooooooooo...."],
+  ["....oooooooo...", "...osssssssso..", "..osssssssssso.", ".osssssssssssso", ".osssssssssssso", ".ossssoosssooso", ".oossossosossoo", "ossssosssssssso", "osossossosossoo", ".ossssosssssoso", "..ossssssssssso", "..osssssossosso", "..ossssssoossso", "...ossssssssso.", "....ooooooooo.."],
+  ["...ooooooooo...", "..ossssssssso..", ".ossssssssssso.", "ossssssssssssso", "ossssoossssssso", "osssossoossssso", "osssossssooosso", "ooososssssssoo.", "ossoossossoso..", "ossssssossoso..", ".ossssssssssso.", ".ossssssooosso.", "..ossssssssso..", "...ooooooooo..."],
+  ["...ooooooooo....", "..ooooooooooo...", ".oooooosoooooo..", "oooooosssoooooo.", "ooooossssssssso.", "ooooossossossso.", "ooooossossosssso", "ooooosssssssssso", "ooooossossosssso", ".ooossssoosssso.", "..osssssssssso..", "...osssssssso...", "....osssssso....", ".....oooooo....."],
+  ["...oooooooooo...", "..osooooooooso..", ".ooossssssssooo.", ".ooooooooooooooo", ".oooossooooooooo", ".ooossssooooooo.", ".ooosssssssssso.", "ossosssoosssooo.", "osossssossssoso.", "ossssssossssoso.", ".oossssssssssso.", "..ossssosssossso", "...ossssooosssso", "....ossssssssso.", ".....ooooooooo.."],
+  ["...oooooooooo...", "..oooooooooooo.o", ".oooooooooooooo.", "oooooooooooooooo", "oooooooooooooooo", "oooosssssssooooo", "ooosssssssssoooo", ".osooosssooosooo", ".ossoosssoossoso", ".ossssssssssssso", ".osssooooosssso.", ".osssosssosssso.", "..osssooosssso..", "...osssssssso...", "....oooooooo...."],
+  [".....ooooo......", "....ooooooo.....", "...oooooooooo...", "..oooooooooooo..", "..oooooooooooo..", ".oooooooooooooo.", ".oooooooooooooo.", "oooooossssssooo.", "ossoossssssssoso", "ossoosoossoososo", ".osoossssosssoso", "..ooooossssoooo.", "..ooooosoooooo..", "...oooossssooo..", "....ooooooooo...", ".....ooooooo...."],
+  ["....ooooooooo...", "...ooooooooooo..", "..ooooooooooooo.", ".oooooossssssoo.", ".oooosssssssssoo", ".oooooosssssoooo", "osoosssosssossso", "ossossososososso", "oososssssssssso.", ".ooossssoooooso.", ".oooossoosssooo.", ".ooooooooooooooo", "..oooooooooooooo", "...ooooooooooooo", "....oooooooooooo", ".....oooooooooo."],
+  ["......ooooo.....", "....ooooooooo...", "...oooosoooooo..", "..oooooosoooooo.", ".ooooooossssoooo", ".oooooossssssooo", "oooooossssssssoo", "ooosoosooosooooo", "ooosoossssssssoo", "ooosoossssssssoo", "oooooossooosssoo", ".ooooossossssooo", ".ooooossssssooo.", "..ooooossssooo..", ".......oooo....."],
+  ["...oooooooooo...", "..oooooooooooo..", ".oooooooooooooo.", "oooooooosoooooo.", "ooooooossooooooo", "oooooossssssoooo", "oooosssssssssooo", "oooossooossoooo.", "oososssossssoso.", ".osssssssssssso.", "..osssssoooosso.", "..oosssoossooso.", "..ooooooooooooo.", "...oooooooooooo.", "....oooooooooo..", ".....oooooooo..."],
+];
+// rows of light hair on the light-haired faces, so skin tones don't paint their hair
+const LIGHT_HAIR = { 3: 6, 5: 4, 8: 6 };
+const FACE_SKIN = [0, 1, 5, 0, 2, 0, 3, 5, 1, 4, 2, 0, 4, 3, 1, 2];
+const PEOPLE_SKINS = ["#f6d3b3", "#e8b48a", "#c98d5e", "#a46a3f", "#7a4b2a", "#f1c6a0"];
+const INK = "#2b2730", BLONDE = "#f2d28a";
+
+/* Bodies: seated, turned three-quarters to the right to match the heads. A build sets the torso width,
+   an outfit paints the top, and the lap and legs point forward. Palette letters: o ink, c role colour,
+   d shade, l lighter, w white, g grey, s skin, k lanyard, p coral, n trousers, m trouser shade, x shoes. */
+const BUILDS = [{ name: "Slim", tw: 7 }, { name: "Regular", tw: 9 }, { name: "Broad", tw: 11 }];
+const OUTFITS = [
+  { name: "Tee", paint(g, n) { neck(g, n); } },
+  { name: "Scrubs", paint(g, n) {
+      g[1][n - 2] = g[1][n - 1] = g[1][n] = g[1][n + 1] = "s"; g[2][n - 1] = g[2][n] = "s";
+      g[2][n - 2] = g[2][n + 1] = "o"; g[3][n - 1] = g[3][n] = "o";
+      g[4][4] = g[4][5] = "d"; } },
+  { name: "Shirt and tie", paint(g, n) {
+      swapTop(g, { c: "w", d: "g" });
+      g[1][n - 1] = g[1][n] = "s"; g[1][n - 2] = g[1][n + 1] = "o"; g[2][n - 2] = g[2][n + 1] = "o";
+      for (let r = 2; r <= 6; r++) g[r][n - 1] = g[r][n] = "c";
+      g[2][n - 1] = "d"; } },
+  { name: "Hoodie", paint(g, n, tw) {
+      for (let x = n - 4; x <= n + 3; x++) if (g[1][x] === "c") g[1][x] = "d";
+      g[1][n - 1] = g[1][n] = "s";
+      for (let r = 2; r <= 4; r++) { g[r][n - 2] = "w"; g[r][n + 1] = "w"; }
+      for (let x = 4; x <= tw + 1; x++) g[5][x] = "o";
+      g[6][4] = g[6][tw + 1] = "o"; } },
+  { name: "Member ID", paint(g, n) {
+      neck(g, n);
+      g[3][n - 2] = g[3][n + 1] = "k"; g[4][n - 1] = g[4][n] = "k";
+      for (let x = n - 2; x <= n + 1; x++) { g[5][x] = "o"; g[7][x] = "o"; }
+      g[6][n - 2] = g[6][n + 1] = "o"; g[6][n - 1] = "w"; g[6][n] = "p"; } },
+  { name: "Cardigan", paint(g, n) {
+      for (let r = 1; r <= 7; r++) g[r][n - 1] = g[r][n] = "w";
+      g[1][n - 1] = g[1][n] = "s";
+      for (let r = 2; r <= 7; r++) { g[r][n - 2] = "d"; g[r][n + 1] = "d"; }
+      g[3][n + 1] = g[5][n + 1] = "o"; } },
+  { name: "Striped jumper", paint(g, n) {
+      for (const r of [3, 5]) for (let x = 1; x < g[r].length - 1; x++) if (g[r][x] === "c") g[r][x] = "l";
+      neck(g, n); } },
+];
+const LOWERS = [
+  { name: "Navy trousers", n: "#2c3f86", skirt: false },
+  { name: "Khakis", n: "#c9a66b", skirt: false },
+  { name: "Jeans", n: "#4a6fa5", skirt: false },
+  { name: "Brown trousers", n: "#6b4a33", skirt: false },
+  { name: "Skirt", n: "#6b3a5e", skirt: true },
+];
+const SHOES = ["#2b2730", "#5a3a28", "#e9e6df"];
+function neck(g, n) { for (let x = n - 2; x <= n + 1; x++) { g[1][x] = "s"; g[2][x] = "o"; } }
+function swapTop(g, map) { for (let r = 0; r <= 7; r++) g[r].forEach((ch, i) => { if (map[ch]) g[r][i] = map[ch]; }); }
+
+const LEG = 6;   // how far the thighs reach forward past the torso
+function bodyRows(build, outfit, skirt) {
+  const tw = BUILDS[build].tw, W = tw + 7, K = W + LEG - 1, TW = K + 3;
+  const g = Array.from({ length: 20 }, () => new Array(TW).fill("."));
+  const set = (r, x0, str) => [...str].forEach((ch, i) => { g[r][x0 + i] = ch; });
+  // torso
+  set(0, 2, "o".repeat(W - 4));
+  set(1, 1, "o" + "c".repeat(W - 4) + "o");
+  for (let r = 2; r <= 6; r++) set(r, 0, "ocd" + "c".repeat(tw) + "dcco");
+  set(7, 0, "osd" + "c".repeat(tw) + "dsso");
+  // lap: hips under the torso, thighs reaching forward to the knee
+  set(8, 0, "o" + "n".repeat(W - 2) + "o".repeat(LEG + 1));
+  set(9, 0, "o" + "n".repeat(K - 1) + "o");
+  set(10, 0, "o" + "n".repeat(K - 5) + (skirt ? "n" : "m") + "n".repeat(3) + "o");
+  // shins down from the knee (bare under a skirt), then a shoe pointing forward
+  const shin = skirt ? "s" : "n", crease = skirt ? "s" : "m";
+  set(11, 1, "o".repeat(K - 5)); set(11, K - 4, crease + shin.repeat(3) + "o");
+  for (let r = 12; r <= 17; r++) set(r, K - 5, "o" + crease + shin.repeat(3) + "o");
+  set(18, K - 5, "o" + "xxxxxx" + "o");
+  set(19, K - 5, "o".repeat(8));
+  const n = 3 + Math.floor(tw / 2);   // the neck sits a little toward the near (right) side
+  OUTFITS[outfit].paint(g, n, tw);
+  return { rows: g.map(r => r.join("")), neck: n, torsoCenter: (W - 1) / 2, seatRow: 11 };
+}
+
+// one sprite per look: head on a seated body, cached
+const spriteCache = new Map();
+function buildSprite(face, build, outfit, lower, shoe, color, skinOverride) {
+  const key = [face, build, outfit, lower, shoe, color, skinOverride || ""].join("-");
+  if (spriteCache.has(key)) return spriteCache.get(key);
+  const f = FACES[face], L = LOWERS[lower], body = bodyRows(build, outfit, L.skirt);
+  const hw = f[0].length, hh = f.length, bw = body.rows[0].length;
+  const headX0 = Math.round(body.neck - 0.5 - (hw - 1) / 2);
+  const left = Math.min(0, headX0), W = Math.max(bw, headX0 + hw) - left, H = hh + body.rows.length - 1;
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const c = cv.getContext("2d"), skin = skinOverride || PEOPLE_SKINS[FACE_SKIN[face]];
+  const pal = { o: INK, c: color, d: shade(color, .72), l: shade(color, 1.35), w: "#ffffff", g: "#c9ccd6", s: skin, k: "#7a2e6e", p: "#ff6b5e",
+                n: L.n, m: shade(L.n, .75), x: SHOES[shoe] };
+  const put = (x, y, col) => { c.fillStyle = col; c.fillRect(x, y, 1, 1); };
+  body.rows.forEach((r, j) => [...r].forEach((ch, i) => { if (ch !== ".") put(i - left, hh - 1 + j, pal[ch]); }));
+  f.forEach((r, j) => [...r].forEach((ch, i) => {
+    if (ch === ".") return;
+    let col = ch === "o" ? INK : skin;
+    if (ch === "s" && !skinOverride && LIGHT_HAIR[face] != null && j <= LIGHT_HAIR[face]) col = BLONDE;
+    put(headX0 + i - left, j, col);
+  }));
+  const out = { cv, W, H, seatX: body.torsoCenter - left, seatY: hh - 1 + body.seatRow, headX: headX0 - left, headW: hw };
+  spriteCache.set(key, out);
+  return out;
+}
+// draw so the seat point lands on (sx, sy); a mirrored person faces left
+function blitPerson(c, spr, sx, sy, mirror) {
+  const ax = mirror ? spr.W - 1 - spr.seatX : spr.seatX;
+  const x = Math.round(sx - ax), y = sy - spr.seatY;
+  if (mirror) { c.save(); c.translate(x + spr.W, y); c.scale(-1, 1); c.drawImage(spr.cv, 0, 0); c.restore(); }
+  else c.drawImage(spr.cv, x, y);
+  return { x, y, headL: mirror ? x + spr.W - spr.headX - spr.headW : x + spr.headX, headR: mirror ? x + spr.W - spr.headX : x + spr.headX + spr.headW };
+}
+function personSprite(m) { return buildSprite(m.face, m.build, m.outfit, m.lower, m.shoe, ROLES[m.role].color); }
 let members = [];
 let nextId = 1;
 const dist = (a, b) => Math.hypot(a.sx - b.sx, a.sy - b.sy);
 const coveredSet = () => new Set(members.map(m => m.role));
 
+// prefer a face nobody in the office has yet
+function pickFace(r) {
+  const used = new Set(members.map(m => m.face));
+  const free = FACES.map((_, i) => i).filter(i => !used.has(i));
+  return pick(free.length ? free : FACES.map((_, i) => i), r);
+}
 function makeMember(roleId, desk, name, seed) {
   const r = rng(seed);
   const m = {
     id: nextId++, role: roleId, desk, name, seed,
     variant: members.filter(o => o.role === roleId).length,
-    skin: pick(SKINS, r), hair: pick(HAIRS, r), hairStyle: Math.floor(r() * 3),
+    face: pickFace(r), build: Math.floor(r() * BUILDS.length), outfit: Math.floor(r() * OUTFITS.length),
+    lower: Math.floor(r() * LOWERS.length), shoe: Math.floor(r() * SHOES.length), mirror: r() < 0.35,
     memberNo: String(1000 + Math.floor(r() * 9000)),
     pulse: 0, born: performance.now(), blink: r() * 4000,
   };
@@ -1308,68 +1445,90 @@ function drawVitals(now) {
   }
 }
 
-function drawChair(sx, sy) {
-  const c = g;
-  c.fillStyle = T.outline; c.fillRect(sx - 6, sy - 26, 12, 12);
-  c.fillStyle = T.chair; c.fillRect(sx - 5, sy - 25, 10, 10);
-  c.fillStyle = shade(T.chair, 1.5); c.fillRect(sx - 4, sy - 24, 8, 1); c.fillRect(sx - 4, sy - 24, 1, 7);
-  c.fillStyle = T.outline; c.fillRect(sx - 7, sy - 12, 14, 4); c.fillRect(sx - 1, sy - 8, 2, 5); c.fillRect(sx - 6, sy - 3, 12, 1);
-  c.fillRect(sx - 7, sy - 2, 2, 2); c.fillRect(sx + 5, sy - 2, 2, 2);
-  c.fillStyle = T.chair; c.fillRect(sx - 6, sy - 11, 12, 2);
+/* ---------- Chairs: isometric blocks that can face four ways ----------
+   Most desks get a task chair; one gets an exercise ball and one a stool. Empty desks leave
+   their chair swivelled or pushed back at a few different angles. */
+const CHAIR_TYPE = DESKS.map((_, i) => i === 6 ? "ball" : i === 9 ? "stool" : "task");
+const EMPTY_FACING = [0, 1, 0, 3, 1, 0, 0, 3, 0, 0, 1, 2];
+const FACING = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+function toWorld(cx, cy, d, u, w) { const f = FACING[d], r = [-f[1], f[0]]; return [cx + u * f[0] + w * r[0], cy + u * f[1] + w * r[1]]; }
+function partBox(c, cx, cy, d, p) {
+  const [u0, w0, z0, u1, w1, z1] = p.b, a = toWorld(cx, cy, d, u0, w0), b = toWorld(cx, cy, d, u1, w1);
+  box(c, Math.min(a[0], b[0]), Math.min(a[1], b[1]), z0, Math.max(a[0], b[0]), Math.max(a[1], b[1]), z1, p.top, p.side, p.side2);
 }
+function starBase(c, cx, cy, d, R, metal) {
+  const legs = [];
+  for (let k = 0; k < 5; k++) { const a = (k * 72 + 90 + d * 90) * Math.PI / 180; legs.push([cx + Math.cos(a) * R, cy + Math.sin(a) * R]); }
+  legs.sort((a, b) => (a[0] + a[1]) - (b[0] + b[1]));
+  const hub = iso(cx, cy, 2);
+  legs.forEach(([ex, ey]) => {
+    const e = iso(Math.round(ex), Math.round(ey), 1);
+    line(c, hub[0], hub[1], e[0], e[1], T.outline); line(c, hub[0], hub[1] + 1, e[0], e[1] + 1, metal);
+    c.fillStyle = T.outline; c.fillRect(e[0] - 1, e[1] + 1, 3, 2);
+  });
+}
+function oct(cx, cy, r, z) { const pts = []; for (let k = 0; k < 8; k++) { const a = (22.5 + k * 45) * Math.PI / 180; pts.push(iso(cx + Math.cos(a) * r, cy + Math.sin(a) * r, z)); } return pts; }
+const CHAIR = {
+  task(c, cx, cy, d) {
+    const F = { top: "#5e626e", side: "#464a55", side2: "#363942" }, M = { top: "#9a9da8", side: "#6c6f7a", side2: "#565964" };
+    starBase(c, cx, cy, d, 7, "#8c8f99");
+    const parts = [{ b: [-1, -1, 2, 1, 1, 7], ...M }, { b: [-5, -5, 7, 5, 5, 10], ...F }, { b: [-6, -1, 9, -5, 1, 13], ...M }, { b: [-7, -5, 12, -5, 5, 24], ...F }];
+    const depth = p => { const m = toWorld(cx, cy, d, (p.b[0] + p.b[3]) / 2, (p.b[1] + p.b[4]) / 2); return m[0] + m[1]; };
+    parts.sort((a, b) => depth(a) - depth(b) || a.b[2] - b.b[2]).forEach(p => partBox(c, cx, cy, d, p));
+  },
+  stool(c, cx, cy) {
+    [45, 135, 225, 315].map(a => a * Math.PI / 180).sort((a, b) => (Math.cos(a) + Math.sin(a)) - (Math.cos(b) + Math.sin(b))).forEach(a => {
+      const top = iso(cx + Math.cos(a) * 3, cy + Math.sin(a) * 3, 9), bot = iso(cx + Math.cos(a) * 6, cy + Math.sin(a) * 6, 0);
+      line(c, top[0], top[1], bot[0], bot[1], T.outline); line(c, top[0] + 1, top[1], bot[0] + 1, bot[1], "#a97b50");
+    });
+    poly(c, oct(cx, cy, 5, 4), null, "#8c8f99");
+    poly(c, oct(cx, cy, 6, 9), "#a97b50", T.outline);
+    poly(c, oct(cx, cy, 6, 11), "#c99a6b", T.outline);
+  },
+  ball(c, cx, cy) {
+    poly(c, oct(cx, cy, 7, 1), "#3a3d45", T.outline);
+    const [px, py] = iso(cx, cy, 9), R = 9;
+    for (let y = -R; y <= R; y++) for (let x = -R; x <= R; x++) {
+      const dd = Math.hypot(x, y); if (dd > R + 0.3) continue;
+      const l = (-x - y) / (R * 1.4);
+      c.fillStyle = dd > R - 0.9 ? T.outline : l > 0.35 ? "#4fc3cc" : l > -0.25 ? "#2a9fa8" : "#1f7a82";
+      c.fillRect(px + x, py + y, 1, 1);
+    }
+    c.fillStyle = "#ffffff"; c.fillRect(px - 5, py - 5, 2, 2); c.fillRect(px - 3, py - 6, 1, 1);
+  },
+};
 
-function drawPerson(m, sx, sy, now) {
-  const c = g, role = ROLES[m.role], O = T.outline;
+const SEAT_Z = { task: 10, stool: 11, ball: 18 };
+function chairSpot(i) {
+  // the ball and stool sit a little further back from the desk so they stay visible
+  const d = DESKS[i], type = CHAIR_TYPE[i];
+  return [d.px, d.py - 1 - (type === "task" ? 0 : 3)];
+}
+function drawPerson(m, d, now) {
+  const c = g, role = ROLES[m.role], O = T.outline, spr = personSprite(m);
   const age = (now - m.born) / 260;
   const drop = reduceMotion || age >= 1 ? 0 : Math.round((1 - age) * (1 - age) * 30);
   const bob = Math.round(m.pulse * 2);
-  const by = sy - 10 - bob - drop;
-  const dark = shade(role.color, .72);
-  // body
-  c.fillStyle = O; c.fillRect(sx - 6, by - 11, 12, 11 + bob + drop);
-  c.fillStyle = role.color; c.fillRect(sx - 5, by - 10, 10, 10 + bob + drop);
-  c.fillStyle = dark; c.fillRect(sx + 3, by - 10, 2, 10 + bob + drop);
-  c.fillStyle = shade(role.color, 1.3); c.fillRect(sx - 5, by - 10, 10, 1);
-  // arms, raised on the beat
-  const up = m.pulse > 0.45;
-  c.fillStyle = O;
-  c.fillRect(sx - 8, by - (up ? 15 : 9), 3, 7); c.fillRect(sx + 5, by - (up ? 15 : 9), 3, 7);
-  c.fillStyle = dark;
-  c.fillRect(sx - 7, by - (up ? 14 : 8), 1, 5); c.fillRect(sx + 6, by - (up ? 14 : 8), 1, 5);
-  c.fillStyle = m.skin;
-  c.fillRect(sx - 7, by - (up ? 15 : 3), 1, 1); c.fillRect(sx + 6, by - (up ? 15 : 3), 1, 1);
-  // head
-  const hy = by - 21;
-  c.fillStyle = O; c.fillRect(sx - 5, hy, 10, 10);
-  c.fillStyle = m.skin; c.fillRect(sx - 4, hy + 1, 8, 8);
-  c.fillStyle = m.hair;
-  c.fillRect(sx - 4, hy + 1, 8, 2);
-  if (m.hairStyle === 0) { c.fillRect(sx - 4, hy + 3, 1, 2); c.fillRect(sx + 3, hy + 3, 1, 2); }
-  else if (m.hairStyle === 1) { c.fillRect(sx - 4, hy + 3, 1, 6); c.fillRect(sx + 3, hy + 3, 1, 6); c.fillRect(sx - 1, hy + 3, 4, 1); }
-  else { c.fillStyle = O; c.fillRect(sx - 3, hy - 4, 6, 5); c.fillStyle = m.hair; c.fillRect(sx - 2, hy - 3, 4, 4); }
-  // face
-  const blinking = ((now + m.blink) % 4200) < 140;
-  c.fillStyle = O;
-  if (blinking) { c.fillRect(sx - 3, hy + 5, 2, 1); c.fillRect(sx + 1, hy + 5, 2, 1); }
-  else { c.fillRect(sx - 2, hy + 4, 1, 2); c.fillRect(sx + 1, hy + 4, 1, 2); }
-  if (m.pulse > 0.3) c.fillRect(sx - 1, hy + 7, 2, 1);
-  c.fillStyle = "#ff8f8f"; c.fillRect(sx - 4, hy + 6, 1, 1); c.fillRect(sx + 3, hy + 6, 1, 1);
-  // role bubble: flashes in the role colour when they play
-  const bx = sx + 4, bY = hy - 10;
+  const [cx, cy] = chairSpot(m.desk), [sx, sy] = iso(cx, cy, SEAT_Z[CHAIR_TYPE[m.desk]]);
+  const at = blitPerson(c, spr, sx, sy - bob - drop, m.mirror);
+  // role bubble beside the head on the side they face; flashes in the role colour when they play
+  const bx = m.mirror ? at.headL - 8 : at.headR - 1, bY = at.y - 6;
   const lit = m.pulse > 0.35;
-  c.fillStyle = O; c.fillRect(bx, bY, 9, 9); c.fillRect(bx, bY + 9, 2, 2);
-  c.fillStyle = lit ? role.color : T.surface; c.fillRect(bx + 1, bY + 1, 7, 7); c.fillRect(bx + 1, bY + 9, 1, 1);
+  c.fillStyle = O; c.fillRect(bx, bY, 9, 9); c.fillRect(m.mirror ? bx + 7 : bx, bY + 9, 2, 2);
+  c.fillStyle = lit ? role.color : T.surface; c.fillRect(bx + 1, bY + 1, 7, 7); c.fillRect(m.mirror ? bx + 7 : bx + 1, bY + 9, 1, 1);
   bitmap(c, bx + 2, bY + 2, ICONS[m.role], lit ? T.surface : role.color);
 }
 
 function drawDesk(i, now) {
   const d = DESKS[i], m = members.find(o => o.desk === i), { x0, y0 } = d, x1 = x0 + 32, y1 = y0 + 14;
   const O = T.outline;
-  drawChair(d.sx, d.sy);
-  if (m) drawPerson(m, d.sx, d.sy, now);
+  const type = CHAIR_TYPE[i];
+  if (m) CHAIR[type](g, ...chairSpot(i), m.mirror ? 0 : 1);
+  else CHAIR[type](g, d.px + (EMPTY_FACING[i] ? 3 : 0), d.py - 2, EMPTY_FACING[i]);
+  if (m) drawPerson(m, d, now);
   else if (i === hoverDesk || i === dragDesk) {
     if (Math.floor(now / 260) % 2 || dragDesk === i) {
-      const bx = d.sx - 5, bY = d.sy - 34;
+      const bx = d.sx - 5, bY = d.sy - 40;
       g.fillStyle = O; g.fillRect(bx, bY, 11, 11);
       g.fillStyle = T.surface; g.fillRect(bx + 1, bY + 1, 9, 9);
       bitmap(g, bx + 3, bY + 3, ICONS.plus, "#7a2e6e");
