@@ -1794,18 +1794,19 @@ function drawVitals(now) {
     g.font = "400 4px Archivo, sans-serif"; g.textBaseline = "top";
     g.fillText("♥", 2, 2);
     g.fillStyle = PAL.ecg; g.fillText(A.mode === "ambient" ? "CALM" : `${A.bpm} BPM`, 7, 2);
-    g.fillStyle = hexA(PAL.ecg, .6); g.fillText(`${members.length} IN TODAY`, 2, H - 6);
+    // the screen invites a click, blinking gently
+    g.fillStyle = hexA(PAL.ecg, .45 + .45 * (Math.sin(now / 380) * .5 + .5)); g.fillText("CLICK ME →", 2, 8.5);
     g.beginPath(); g.strokeStyle = PAL.ecg; g.lineWidth = .5; g.lineJoin = "round";
     const live = A.playing && A.analyser && members.length;
     if (live) {
       A.analyser.getByteTimeDomainData(waveBuf);
       let st = 0; for (let i = 1; i < 1024; i++) if (waveBuf[i - 1] < 128 && waveBuf[i] >= 128) { st = i; break; }
-      for (let u = 0; u <= 27; u += .5) { const w = (waveBuf[st + Math.round(u * 24)] - 128) / 128 * 1.6, y = 15 - Math.max(-1, Math.min(1, w)) * 7; u ? g.lineTo(2 + u, y) : g.moveTo(2 + u, y); }
+      for (let u = 0; u <= 27; u += .5) { const w = (waveBuf[st + Math.round(u * 24)] - 128) / 128 * 1.6, y = 21 - Math.max(-1, Math.min(1, w)) * 5.5; u ? g.lineTo(2 + u, y) : g.moveTo(2 + u, y); }
     } else {
       for (let u = 0; u <= 27; u += .5) {
         const p = (u * 4 + now / 12) % 60; let w = 0;
         if (p > 26 && p < 29) w = .15; else if (p >= 29 && p < 31) w = -.25; else if (p >= 31 && p < 34) w = .95 * (1 - Math.abs(p - 32.5) / 1.5); else if (p >= 34 && p < 36) w = -.35;
-        const y = 15 - w * (members.length ? 7 : 2);
+        const y = 21 - w * (members.length ? 5.5 : 2);
         u ? g.lineTo(2 + u, y) : g.moveTo(2 + u, y);
       }
     }
@@ -2905,7 +2906,7 @@ function openSnack(b) {
 }
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeSnack(); });
 // clicking the empty page around the office closes any open popup
-document.getElementById("stage").addEventListener("click", e => { if (e.target === e.currentTarget || e.target.classList.contains("board")) { closeSnack(); closeCal(); closeWB(); closeShelf(); } });
+document.getElementById("stage").addEventListener("click", e => { if (e.target === e.currentTarget || e.target.classList.contains("board")) { closeSnack(); closeCal(); closeWB(); closeShelf(); closeScreen(); } });
 const SNACK_CSS = `
 .snack { position: absolute; z-index: 4; width: 288px; font-family: var(--font-body); color: #23296b; }
 .snack .lbl { position: relative; background: var(--box-tint); border-radius: 20px; padding: 20px 20px 16px; transform: rotate(-2deg); box-shadow: inset 0 0 0 8px var(--box-tint), inset 0 0 0 9.5px #23296b, 5px 6px 0 rgba(35,41,107,.16); display: grid; gap: 0; }
@@ -3101,8 +3102,59 @@ const SHELF_CSS = `
 .shelfpop .plant::after { content: ""; position: absolute; bottom: 26px; left: 2px; width: 40px; height: 34px; background: #5aa67a; border: 1px solid #2f7f57; border-radius: 50% 50% 30% 30%; }
 .shelfpop .ledge { height: 14px; margin: 0 -13px; background: #fff; border: 1px solid #3a3a3c; border-left: 0; border-right: 0; }
 `;
+
+/* ---------- The wall screen: what this place is, and why it hums ---------- */
+function screenAt(p) { const pts = [iso(67.5, 0, 54.5), iso(98.5, 0, 54.5), iso(98.5, 0, 25.5), iso(67.5, 0, 25.5)], xs = pts.map(q => q[0]), ys = pts.map(q => q[1]); return p.x >= Math.min(...xs) && p.x <= Math.max(...xs) && p.y >= Math.min(...ys) && p.y <= Math.max(...ys) && !whiteboardAt(p); }
+let scrEl = null;
+function closeScreen() { if (scrEl) { scrEl.remove(); scrEl = null; } }
+function openScreen() {
+  closeScreen(); closeSnack(); closeCal(); closeWB(); closeShelf();
+  const board = cv.parentElement;
+  scrEl = document.createElement("div"); scrEl.className = "scrpop"; scrEl.setAttribute("role", "dialog"); scrEl.setAttribute("aria-label", "About Office Harmony");
+  scrEl.innerHTML = `<div class="bez"><div class="glass">
+    <div class="sh"><span class="hb">♥ ${A.mode === "ambient" ? "CALM" : A.bpm + " BPM"}</span><button class="cx" aria-label="Close">×</button></div>
+    <svg class="ecg" viewBox="0 0 300 30" aria-hidden="true"><path d="M0 18h70l6-8 6 8h14l5-16 7 26 5-10h40l6-8 6 8h14l5-16 7 26 5-10h94" fill="none" stroke="#9fe3c8" stroke-width="2" stroke-linejoin="round"/></svg>
+    <h2>Pull up a chair.</h2>
+    <p>We'd love to have you over. Small problem: our office has a few chairs, and the internet has a few billion people. So we built a digital one instead. No ID card needed.</p>
+    <p>About the noise. In five experiments, a moderate buzz of background sound, around 70 dB, about a busy café, made people more creative than a quiet room. Turn it up to 85 dB and the effect backfires. So the stamping, typing and that one person at the photocopier? Features, not bugs.</p>
+    <p class="tip2">Go explore: click people, the empty desks, the whiteboard, the snack boxes and the bookshelf. Hit Play, then try Ambient.</p>
+    <div class="sf"><button class="go" type="button">Go explore →</button><span>Source: <a href="https://academic.oup.com/jcr/article/39/4/784/1795620" target="_blank" rel="noopener">Mehta, Zhu & Cheema, "Is Noise Always Bad?", Journal of Consumer Research, 2012</a></span></div>
+  </div></div><div class="stand"></div>`;
+  board.appendChild(scrEl);
+  scrEl.querySelector(".cx").onclick = closeScreen;
+  scrEl.querySelector(".go").onclick = closeScreen;
+  scrEl.addEventListener("click", e => e.stopPropagation());
+  const bw = board.clientWidth, bh = board.clientHeight, fit = Math.min(1, (bw - 16) / scrEl.offsetWidth, (bh - 16) / scrEl.offsetHeight);
+  if (fit < 1) { scrEl.style.transform = `scale(${fit})`; scrEl.style.transformOrigin = "0 0"; }
+  const [ax, ay] = iso(83, 0, 40), w = scrEl.offsetWidth * fit, h = scrEl.offsetHeight * fit;
+  scrEl.style.left = Math.max(8, Math.min(bw - w - 8, ax / LW * bw - w / 2)) + "px";
+  scrEl.style.top = Math.max(8, Math.min(bh - h - 8, ay / LH * bh - h / 2)) + "px";
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeScreen(); });
+const SCR_CSS = `
+.scrpop { position: absolute; z-index: 5; width: 460px; animation: scrIn .28s ease-out; }
+@keyframes scrIn { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .scrpop { animation: none; } }
+.scrpop .bez { background: #2b2b2e; border: 1px solid #1a1a1c; border-radius: 8px; padding: 10px; box-shadow: 5px 7px 0 rgba(58,58,60,.18); }
+.scrpop .glass { background: #2f3b55; border-radius: 3px; padding: 14px 18px 16px; color: #e8f6f0; font-family: var(--font-body); }
+.scrpop .sh { display: flex; align-items: center; }
+.scrpop .hb { font: 400 13px/1 var(--font-label); letter-spacing: .08em; color: #9fe3c8; }
+.scrpop .hb::first-letter { color: #ee6f6a; }
+.scrpop .cx { margin-left: auto; width: 26px; height: 26px; border: 1px solid #9fe3c8; border-radius: 4px; background: transparent; color: #9fe3c8; font-size: 16px; line-height: 1; cursor: pointer; }
+.scrpop .ecg { display: block; width: 100%; height: 26px; margin: 6px 0 4px; }
+.scrpop h2 { margin: 2px 0 8px; font: 400 30px/1.05 var(--font-display); color: #fff; }
+.scrpop p { margin: 0 0 10px; font-size: 14px; line-height: 1.45; color: #d6e6ef; }
+.scrpop .tip2 { color: #9fe3c8; }
+.scrpop .sf { display: grid; gap: 8px; margin-top: 4px; }
+.scrpop .sf span { font-size: 11.5px; line-height: 1.35; color: #9fb0c4; }
+.scrpop .sf a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.scrpop .go { justify-self: start; border: 1px solid #9fe3c8; border-radius: 999px; background: #9fe3c8; color: #2f3b55; padding: 7px 16px; font: 400 14px/1 var(--font-display); cursor: pointer; }
+.scrpop .go:hover { background: #fff; }
+.scrpop .stand { width: 80px; height: 10px; margin: 0 auto; background: #2b2b2e; border-radius: 0 0 4px 4px; }
+.scrpop a:focus-visible, .scrpop button:focus-visible { outline: 3px solid #ee6f6a; outline-offset: 2px; }
+`;
 // the popup styles go last in the page so nothing else overrides them
-document.body.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOARD_CSS}${SNACK_CSS}${WB_CSS}${SHELF_CSS}
+document.body.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOARD_CSS}${SNACK_CSS}${WB_CSS}${SHELF_CSS}${SCR_CSS}
 /* nothing on the page is bold */
 *, *::before, *::after { font-weight: 400 !important; }</style>`);
 // each free desk has its own board; ?cal=1..20 shows one look on every desk instead
@@ -3133,6 +3185,11 @@ function openCal(i) {
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeCal(); });
 const tip = $("tip");
 cv.addEventListener("pointermove", e => {
+  if (screenAt(toLogical(e)) && e.pointerType !== "touch") {
+    const q = iso(83, 0, 55); cv.style.cursor = "pointer";
+    tip.innerHTML = `<b>Click me</b><small>What is this place?</small>`;
+    tip.style.left = (q[0] / LW * 100) + "%"; tip.style.top = (q[1] / LH * 100) + "%"; tip.hidden = false; hoverDesk = -1; return;
+  }
   if (shelfAt(toLogical(e)) && e.pointerType !== "touch") {
     const q = iso(234, 104, 18); cv.style.cursor = "pointer";
     tip.innerHTML = `<b>Bookshelf</b><small>Click for Plum's reports and guides</small>`;
@@ -3164,6 +3221,8 @@ cv.addEventListener("pointermove", e => {
 });
 cv.addEventListener("pointerleave", () => { hoverDesk = -1; tip.hidden = true; });
 cv.addEventListener("click", e => {
+  if (screenAt(toLogical(e))) { tip.hidden = true; openScreen(); return; }
+  closeScreen();
   if (whiteboardAt(toLogical(e))) { tip.hidden = true; openWB(); return; }
   closeWB();
   if (shelfAt(toLogical(e))) { tip.hidden = true; openShelf(); return; }
