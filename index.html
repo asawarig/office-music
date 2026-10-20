@@ -2285,14 +2285,11 @@ function beanbag(x, y, col, sat) {
   g.beginPath(); g.moveTo(cx - rx * .75, cy - h * .35); g.quadraticCurveTo(cx - rx * .6, cy - h * .85, cx - rx * .25, cy - h * .95);
   g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = .7; g.stroke();
 }
-// a free desk that is clearly someone's: a jacket over the chair, a bag on the floor, a closed laptop
+// a free desk that is clearly someone's: a jacket left over the chair
 function hotDesk(s, i) {
   const L = s.L, cols = [PAL.cobalt, PAL.coral, "#2f7f57", "#2c3a66"], col = cols[i % 4];
   const p = (u, v, z) => iso(...L(u, v, z));
   poly(g, [p(-4.4, -20.2, 21.4), p(4.4, -20.2, 21.4), p(4.8, -19.6, 13), p(1, -19.4, 11.5), p(-4.8, -19.6, 13)], col, INK_LINE, .35);
-  const [bx, by] = L(7, -13);
-  box(g, bx - 2.5, by - 2, 0, bx + 2.5, by + 2, 6, { top: shade(PAL.yellow, .9), left: PAL.yellow, right: shade(PAL.yellow, .85) }, .35);
-
 }
 // a laptop open on someone's lap, lid toward them, in their own space
 function lapLaptop(F, lap, col) {
