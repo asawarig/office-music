@@ -1984,7 +1984,7 @@ function pose(m, seat, T) {
   } else if (act === "beanbag") {
     // sunk into the beanbag, typing on a laptop resting on the knees
     const side = m.hits % 2 ? 1 : -1, tap = Math.max(soon, Math.exp(-hit * 18));
-    R = [6.4, -2.2, 10.4 - (side < 0 ? tap * .4 : 0)]; L = [6.4, 2.2, 10.4 - (side > 0 ? tap * .4 : 0)];
+    R = [6.6, -1.5, 10.3 - (side < 0 ? tap * .4 : 0)]; L = [6.6, 1.5, 10.3 - (side > 0 ? tap * .4 : 0)];
     lean = .3; nod = .28 + Math.sin(t * 1.1 + idle) * .03;
     props.push({ kind: "lapLaptop", z: 9.6, x0: 4, x1: 9 });
   } else if (act === "couch") {
@@ -2212,8 +2212,9 @@ function drawSeat(i, now) {
       if (s.place === "meeting") meetingTableTop();
       const plantAfter = s.place === "meeting";   // the table plant stands in front of whoever sits there
       const lap = F.P.props.find(p => p.kind === "lapLaptop");
-      if (lap) lapLaptop(F, lap, col);
+      if (lap) lapLaptop(F, lap, col, "base");
       upper();
+      if (lap) lapLaptop(F, lap, col, "lid");
       if (plantAfter) plant(g, 32, 44, 16, .5);
       roomFx(s, m, F);
       if (clockFor(m, now).talk) speechBubble(F.S.head, now);
@@ -2386,10 +2387,11 @@ function hotDesk(s, i) {
   poly(g, [p(-4.4, -20.2, 21.4), p(4.4, -20.2, 21.4), p(4.8, -19.6, 13), p(1, -19.4, 11.5), p(-4.8, -19.6, 13)], col, INK_LINE, .35);
 }
 // a laptop open on someone's lap, lid toward them, in their own space
-function lapLaptop(F, lap, col) {
+// drawn in two parts: the keyboard under the hands, and the lid, which faces you, over them
+function lapLaptop(F, lap, col, part) {
   const W = F.W, q = (a, b, z) => iso(...W([a, b, z]));
-  poly(g, [q(lap.x0, -3.4, lap.z), q(lap.x1, -3.4, lap.z), q(lap.x1, 3.4, lap.z), q(lap.x0, 3.4, lap.z)], "#eeeeec", INK_LINE, .35);
-  poly(g, [q(lap.x1, -3.4, lap.z), q(lap.x1, 3.4, lap.z), q(lap.x1 + 1, 3.4, lap.z + 6), q(lap.x1 + 1, -3.4, lap.z + 6)], col || "#ffffff", INK_LINE, .35);
+  if (part !== "lid") poly(g, [q(lap.x0, -4.4, lap.z), q(lap.x1, -4.4, lap.z), q(lap.x1, 4.4, lap.z), q(lap.x0, 4.4, lap.z)], "#eeeeec", INK_LINE, .35);
+  if (part !== "base") poly(g, [q(lap.x1, -4.4, lap.z), q(lap.x1, 4.4, lap.z), q(lap.x1 + 1.2, 4.4, lap.z + 6.5), q(lap.x1 + 1.2, -4.4, lap.z + 6.5)], col || "#ffffff", INK_LINE, .35);
 }
 function hoverHint(i, x, y, now) {
   if (!CAST[i] || !((i === hoverDesk || i === dragDesk) && (Math.floor(now / 260) % 2 || dragDesk === i))) return;
