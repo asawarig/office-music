@@ -38,6 +38,7 @@ const OOO = [
   { reason: "Sick leave, resting up", start: -1, days: 4, icon: "cross" },
   { reason: "Physio for a sore wrist", start: 0, days: 2, icon: "cross" },
   { reason: "Family holiday", start: -3, days: 8, icon: "sun" },
+  { reason: "Eye check-up", start: 0, days: 2, icon: "cross" },
 ];
 function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
 function nextWorkday(d) { let x = addDays(d, 1); while (x.getDay() === 0 || x.getDay() === 6) x = addDays(x, 1); return x; }
@@ -231,6 +232,7 @@ const BITS = [
   { sticky: "Drink water. Lots.", list: ["soup", "sleep", "reply to mails later"], photo: "dog", caption: "Snoop" },
   { sticky: "Wrist stretches x3", list: ["physio, 11am", "ice pack", "no typing marathons"], photo: "tuxedo", caption: "Chess" },
   { sticky: "Goa!!", list: ["sunscreen", "tickets", "out-of-office ON"], photo: "calico", caption: "Mia" },
+  { sticky: "No sweets till Friday", list: ["eye test, 10am", "pick new frames", "water the ferns"], photo: "fish", caption: "Bubbles" },
 ];
 function catSvg(fur, bg, marks) {
   return `<svg viewBox="0 0 60 46"><rect width="60" height="46" fill="${bg}"/><rect y="34" width="60" height="12" fill="#fdeaa0" fill-opacity=".8"/><path d="M44 36c8 0 9-8 4-10" fill="none" stroke="#3a3a3c" stroke-width="3.2" stroke-linecap="round"/><path d="M44 36c8 0 9-8 4-10" fill="none" stroke="${fur}" stroke-width="2" stroke-linecap="round"/><ellipse cx="30" cy="34" rx="15" ry="9" fill="${fur}" stroke="#3a3a3c" stroke-width=".8"/><circle cx="30" cy="22" r="8" fill="${fur}" stroke="#3a3a3c" stroke-width=".8"/><path d="M23 17l1-7 5 5M37 17l-1-7-5 5" fill="${fur}" stroke="#3a3a3c" stroke-width=".8" stroke-linejoin="round"/>${marks}<circle cx="27" cy="22" r="1" fill="#3a3a3c"/><circle cx="33" cy="22" r="1" fill="#3a3a3c"/><path d="M29 25.2l1 .8 1-.8" fill="none" stroke="#3a3a3c" stroke-width=".6"/></svg>`;
@@ -240,6 +242,7 @@ const PHOTOS = {
   tabby: catSvg("#e2a23b", "#d6ebf7", `<path d="M27 15.5l1.4 3M30 14.5v3.4M33 15.5l-1.4 3M20 30l4 2M19 35l5 1M41 30l-4 2M42 35l-5 1" stroke="#a8641a" stroke-width="1.1" stroke-linecap="round"/>`),
   tuxedo: catSvg("#2b2b2e", "#fdeaa0", `<path d="M30 21c-3 0-5 2-5 5 0 2 2 3 5 3s5-1 5-3c0-3-2-5-5-5zM24 32c2 6 10 6 12 0-2 8-10 8-12 0z" fill="#fff"/><circle cx="27" cy="22" r="1" fill="#9fe3c8"/><circle cx="33" cy="22" r="1" fill="#9fe3c8"/>`),
   calico: catSvg("#ffffff", "#f6c9cf", `<path d="M22 16c2-3 5-3 7-1-1 3-5 4-7 1zM33 18c2-2 5-1 5 2-2 1-4 0-5-2zM18 31c3-3 8-2 9 2-3 3-7 2-9-2zM35 36c2-3 6-3 7 0-2 3-5 3-7 0z" fill="#e2a23b"/><path d="M31 15c2-2 4-1 5 1-2 2-4 1-5-1zM38 30c2-1 4 0 4 2-2 1-3 0-4-2z" fill="#2b2b2e"/>`),
+  fish: `<svg viewBox="0 0 60 46"><rect width="60" height="46" fill="#d6ebf7"/><path d="M14 8h32l3 30c0 4-4 6-19 6s-19-2-19-6z" fill="#cfe6f5" stroke="#3a3a3c" stroke-width=".8"/><path d="M12 16h36" stroke="#7cc7f2" stroke-width="1.4"/><path d="M22 27c4-6 12-6 16 0-4 6-12 6-16 0zM38 27l6-5v10z" fill="#e2a23b" stroke="#3a3a3c" stroke-width=".8"/><circle cx="26" cy="26" r=".9" fill="#3a3a3c"/><circle cx="20" cy="20" r="1.2" fill="none" stroke="#fff"/><circle cx="18" cy="15" r=".8" fill="none" stroke="#fff"/><path d="M16 40c2-4 2-8 0-12M44 40c-2-5-1-8 1-11" stroke="#2f7f57" stroke-width="1.4" fill="none"/></svg>`,
   dog: `<svg viewBox="0 0 60 46"><rect width="60" height="46" fill="#d9ece4"/><rect y="36" width="60" height="10" fill="#b9dccd"/><ellipse cx="32" cy="34" rx="16" ry="8" fill="#fff" stroke="#3a3a3c" stroke-width=".8"/><circle cx="22" cy="24" r="8" fill="#fff" stroke="#3a3a3c" stroke-width=".8"/><path d="M15 20c-3 4-2 9 1 10M27 18c3 3 4 8 2 10" fill="#2b2b2e" stroke="#3a3a3c" stroke-width=".8"/><circle cx="38" cy="31" r="3" fill="#2b2b2e"/><circle cx="20" cy="24" r="1" fill="#3a3a3c"/><circle cx="16" cy="27" r="1.4" fill="#3a3a3c"/></svg>`,
   hills: `<svg viewBox="0 0 60 46"><rect width="60" height="46" fill="#d6ebf7"/><circle cx="46" cy="12" r="5" fill="#ffd95c"/><path d="M0 34 16 18l12 12 10-8 22 16v16H0z" fill="#5aa67a" stroke="#3a3a3c" stroke-width=".8"/><path d="M0 40 20 30l18 8 22-6v14H0z" fill="#2f7f57"/></svg>`,
   beach: `<svg viewBox="0 0 60 46"><rect width="60" height="46" fill="#d6ebf7"/><circle cx="14" cy="12" r="5" fill="#ffd95c"/><rect y="26" width="60" height="8" fill="#7cc7f2"/><rect y="34" width="60" height="12" fill="#fdeaa0"/><path d="M44 34c0-10 1-16 3-20" fill="none" stroke="#7a4b2a" stroke-width="1.6"/><path d="M47 14c-6-2-10 0-12 3M47 14c4-4 9-4 11-2M47 14c0-5 3-8 6-9" fill="none" stroke="#2f7f57" stroke-width="2"/></svg>`,
@@ -272,26 +275,26 @@ function boardCal(D, x, y, r, pic = PIC.plan, gcls = "floor") {
 const boardHead = D => `<div class="ch"><span class="ctag">${CAL_ICONS[D.icon]}Out of office</span><button class="cx" aria-label="Close">×</button></div>`;
 const scene = (cls, inner) => `<div class="scene ${cls}">${inner}</div>`;
 const BOARD_VARIANTS = [
-  { name: "Cork board", board: true, html: (D, k = 0) => { const b = BITS[k % 4]; return boardHead(D) + scene("cork",
+  { name: "Cork board", board: true, html: (D, k = 0) => { const b = BITS[k % BITS.length]; return boardHead(D) + scene("cork",
     boardCal(D, 88, 22, -1.5) + pinSvg("#ee6f6a", 166, 16) + polaroid(b.photo, b.caption, 12, 30, -7) + pinSvg("#ffd95c", 38, 26) +
     sticky(b.sticky, "#ffd95c", 262, 30, 5, 78) + pinSvg("#5b6ee1", 294, 24) + torn(b.list, 8, 136, 3, 90) + pinSvg("#2f7f57", 46, 146) +
     sticky("♥", "#f6c9cf", 272, 140, -8, 46) + plantSvg(276, 196, 1.05)) } },
-  { name: "Pegboard", board: true, html: (D, k = 1) => { const b = BITS[k % 4]; return boardHead(D) + scene("peg",
+  { name: "Pegboard", board: true, html: (D, k = 1) => { const b = BITS[k % BITS.length]; return boardHead(D) + scene("peg",
     `<span class="hook" style="left:166px;top:12px"></span>` + boardCal(D, 90, 18, 0, PIC.crayon("pc" + k), "swatch") +
     `<span class="shelf" style="left:262px;top:156px"></span>` + plantSvg(262, 112, .85) + `<span class="mug" style="left:298px;top:132px"></span>` +
     sticky(b.sticky, "#9fe3c8", 264, 30, -4, 62) + polaroid(b.photo, b.caption, 14, 20, 5) + tape(26, 14, -8) +
     torn(b.list, 12, 148, -3, 86) + `<span class="scissors" style="left:288px;top:186px">✂</span>`) } },
-  { name: "Desk screen", board: true, html: (D, k = 2) => { const b = BITS[k % 4]; return boardHead(D) + scene("felt",
+  { name: "Desk screen", board: true, html: (D, k = 2) => { const b = BITS[k % BITS.length]; return boardHead(D) + scene("felt",
     boardCal(D, 86, 18, 1, PIC.vitals(D), "mint") + pinSvg("#ee6f6a", 100, 16) + pinSvg("#ee6f6a", 238, 16) +
     `<span class="postcard" style="left:240px;top:34px">${PHOTOS[b.photo]}<i>${b.caption}</i></span>` + tape(250, 28, 12, "rgba(238,111,106,.55)") +
     sticky(b.sticky, "#ffd95c", 14, 34, -6, 76) + torn(b.list, 248, 140, 4, 82) + pinSvg("#5b6ee1", 282, 136) +
     sticky("call amma", "#f6c9cf", 16, 148, 4, 66) + plantSvg(6, 196, .95)) } },
-  { name: "Whiteboard", board: true, html: (D, k = 3) => { const b = BITS[k % 4]; return boardHead(D) + scene("white",
+  { name: "Whiteboard", board: true, html: (D, k = 3) => { const b = BITS[k % BITS.length]; return boardHead(D) + scene("white",
     `<svg class="doodle" viewBox="0 0 340 250" aria-hidden="true"><path d="M8 238h30l5-8 5 8h8l4-16 6 26 4-10h14" fill="none" stroke="#ee6f6a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><text x="262" y="196" font-family="Figtree, sans-serif" font-size="13" font-style="italic" fill="#5b6ee1">see you</text><text x="268" y="212" font-family="Figtree, sans-serif" font-size="13" font-style="italic" fill="#5b6ee1">soon :)</text><path d="M262 218c20 3 46 2 66-4" fill="none" stroke="#5b6ee1" stroke-width="1.5" stroke-linecap="round"/></svg>` +
     boardCal(D, 92, 16, 0, PIC.tiles, "tile") + magnet("#ee6f6a", 102, 12) + magnet("#5b6ee1", 240, 12) +
     sticky(b.sticky, "#ffd95c", 250, 30, 4, 78) + sticky("Q4 deck", "#9fe3c8", 254, 104, -5, 70) +
     polaroid(b.photo, b.caption, 14, 22, -5) + magnet("#ffd95c", 40, 18) + torn(b.list, 14, 120, 2, 80) + `<span class="marker" style="left:262px;top:236px"></span>`) } },
-  { name: "Wire grid", board: true, html: (D, k = 0) => { const b = BITS[k % 4]; return boardHead(D) + scene("wire",
+  { name: "Wire grid", board: true, html: (D, k = 0) => { const b = BITS[k % BITS.length]; return boardHead(D) + scene("wire",
     ivySvg(262, -4) + boardCal(D, 84, 18, 0, PIC.rug, "sun") + clipSvg(120, 10) + clipSvg(196, 10) +
     polaroid(b.photo, b.caption, 12, 26, -4) + clipSvg(32, 18) + polaroid("hills", "home", 14, 128, 5) + clipSvg(34, 120) +
     sticky(b.sticky, "#f6c9cf", 252, 120, 3, 80) + torn(b.list, 246, 172, -2, 86) + `<span class="ticket" style="left:20px;top:214px">ADMIT ONE · 7:30pm</span>`) } },
@@ -346,7 +349,7 @@ const BOARD_CSS = `
 document.head.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOARD_CSS}</style>`);
 BOARD_VARIANTS.forEach((v, k) => {
   const f = document.createElement("figure");
-  f.innerHTML = `<figcaption><span>${k + 16}</span>${v.name}</figcaption><div class="cal board">${v.html(calData(k % 4), k)}</div>`;
+  f.innerHTML = `<figcaption><span>${k + 16}</span>${v.name}</figcaption><div class="cal board">${v.html(calData(k), k)}</div>`;
   document.getElementById("grid").appendChild(f);
 });
 </script>
