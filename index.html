@@ -8,19 +8,19 @@
 <meta name="description" content="Hire a team, cover their health, and hear what a healthy office sounds like.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Silkscreen&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
-/* Layout: one column. Header with transport controls, the isometric pixel office as the hero,
+/* Layout: one column. Header with transport controls, the axonometric office plan as the hero,
    a coverage strip that fills as roles are hired, then the hiring desk of eight role cards.
-   UI chrome borrows the pixel look: hard 2px outlines and offset shadows, no soft blur. */
+   The chrome follows the drawing: thin hairline borders, white panels, flat colour accents. */
 :root {
-  --bg: #e7eef5;
+  --bg: #ebebea;
   --surface: #ffffff;
-  --fg: #2a2b33;
-  --muted: #5e6475;
-  --edge: #2a2b33;
-  --accent: #7a2e6e;
-  --accent-soft: #f1e3ee;
+  --fg: #2b2b2d;
+  --muted: #6b6b6e;
+  --edge: #3a3a3c;
+  --accent: #1d3fbf;
+  --accent-soft: #e4e9fb;
   --wood: #f3b46e;
 
   /* office canvas palette */
@@ -45,14 +45,14 @@
   --c-cork: #e98a4a;
   --c-coral: #ff6b5e;
 
-  --font-display: "Pixelify Sans", "Courier New", ui-monospace, monospace;
-  --font-label: "Silkscreen", "Courier New", ui-monospace, monospace;
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-label: "Archivo", "Helvetica Neue", Arial, sans-serif;
   --font-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #13151d; --surface: #1f2230; --fg: #eef0f6; --muted: #a2a8bb; --edge: #050608;
-    --accent: #e58bd2; --accent-soft: #3a2140; --wood: #c98a4c;
+    --bg: #1c1c1e; --surface: #2a2a2d; --fg: #f1f1ef; --muted: #a6a6aa; --edge: #6a6a6e;
+    --accent: #8ea6ff; --accent-soft: #2a3360; --wood: #c98a4c;
     --c-wall-l: #3b4466; --c-wall-r: #2a3150; --c-cap: #5a5f72; --c-cap-dark: #3b3f4e;
     --c-floor-a: #b17b4c; --c-floor-b: #9e6a3f; --c-floor-line: #c8925f; --c-outline: #0d0b10;
     --c-desk-top: #7e4a3b; --c-desk-side: #57302a; --c-chair: #2a2c36;
@@ -62,8 +62,8 @@
   }
 }
 :root[data-theme="dark"] {
-  --bg: #13151d; --surface: #1f2230; --fg: #eef0f6; --muted: #a2a8bb; --edge: #050608;
-  --accent: #e58bd2; --accent-soft: #3a2140; --wood: #c98a4c;
+  --bg: #1c1c1e; --surface: #2a2a2d; --fg: #f1f1ef; --muted: #a6a6aa; --edge: #6a6a6e;
+  --accent: #8ea6ff; --accent-soft: #2a3360; --wood: #c98a4c;
   --c-wall-l: #3b4466; --c-wall-r: #2a3150; --c-cap: #5a5f72; --c-cap-dark: #3b3f4e;
   --c-floor-a: #b17b4c; --c-floor-b: #9e6a3f; --c-floor-line: #c8925f; --c-outline: #0d0b10;
   --c-desk-top: #7e4a3b; --c-desk-side: #57302a; --c-chair: #2a2c36;
@@ -111,7 +111,7 @@ body {
   align-items: center;
   gap: 8px;
 }
-.eyebrow .dot { width: 10px; height: 10px; background: var(--c-coral); box-shadow: 2px 2px 0 var(--edge); }
+.eyebrow .dot { width: 10px; height: 10px; background: var(--c-coral); box-shadow: none; }
 .eyebrow .dot.beat { animation: beat .4s steps(3); }
 @keyframes beat { 0% { transform: scale(1.6); } 100% { transform: scale(1); } }
 h1 {
@@ -129,13 +129,13 @@ h1 em { font-style: normal; color: var(--accent); }
 .transport { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 button { font: inherit; color: inherit; }
 .btn {
-  border: 2px solid var(--edge);
+  border: 1px solid var(--edge);
   background: var(--surface);
   border-radius: 4px;
   padding: 8px 14px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 3px 3px 0 var(--edge);
+  box-shadow: none;
   transition: transform .06s steps(1), box-shadow .06s steps(1);
 }
 .btn:hover { background: var(--accent-soft); }
@@ -167,9 +167,10 @@ button { font: inherit; color: inherit; }
 /* Stage */
 .stage {
   position: relative;
-  border: 2px solid var(--edge);
+  background: #ffffff !important;
+  border: 1px solid var(--edge);
   border-radius: 6px;
-  box-shadow: 5px 5px 0 var(--edge);
+  box-shadow: none;
   background: var(--bg);
   overflow: hidden;
 }
@@ -178,8 +179,6 @@ canvas#office {
   width: 100%;
   max-width: 100%;
   aspect-ratio: 440 / 310;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -193,7 +192,7 @@ canvas#office {
   padding: 3px 5px 2px;
   background: var(--surface);
   color: var(--fg);
-  border: 2px solid var(--edge);
+  border: 1px solid var(--edge);
   white-space: nowrap;
 }
 .empty {
@@ -203,8 +202,8 @@ canvas#office {
   transform: translate(-50%, -50%);
   text-align: center;
   background: var(--surface);
-  border: 2px solid var(--edge);
-  box-shadow: 4px 4px 0 var(--edge);
+  border: 1px solid var(--edge);
+  box-shadow: none;
   padding: 10px 16px;
   pointer-events: none;
   max-width: 80%;
@@ -216,8 +215,8 @@ canvas#office {
   pointer-events: none;
   background: var(--surface);
   color: var(--fg);
-  border: 2px solid var(--edge);
-  box-shadow: 3px 3px 0 var(--edge);
+  border: 1px solid var(--edge);
+  box-shadow: none;
   padding: 7px 10px;
   font-size: 13px;
   line-height: 1.35;
@@ -234,9 +233,9 @@ canvas#office {
   gap: 10px 22px;
   align-items: center;
   background: var(--surface);
-  border: 2px solid var(--edge);
+  border: 1px solid var(--edge);
   border-radius: 4px;
-  box-shadow: 4px 4px 0 var(--edge);
+  box-shadow: none;
   padding: 14px 18px;
 }
 .cover-head { min-width: 0; }
@@ -246,7 +245,7 @@ canvas#office {
 .cover-body { display: grid; gap: 10px; min-width: 0; }
 .bar {
   height: 14px;
-  border: 2px solid var(--edge);
+  border: 1px solid var(--edge);
   background: var(--accent-soft);
   display: grid;
   grid-template-columns: repeat(var(--n, 6), 1fr);
@@ -263,7 +262,7 @@ canvas#office {
   border: 2px dashed color-mix(in srgb, var(--muted) 45%, transparent);
   color: var(--muted);
 }
-.chip.on { border: 2px solid var(--edge); background: var(--accent-soft); color: var(--fg); }
+.chip.on { border: 1px solid var(--edge); background: var(--accent-soft); color: var(--fg); }
 .chip.on::before { content: "✓ "; color: var(--accent); }
 
 /* Hiring desk */
@@ -279,9 +278,9 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
   gap: 3px 12px;
   align-items: start;
   background: var(--surface);
-  border: 2px solid var(--edge);
+  border: 1px solid var(--edge);
   border-radius: 4px;
-  box-shadow: 4px 4px 0 var(--edge);
+  box-shadow: none;
   padding: 12px;
   cursor: grab;
   transition: transform .06s steps(1), box-shadow .06s steps(1);
@@ -293,7 +292,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
   width: 44px; height: 44px;
   image-rendering: pixelated;
   background: color-mix(in srgb, var(--c) 22%, var(--surface));
-  border: 2px solid var(--edge);
+  border: 1px solid var(--edge);
 }
 .role .name { font-weight: 700; font-size: 15px; line-height: 1.25; padding-right: 30px; }
 .role .snd { font-family: var(--font-label); font-size: 11px; color: var(--fg); }
@@ -307,7 +306,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
   padding: 2px 5px 1px;
   background: var(--c);
   color: #fff;
-  border: 2px solid var(--edge);
+  border: 1px solid var(--edge);
 }
 
 .foot {
@@ -339,8 +338,8 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
 .toast {
   background: var(--fg);
   color: var(--bg);
-  border: 2px solid var(--edge);
-  box-shadow: 4px 4px 0 var(--edge);
+  border: 1px solid var(--edge);
+  box-shadow: none;
   padding: 10px 14px;
   font-size: 14px;
   font-weight: 500;
@@ -382,7 +381,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
   </header>
 
   <div class="stage" id="stage">
-    <canvas id="office" width="440" height="310" role="img" aria-label="An isometric pixel-art office with twelve desks. Hired employees sit at desks and bounce when they play their sound."></canvas>
+    <canvas id="office" width="440" height="310" role="img" aria-label="An axonometric office plan with twelve desks, a meeting room, kitchen, washroom and lounge. Hired desks light up in their role colour when they play."></canvas>
     <div class="tags" id="tags"></div>
     <div class="empty" id="empty" hidden><b>The office is empty and quiet</b><span>Hire someone below to start the music</span></div>
     <div class="tip" id="tip" hidden></div>
@@ -897,27 +896,27 @@ function stop() {
   syncPlayBtn();
 }
 
-/* ---------- Pixel office geometry ----------
-   World units: the floor runs 0-200 on x and y. The left wall is the x=0 plane, the right wall is y=0.
-   iso() projects to a 440x310 low-res canvas that CSS scales up with nearest-neighbour. */
-const LW = 440, LH = 310, WH = 88, OX = 220, OY = 96;
-const iso = (x, y, z = 0) => [Math.round(OX + x - y), Math.round(OY + (x + y) / 2 - z)];
-const R = (x, z) => iso(x, 0, z);
-const L = (y, z) => iso(0, y, z);
+/* ---------- Office geometry: an architect's axonometric ----------
+   World units: the plan is 240 wide (x) by 210 deep (y), with a notch cut from the front-right corner.
+   The left wall is the x = 0 plane, the back wall is y = 0. iso() projects into a 440 x 310 frame;
+   the canvas draws it at three times that resolution with thin vector lines. */
+const LW = 440, LH = 310, K = 0.9, OX = 206.5, OY = 85, WH = 70, SC = 3;
+const iso = (x, y, z = 0) => [OX + (x - y) * K, OY + (x + y) * K / 2 - z * K];
+const PLAN = [[0, 0], [240, 0], [240, 150], [200, 150], [200, 210], [0, 210]];
 
 const DESKS = [];
-for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) {
-  const x0 = 22 + c * 44, y0 = 50 + r * 54, px = x0 + 18, py = y0 - 6;
+for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) {
+  const x0 = 78 + c * 42, y0 = 84 + r * 34, px = x0 + 16, py = y0 - 7;
   const [sx, sy] = iso(px, py);
   DESKS.push({
     x0, y0, px, py, sx, sy, depth: x0 + y0,
-    box: [iso(x0, y0 + 14)[0] - 3, sy - 50, iso(x0 + 32, y0)[0] + 3, iso(x0 + 32, y0 + 14)[1] + 3],
-    tagY: iso(px, y0 + 14)[1] + 3,
+    box: [iso(x0, y0 + 14)[0] - 3, sy - 34, iso(x0 + 32, y0)[0] + 3, iso(x0 + 32, y0 + 14)[1] + 3],
+    tagY: iso(px, y0 + 14)[1] + 2,
   });
 }
 const DRAW_ORDER = DESKS.map((_, i) => i).sort((a, b) => DESKS[a].depth - DESKS[b].depth);
 
-/* ---------- Pixel bitmaps ---------- */
+/* ---------- Role icons (5 x 5) ---------- */
 const ICONS = {
   stamp:    [".###.", "..#..", "..#..", "#####", "#####"],
   glass:    ["#...#", "#...#", "#####", "#####", ".###."],
@@ -1241,51 +1240,30 @@ function toast(msg) {
   setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 300); }, 2800);
 }
 
-/* ---------- Pixel raster helpers ---------- */
-function fillPoly(c, pts, col) {
-  c.fillStyle = col;
-  let y0 = Infinity, y1 = -Infinity;
-  for (const p of pts) { y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
-  for (let y = Math.floor(y0); y < Math.ceil(y1); y++) {
-    const yc = y + 0.5, xs = [];
-    for (let i = 0; i < pts.length; i++) {
-      const a = pts[i], b = pts[(i + 1) % pts.length];
-      if ((a[1] <= yc) !== (b[1] <= yc)) xs.push(a[0] + (yc - a[1]) / (b[1] - a[1]) * (b[0] - a[0]));
-    }
-    xs.sort((p, q) => p - q);
-    for (let k = 0; k + 1 < xs.length; k += 2) {
-      const a = Math.round(xs[k]), b = Math.round(xs[k + 1]);
-      if (b > a) c.fillRect(a, y, b - a, 1);
-    }
-  }
+/* ---------- Drawing helpers: thin architectural lines, flat fills ---------- */
+const INK_LINE = "#3a3a3c", HAIR = 0.42;
+function poly(c, pts, fill, stroke = INK_LINE, lw = HAIR) {
+  c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath();
+  if (fill) { c.fillStyle = fill; c.fill(); }
+  if (stroke) { c.strokeStyle = stroke; c.lineWidth = lw; c.lineJoin = "round"; c.stroke(); }
 }
-function line(c, x0, y0, x1, y1, col) {
-  c.fillStyle = col;
-  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
-  let err = dx + dy;
-  for (;;) {
-    c.fillRect(x0, y0, 1, 1);
-    if (x0 === x1 && y0 === y1) break;
-    const e2 = 2 * err;
-    if (e2 >= dy) { err += dy; x0 += sx; }
-    if (e2 <= dx) { err += dx; y0 += sy; }
-  }
+function seg(c, a, b, col = INK_LINE, lw = HAIR) { c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.strokeStyle = col; c.lineWidth = lw; c.lineCap = "round"; c.stroke(); }
+// visible faces of an axis-aligned box: the side toward you-left (+y), the side toward you-right (+x), the top
+function box(c, x0, y0, z0, x1, y1, z1, f, lw) {
+  poly(c, [iso(x0, y1, z0), iso(x1, y1, z0), iso(x1, y1, z1), iso(x0, y1, z1)], f.left || f.top, INK_LINE, lw);
+  poly(c, [iso(x1, y0, z0), iso(x1, y1, z0), iso(x1, y1, z1), iso(x1, y0, z1)], f.right || f.top, INK_LINE, lw);
+  poly(c, [iso(x0, y0, z1), iso(x1, y0, z1), iso(x1, y1, z1), iso(x0, y1, z1)], f.top, INK_LINE, lw);
 }
-function poly(c, pts, fill, stroke) {
-  if (fill) fillPoly(c, pts, fill);
-  if (stroke) for (let i = 0; i < pts.length; i++) {
-    const a = pts[i], b = pts[(i + 1) % pts.length];
-    line(c, a[0], a[1], b[0], b[1], stroke);
-  }
+const quadX = (x, y0, y1, z0, z1) => [iso(x, y0, z0), iso(x, y1, z0), iso(x, y1, z1), iso(x, y0, z1)];   // on a wall facing +x
+const quadY = (y, x0, x1, z0, z1) => [iso(x0, y, z0), iso(x1, y, z0), iso(x1, y, z1), iso(x0, y, z1)];   // on a wall facing +y
+const floorRect = (x0, y0, x1, y1, z = 0) => [iso(x0, y0, z), iso(x1, y0, z), iso(x1, y1, z), iso(x0, y1, z)];
+// draw in a wall's own flat coordinates: u along the wall, v downward
+function onWallY(c, x0, z1, fn) { const [ex, ey] = iso(x0, 0, z1); c.save(); c.transform(K, K / 2, 0, K, ex, ey); fn(); c.restore(); }
+function onWallX(c, y0, z1, fn) { const [ex, ey] = iso(0, y0, z1); c.save(); c.transform(-K, K / 2, 0, K, ex, ey); fn(); c.restore(); }
+function ellipseFloor(c, cx, cy, r, z, fill, stroke = INK_LINE) {
+  const pts = []; for (let k = 0; k < 28; k++) { const a = k / 28 * Math.PI * 2; pts.push(iso(cx + Math.cos(a) * r, cy + Math.sin(a) * r, z)); }
+  poly(c, pts, fill, stroke);
 }
-// visible faces of an axis-aligned box: +y face (lower left), +x face (lower right), top
-function box(c, x0, y0, z0, x1, y1, z1, top, side, side2, stroke = T.outline) {
-  poly(c, [iso(x0, y1, z0), iso(x1, y1, z0), iso(x1, y1, z1), iso(x0, y1, z1)], side, stroke);
-  poly(c, [iso(x1, y0, z0), iso(x1, y1, z0), iso(x1, y1, z1), iso(x1, y0, z1)], side2, stroke);
-  poly(c, [iso(x0, y0, z1), iso(x1, y0, z1), iso(x1, y1, z1), iso(x0, y1, z1)], top, stroke);
-}
-const rectR = (c, x0, x1, z0, z1, f, s) => poly(c, [R(x0, z0), R(x1, z0), R(x1, z1), R(x0, z1)], f, s);
-const rectL = (c, y0, y1, z0, z1, f, s) => poly(c, [L(y0, z0), L(y1, z0), L(y1, z1), L(y0, z1)], f, s);
 function bitmap(c, x, y, rows, col, outline) {
   const on = (i, j) => rows[j] && (rows[j][i] === "#" || rows[j][i] === "1");
   if (outline) {
@@ -1304,115 +1282,173 @@ function shade(hex, f) {
   const ch = v => Math.max(0, Math.min(255, Math.round(f < 1 ? v * f : v + (255 - v) * (f - 1))));
   return "#" + [n >> 16 & 255, n >> 8 & 255, n & 255].map(v => ch(v).toString(16).padStart(2, "0")).join("");
 }
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
 
-/* ---------- Theme tokens for the canvas ---------- */
-let T = {};
-const TOKEN_KEYS = { wallL: "c-wall-l", wallR: "c-wall-r", cap: "c-cap", capDark: "c-cap-dark", floorA: "c-floor-a", floorB: "c-floor-b",
-  floorLine: "c-floor-line", outline: "c-outline", deskTop: "c-desk-top", deskSide: "c-desk-side", chair: "c-chair", skyA: "c-sky-a",
-  skyB: "c-sky-b", screen: "c-screen", ecg: "c-ecg", plant: "c-plant", pot: "c-pot", paper: "c-paper", cork: "c-cork", coral: "c-coral",
-  surface: "surface", edge: "edge" };
+/* ---------- Palette: white walls, pale wood, and a few flat accents ---------- */
+const PAL = {
+  wall: "#ffffff", wallShade: "#f1f1ef", floor: "#fbe7a3", plank: "#f1d27c", tile: "#ffffff", cobalt: "#1d3fbf", coral: "#f2897b",
+  coralLight: "#f7b3a8", yellow: "#f6cf4a", mint: "#cfe9e1", mintDark: "#a9d4c8", sky: "#cfe6f5", grey: "#d8d8d6", dot: "#b9b9b6",
+  leaf: "#3aa55a", leafDark: "#23803f", screen: "#1d2b4f", ecg: "#5fe0b4", pink: "#f4b6c2", paper: "#ffffff",
+};
+let T = { outline: INK_LINE };
 function readTokens() {
-  const cs = getComputedStyle(document.documentElement);
-  for (const k in TOKEN_KEYS) T[k] = cs.getPropertyValue("--" + TOKEN_KEYS[k]).trim();
   drawStatic();
-  cardIcons.forEach(({ id, c }) => { c.clearRect(0, 0, 11, 11); bitmap(c, 3, 3, ICONS[id], ROLES[id].color, T.outline); });
+  cardIcons.forEach(({ id, c }) => { c.clearRect(0, 0, 11, 11); bitmap(c, 3, 3, ICONS[id], ROLES[id].color, INK_LINE); });
 }
 
-/* ---------- Static room layer ---------- */
+/* ---------- Static layer: the plan, walls, rooms and fixed furniture ---------- */
 const cv = $("office"), g = cv.getContext("2d");
-const stat = document.createElement("canvas"); stat.width = LW; stat.height = LH;
+cv.width = LW * SC; cv.height = LH * SC;
+const stat = document.createElement("canvas"); stat.width = LW * SC; stat.height = LH * SC;
 const sctx = stat.getContext("2d");
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+function plant(c, x, y, z = 0, size = 1) {
+  const [px, py] = iso(x, y, z + 7 * size);
+  ellipseFloor(c, x, y, 3.2 * size, z, "#ffffff");
+  box(c, x - 3 * size, y - 3 * size, z, x + 3 * size, y + 3 * size, z + 7 * size, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
+  for (let k = 0; k < 9; k++) {
+    const a = -Math.PI / 2 + (k - 4) * .32, len = (9 + (k % 3) * 3.5) * size;
+    const tip = [px + Math.cos(a) * len, py + Math.sin(a) * len];
+    const l = [px + Math.cos(a - .5) * len * .45, py + Math.sin(a - .5) * len * .45], r = [px + Math.cos(a + .5) * len * .45, py + Math.sin(a + .5) * len * .45];
+    poly(c, [[px, py], l, tip, r], k % 2 ? PAL.leaf : PAL.leafDark, INK_LINE, .3);
+  }
+}
+function lowWall(c, pts, h = 6, t = 3) {
+  // cut wall: a white slab of height h along a run of plan points
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [a, b] = [pts[i], pts[i + 1]];
+    const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]), y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
+    box(c, x0 - (x0 === x1 ? 0 : 0), y0, 0, x1 + (x0 === x1 ? t : 0), y1 + (y0 === y1 ? t : 0), h, { top: "#ffffff", left: PAL.wallShade, right: PAL.wallShade });
+  }
+}
+// glass partition: a low white base with a pale glass panel above
+function glassWallY(c, y, x0, x1, gap) {
+  const runs = gap ? [[x0, gap[0]], [gap[1], x1]] : [[x0, x1]];
+  runs.forEach(([a, b]) => {
+    box(c, a, y, 0, b, y + 2, 16, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
+    poly(c, [iso(a, y + 1, 16), iso(b, y + 1, 16), iso(b, y + 1, WH - 6), iso(a, y + 1, WH - 6)], hexA("#cfe6f5", .35));
+    for (let x = a + 12; x < b; x += 12) seg(c, iso(x, y + 1, 16), iso(x, y + 1, WH - 6), INK_LINE, .3);
+  });
+}
+function glassWallX(c, x, y0, y1, gap) {
+  const runs = gap ? [[y0, gap[0]], [gap[1], y1]] : [[y0, y1]];
+  runs.forEach(([a, b]) => {
+    box(c, x, a, 0, x + 2, b, 16, { top: "#ffffff", left: PAL.wallShade, right: "#ffffff" });
+    poly(c, [iso(x + 1, a, 16), iso(x + 1, b, 16), iso(x + 1, b, WH - 6), iso(x + 1, a, WH - 6)], hexA("#cfe6f5", .35));
+    for (let y = a + 12; y < b; y += 12) seg(c, iso(x + 1, y, 16), iso(x + 1, y, WH - 6), INK_LINE, .3);
+  });
+}
+function windowOnX(c, y0, y1, z0, z1) {
+  poly(c, quadX(.2, y0, y1, z0, z1), PAL.sky); poly(c, quadX(.3, y0 + 2, y1 - 2, z0 + 2, z1 - 2), null);
+  seg(c, iso(.3, (y0 + y1) / 2, z0 + 2), iso(.3, (y0 + y1) / 2, z1 - 2)); seg(c, iso(.3, y0 + 2, (z0 + z1) / 2), iso(.3, y1 - 2, (z0 + z1) / 2));
+}
+function windowOnY(c, x0, x1, z0, z1) {
+  poly(c, quadY(.2, x0, x1, z0, z1), PAL.sky); poly(c, quadY(.3, x0 + 2, x1 - 2, z0 + 2, z1 - 2), null);
+  seg(c, iso((x0 + x1) / 2, .3, z0 + 2), iso((x0 + x1) / 2, .3, z1 - 2));
+}
+function chairSimple(c, x, y, col, facing = "y") {
+  // a small dining chair; facing is where the sitter looks
+  const back = { y: [0, -1], "-y": [0, 1], x: [-1, 0], "-x": [1, 0] }[facing];
+  const legs = [[-2.5, -2.5], [2.5, -2.5], [-2.5, 2.5], [2.5, 2.5]];
+  legs.forEach(([dx, dy]) => seg(c, iso(x + dx, y + dy, 0), iso(x + dx, y + dy, 8), INK_LINE, .45));
+  const drawBack = () => { const bx = x + back[0] * 3, by = y + back[1] * 3, wx = back[0] ? .6 : 3.2, wy = back[1] ? .6 : 3.2; box(c, bx - wx, by - wy, 8, bx + wx, by + wy, 17, { top: col, left: col, right: shade(col, .9) }); };
+  if (facing === "y" || facing === "x") drawBack();
+  box(c, x - 3.2, y - 3.2, 8, x + 3.2, y + 3.2, 9.4, { top: col, left: shade(col, .9), right: shade(col, .85) });
+  if (facing === "-y" || facing === "-x") drawBack();
+}
+
 function drawStatic() {
-  const c = sctx, O = T.outline;
-  c.clearRect(0, 0, LW, LH);
-  // floor slab edges
-  poly(c, [iso(-5, 200, -6), iso(200, 200, -6), iso(200, 200, 0), iso(-5, 200, 0)], T.cap, O);
-  poly(c, [iso(200, -5, -6), iso(200, 200, -6), iso(200, 200, 0), iso(200, -5, 0)], T.capDark, O);
-  // wooden planks
-  for (let k = 0; k < 20; k++) {
-    const y0 = k * 10, y1 = y0 + 10, r = rng(k * 31 + 7);
-    poly(c, [iso(0, y0), iso(200, y0), iso(200, y1), iso(0, y1)], k % 2 ? T.floorA : T.floorB);
-    line(c, ...iso(0, y0), ...iso(200, y0), T.floorLine);
-    let x = -r() * 60;
-    while ((x += 46 + r() * 50) < 194) line(c, ...iso(Math.round(x), y0), ...iso(Math.round(x), y1), T.floorLine);
+  const c = sctx;
+  c.setTransform(SC, 0, 0, SC, 0, 0); c.clearRect(0, 0, LW, LH);
+  // floor: pale wood across the plan, planks running along x
+  poly(c, PLAN.map(([x, y]) => iso(x, y)), PAL.floor, INK_LINE, .5);
+  c.save(); c.beginPath(); PLAN.map(([x, y]) => iso(x, y)).forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.closePath(); c.clip();
+  const r = mulberry(7);
+  for (let y = 4; y < 210; y += 5) {
+    seg(c, iso(0, y), iso(240, y), PAL.plank, .35);
+    for (let x = r() * 30; x < 240; x += 26 + r() * 30) seg(c, iso(x, y - 5), iso(x, y), PAL.plank, .3);
   }
-  // walls
-  rectL(c, 0, 200, 0, WH, T.wallL);
-  rectL(c, 0, 200, 0, 4, shade(T.wallL, .86));
-  rectR(c, 0, 200, 0, WH, T.wallR);
-  rectR(c, 0, 200, 0, 4, shade(T.wallR, .86));
-  line(c, ...iso(0, 0, 0), ...iso(0, 0, WH), shade(T.wallR, .8));
-  poly(c, [iso(-5, 200, -6), iso(0, 200, -6), iso(0, 200, WH), iso(-5, 200, WH)], T.cap, O);
-  poly(c, [iso(200, -5, -6), iso(200, 0, -6), iso(200, 0, WH), iso(200, -5, WH)], T.capDark, O);
-  poly(c, [iso(-5, -5, WH), iso(200, -5, WH), iso(200, 0, WH), iso(0, 0, WH), iso(0, 200, WH), iso(-5, 200, WH)], T.cap, O);
+  c.restore();
+  // kitchen: speckled grey terrazzo
+  const kit = [104, 0, 202, 40];
+  poly(c, floorRect(kit[0], kit[1], kit[2], kit[3], .1), PAL.grey, INK_LINE, .3);
+  for (let i = 0; i < 260; i++) { const p = iso(kit[0] + r() * (kit[2] - kit[0]), kit[1] + r() * (kit[3] - kit[1]), .1); c.fillStyle = r() < .5 ? PAL.dot : "#ffffff"; c.fillRect(p[0], p[1], .45, .45); }
+  // washroom: white floor tiles on a blue grid
+  const wc = [206, 0, 240, 60];
+  poly(c, floorRect(wc[0], wc[1], wc[2], wc[3], .1), "#ffffff", INK_LINE, .3);
+  for (let x = wc[0]; x <= wc[2]; x += 4) seg(c, iso(x, wc[1], .1), iso(x, wc[3], .1), PAL.cobalt, .25);
+  for (let y = wc[1]; y <= wc[3]; y += 4) seg(c, iso(wc[0], y, .1), iso(wc[2], y, .1), PAL.cobalt, .25);
+  // lounge rug
+  poly(c, floorRect(14, 150, 58, 196, .1), PAL.coralLight, INK_LINE, .35);
+  for (let k = 0; k < 4; k++) poly(c, floorRect(18 + k * 10, 154, 24 + k * 10, 192, .12), null, "#ffffff", .5);
 
-  // right wall: window
-  rectR(c, 18, 86, 30, 33, T.cap, O);
-  rectR(c, 22, 82, 33, 78, T.cap, O);
-  rectR(c, 25, 79, 36, 75, T.skyA);
-  rectR(c, 25, 79, 36, 50, T.skyB);
-  rectR(c, 25, 79, 50, 58, shade(T.skyB, .92));
-  for (const x of [30, 58]) for (let i = 0; i < 4; i++) {
-    const a = R(x + i, 44 + i * 6), b = R(x + i + 8, 60 + i * 6);
-    line(c, a[0], a[1], b[0], b[1], T.paper);
-  }
-  rectR(c, 51, 53, 36, 75, T.cap);
-  // right wall: vitals monitor frame (contents drawn per frame)
-  rectR(c, 100, 180, 28, 80, T.outline, O);
-  rectR(c, 104, 176, 32, 76, T.screen);
-  rectR(c, 136, 144, 22, 28, T.cap, O);
+  // back walls, white, with a thin cap where they are cut
+  poly(c, quadX(0, 0, 210, 0, WH), PAL.wall); poly(c, quadY(0, 0, 240, 0, WH), PAL.wallShade);
+  poly(c, [iso(-4, -4, WH), iso(240, -4, WH), iso(240, 0, WH), iso(0, 0, WH), iso(0, 210, WH), iso(-4, 210, WH)], "#ffffff", INK_LINE, .5);
+  poly(c, [iso(-4, 210, 0), iso(0, 210, 0), iso(0, 210, WH), iso(-4, 210, WH)], "#ffffff");
+  poly(c, [iso(240, -4, 0), iso(240, 0, 0), iso(240, 0, WH), iso(240, -4, WH)], "#ffffff");
 
-  // left wall: calendar
-  rectL(c, 22, 46, 34, 72, T.paper, O);
-  rectL(c, 23, 45, 62, 71, T.coral);
-  for (let row = 0; row < 4; row++) for (let col = 0; col < 4; col++) {
-    const p = L(42 - col * 5, 56 - row * 6); c.fillStyle = T.outline; c.fillRect(p[0], p[1], 2, 1);
-  }
-  const ring = L(34, 74); c.fillStyle = O; c.fillRect(ring[0], ring[1], 1, 3);
-  // left wall: health chart in a frame
-  rectL(c, 56, 92, 44, 72, T.pot, O);
-  rectL(c, 59, 89, 47, 69, shade(T.screen, 1.6));
-  [[86, 8, "#ff6b5e"], [81, 13, "#f2a93b"], [76, 10, "#3aa6e8"], [71, 17, "#3fae4f"], [66, 14, "#d65fa8"]].forEach(([y, h, col]) =>
-    rectL(c, y - 3, y, 49, 49 + h, col));
-  // left wall: cork board with notes
-  rectL(c, 104, 142, 36, 74, T.cork, O);
-  [[110, 62], [122, 66], [134, 58], [112, 46], [128, 44]].forEach(([y, z], i) => rectL(c, y, y + 7, z, z + 7, i % 2 ? T.paper : "#fff6b3"));
-  // bookshelf against the left wall
-  box(c, 0, 152, 0, 12, 182, 52, shade(T.deskSide, 1.1), T.deskSide, shade(T.deskTop, 1.05));
-  for (const z of [14, 28, 42]) poly(c, [iso(12, 153, z), iso(12, 181, z), iso(12, 181, z + 1), iso(12, 153, z + 1)], T.outline);
-  const books = ["#e84a5f", "#3aa6e8", "#f2a93b", "#ffffff", "#2a9fa8", "#7a2e6e", "#3fae4f"];
-  const br = rng(91);
-  for (const z of [1, 15, 29, 43]) {
-    let y = 155;
-    while (y < 177) {
-      const w = 2 + Math.floor(br() * 2), h = 7 + Math.floor(br() * 4);
-      if (br() > 0.15) poly(c, [iso(12, y, z), iso(12, y + w, z), iso(12, y + w, z + h), iso(12, y, z + h)], pick(books, br));
-      y += w + 1;
-    }
-  }
-  // plants and water cooler
-  plant(c, ...iso(10, 10), 0);
-  plant(c, ...iso(12, 192), 1);
-  plant(c, ...iso(192, 30), 2);
-  box(c, 184, 4, 0, 196, 16, 22, T.paper, shade(T.paper, .85), shade(T.paper, .75));
-  box(c, 187, 7, 22, 193, 13, 32, "#bfe7fb", "#7cc7f2", "#5fb3e3");
+  // left wall: meeting-room window, a framed print, the lounge window
+  windowOnX(c, 14, 54, 22, 52);
+  poly(c, quadX(.2, 92, 118, 26, 48), "#ffffff"); poly(c, quadX(.3, 95, 115, 29, 45), PAL.yellow);
+  onWallX(c, 95, 45, () => { c.fillStyle = PAL.coral; c.beginPath(); c.arc(10, 8, 5, 0, Math.PI * 2); c.fill(); });
+  windowOnX(c, 150, 196, 22, 54);
+
+  // back wall: meeting-room whiteboard, the vitals screen frame, kitchen run, washroom tiles
+  poly(c, quadY(.2, 8, 54, 26, 50), "#ffffff");
+  onWallY(c, 8, 50, () => { c.strokeStyle = PAL.cobalt; c.lineWidth = .7; c.beginPath(); c.moveTo(6, 8); c.lineTo(18, 12); c.lineTo(26, 6); c.stroke(); c.strokeStyle = PAL.coral; c.beginPath(); c.moveTo(6, 16); c.lineTo(34, 16); c.stroke(); });
+  poly(c, quadY(.2, 66, 100, 24, 56), "#2b2b2e");
+  // kitchen: coral splashback, mint base cabinets, open shelves, fridge, coffee machine
+  poly(c, quadY(.25, 104, 182, 22, 36), PAL.coral);
+  onWallY(c, 104, 36, () => { c.strokeStyle = "#ffffff"; c.lineWidth = .35; for (let u = 0; u < 78; u += 4) { c.beginPath(); c.moveTo(u, 0); c.lineTo(u, 14); c.stroke(); } for (let v = 0; v < 14; v += 4) { c.beginPath(); c.moveTo(0, v); c.lineTo(78, v); c.stroke(); } });
+  box(c, 104, 0, 0, 182, 14, 22, { top: "#ffffff", left: PAL.mint, right: PAL.mintDark });
+  for (let x = 106; x < 180; x += 13) poly(c, quadY(14.05, x, x + 11, 3, 19), null, INK_LINE, .35);
+  [44, 54].forEach(z => box(c, 106, 0, z, 180, 7, z + 1.4, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }));
+  [[110, 45.4, PAL.coral], [118, 45.4, PAL.yellow], [126, 45.4, PAL.cobalt], [150, 55.4, PAL.mint], [160, 55.4, PAL.coral]].forEach(([x, z, col]) => box(c, x, 2, z, x + 5, 6, z + 7, { top: col, left: col, right: shade(col, .85) }));
+  box(c, 184, 0, 0, 202, 16, 52, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); seg(c, iso(186, 16.1, 30), iso(186, 16.1, 46), INK_LINE, .8); seg(c, iso(186, 16.1, 12), iso(186, 16.1, 26), INK_LINE, .8); seg(c, iso(184, 16.1, 28), iso(202, 16.1, 28));
+  box(c, 120, 3, 22, 130, 11, 34, { top: "#2b2b2e", left: PAL.coral, right: shade(PAL.coral, .85) });
+  ellipseFloor(c, 160, 7, 3.5, 22.2, "#e4e4e2"); seg(c, iso(160, 3, 22), iso(160, 3, 30)); seg(c, iso(160, 3, 30), iso(164, 3, 30));
+  [[136, PAL.yellow], [141, PAL.cobalt]].forEach(([x, col]) => box(c, x, 6, 22, x + 3, 9, 26, { top: "#ffffff", left: col, right: shade(col, .85) }));
+  // a little round table for the kitchen, with two stools
+  ellipseFloor(c, 150, 30, 7, 20, "#ffffff"); seg(c, iso(150, 30, 0), iso(150, 30, 20), INK_LINE, .7); ellipseFloor(c, 150, 30, 3.5, 0, null);
+  [[139, 30], [161, 30]].forEach(([x, y]) => { seg(c, iso(x, y, 0), iso(x, y, 12), INK_LINE, .5); ellipseFloor(c, x, y, 3, 12, PAL.yellow); });
+  // washroom: blue grid tiles up the walls, a sink, a WC and a round mirror
+  poly(c, quadY(.25, 206, 240, 0, WH - 10), "#ffffff");
+  onWallY(c, 206, WH - 10, () => { c.strokeStyle = PAL.cobalt; c.lineWidth = .3; for (let u = 0; u <= 34; u += 3) { c.beginPath(); c.moveTo(u, 0); c.lineTo(u, WH - 10); c.stroke(); } for (let v = 0; v <= WH - 10; v += 3) { c.beginPath(); c.moveTo(0, v); c.lineTo(34, v); c.stroke(); } });
+  onWallY(c, 206, 52, () => { c.fillStyle = "#ffffff"; c.strokeStyle = INK_LINE; c.lineWidth = .4; c.beginPath(); c.arc(9, 8, 6, 0, Math.PI * 2); c.fill(); c.stroke(); });
+  box(c, 210, 0, 18, 222, 9, 22, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); ellipseFloor(c, 216, 5, 3, 22.1, "#e8eef9");
+  box(c, 228, 0, 0, 238, 6, 14, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); ellipseFloor(c, 233, 11, 5, 8, "#ffffff");
+  // washroom partitions: frosted glass with a door gap
+  glassWallX(c, 204, 0, 60, [36, 52]); glassWallY(c, 60, 204, 240, null);
+
+  // meeting room: glass walls with a doorway, a long table and four coral chairs facing it
+  glassWallX(c, 64, 0, 78, [50, 66]);
+  chairSimple(c, 22, 30, PAL.coral, "y"); chairSimple(c, 42, 30, PAL.coral, "y");
+  box(c, 14, 36, 14.5, 50, 52, 16, { top: "#ffffff", left: PAL.wallShade, right: PAL.wallShade });
+  [[16, 38], [48, 38], [16, 50], [48, 50]].forEach(([x, y]) => seg(c, iso(x, y, 0), iso(x, y, 14.5), INK_LINE, .5));
+  plant(c, 32, 44, 16, .5);
+  chairSimple(c, 22, 58, PAL.coral, "-y"); chairSimple(c, 42, 58, PAL.coral, "-y");
+  glassWallY(c, 78, 0, 66, [44, 60]);
+  plant(c, 8, 70, 0, 1.1);
+
+  // lounge: a coral sofa against the wall, a cobalt armchair turned to it, side table and plants
+  box(c, 0, 152, 0, 12, 196, 20, { top: PAL.coral, left: PAL.coral, right: shade(PAL.coral, .88) });
+  box(c, 0, 152, 0, 22, 196, 10, { top: PAL.coralLight, left: PAL.coral, right: shade(PAL.coral, .88) });
+  box(c, 0, 148, 0, 22, 152, 15, { top: PAL.coralLight, left: PAL.coral, right: shade(PAL.coral, .88) });
+  box(c, 0, 196, 0, 22, 200, 15, { top: PAL.coralLight, left: PAL.coral, right: shade(PAL.coral, .88) });
+  [[4, 160], [4, 172], [4, 184]].forEach(([x, y]) => box(c, x, y, 10, x + 6, y + 9, 18, { top: PAL.pink, left: PAL.pink, right: shade(PAL.pink, .9) }));
+  box(c, 44, 160, 0, 60, 176, 9, { top: "#3a5fd6", left: PAL.cobalt, right: shade(PAL.cobalt, .85) }); box(c, 56, 160, 0, 60, 176, 18, { top: "#3a5fd6", left: PAL.cobalt, right: shade(PAL.cobalt, .85) });
+  ellipseFloor(c, 34, 140, 5, 14, "#ffffff"); seg(c, iso(34, 140, 0), iso(34, 140, 14), INK_LINE, .6); plant(c, 34, 140, 14, .55);
+  plant(c, 6, 204, 0, 1.3);
+  // water cooler by the kitchen
+  box(c, 92, 2, 0, 100, 10, 26, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
+  const wb = iso(96, 6, 31); poly(c, [[wb[0] - 3.4, wb[1] + 4.5], [wb[0] - 3.8, wb[1] - 2], [wb[0] - 1.6, wb[1] - 5], [wb[0] + 1.6, wb[1] - 5], [wb[0] + 3.8, wb[1] - 2], [wb[0] + 3.4, wb[1] + 4.5]], hexA("#7cc7f2", .7));
+
+  // front cut walls: low white slabs along the open edges of the plan
+  lowWall(c, [[0, 210], [200, 210]]); lowWall(c, [[200, 150], [200, 210]]); lowWall(c, [[200, 150], [240, 150]]); lowWall(c, [[240, 0], [240, 150]]);
 }
-function plant(c, sx, sy, seed) {
-  const r = rng(seed * 13 + 5);
-  for (let s = 0; s < 4; s++) {
-    const base = -4 + s * 3, h = 14 + Math.floor(r() * 10), ph = r() * 6;
-    for (let i = 0; i < h; i++) {
-      const x = sx + base + Math.round(Math.sin(i * 0.45 + ph) * 1.6), y = sy - 7 - i;
-      c.fillStyle = T.outline; c.fillRect(x - 1, y, 4, 1);
-      c.fillStyle = i % 5 === 0 ? shade(T.plant, 1.25) : T.plant; c.fillRect(x, y, 2, 1);
-    }
-  }
-  c.fillStyle = T.outline; c.fillRect(sx - 7, sy - 8, 14, 9);
-  c.fillStyle = T.pot; c.fillRect(sx - 6, sy - 7, 12, 7);
-  c.fillStyle = shade(T.pot, 1.3); c.fillRect(sx - 6, sy - 7, 12, 1);
-}
+function mulberry(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 
 /* ---------- Per-frame drawing ---------- */
 const particles = [];
@@ -1432,155 +1468,68 @@ function celebrate() {
   for (let i = 0; i < 120; i++) particles.push({ x: Math.random() * LW, y: -Math.random() * 120, vx: (Math.random() - .5) * .6, vy: Math.random() * .8 + .5, life: 2, color: pick(cols, Math.random), kind: "confetti" });
 }
 
+// the vitals screen on the back wall, drawn in the wall's own coordinates
 const waveBuf = new Uint8Array(2048);
-function wallPx(u, v, col) { const p = iso(104 + u, 0, 76 - v); g.fillStyle = col; g.fillRect(p[0], p[1], 1, 1); }
-// glyphs stay upright; only each glyph's origin follows the wall slope, so digits remain legible
-function wallGlyph(rows, u0, v0, col) {
-  const o = iso(104 + u0, 0, 76 - v0);
-  g.fillStyle = col;
-  rows.forEach((row, j) => [...row].forEach((ch, i) => { if (ch === "1" || ch === "#") g.fillRect(o[0] + i, o[1] + j, 1, 1); }));
-}
-function wallText(str, u0, v0, col) {
-  [...str].forEach((ch, k) => {
-    const bits = GLYPHS[ch]; if (!bits) return;
-    wallGlyph([0, 1, 2, 3, 4].map(r => bits.slice(r * 3, r * 3 + 3)), u0 + k * 4, v0, col);
-  });
-}
 function drawVitals(now) {
-  const dim = shade(T.ecg, .55);
-  // heart icon blinks with the heartbeat
-  wallGlyph(ICONS.heart, 3, 3, glow > .3 ? T.coral : shade(T.coral, .6));
-  wallText(String(A.bpm), 11, 3, T.ecg);
-  wallText("BPM", 24, 3, dim);
-  wallText(`${members.length}/12`, 3, 37, dim);
-  let prev = null;
-  for (let u = 2; u < 70; u++) {
-    let w = 0;
-    if (A.playing && A.analyser && members.length) {
-      if (u === 2) {
-        A.analyser.getByteTimeDomainData(waveBuf);
-        drawVitals.start = 0;
-        for (let i = 1; i < 1024; i++) if (waveBuf[i - 1] < 128 && waveBuf[i] >= 128) { drawVitals.start = i; break; }
-      }
-      w = (waveBuf[drawVitals.start + u * 12] - 128) / 128 * 1.6;
+  onWallY(g, 67.5, 54.5, () => {
+    const W = 31, H = 29;
+    g.fillStyle = PAL.screen; g.fillRect(0, 0, W, H);
+    g.fillStyle = glow > .3 ? PAL.coral : shade(PAL.coral, .7);
+    g.font = "600 4px Archivo, sans-serif"; g.textBaseline = "top";
+    g.fillText("♥", 2, 2);
+    g.fillStyle = PAL.ecg; g.fillText(`${A.bpm} BPM`, 7, 2);
+    g.fillStyle = hexA(PAL.ecg, .6); g.fillText(`${members.length}/12 AT DESKS`, 2, H - 6);
+    g.beginPath(); g.strokeStyle = PAL.ecg; g.lineWidth = .5; g.lineJoin = "round";
+    const live = A.playing && A.analyser && members.length;
+    if (live) {
+      A.analyser.getByteTimeDomainData(waveBuf);
+      let st = 0; for (let i = 1; i < 1024; i++) if (waveBuf[i - 1] < 128 && waveBuf[i] >= 128) { st = i; break; }
+      for (let u = 0; u <= 27; u += .5) { const w = (waveBuf[st + Math.round(u * 24)] - 128) / 128 * 1.6, y = 15 - Math.max(-1, Math.min(1, w)) * 7; u ? g.lineTo(2 + u, y) : g.moveTo(2 + u, y); }
     } else {
-      const p = (u * 2 + now / 25) % 70;
-      if (p > 30 && p < 33) w = 0.15; else if (p >= 33 && p < 35) w = -0.25;
-      else if (p >= 35 && p < 38) w = 0.95 * (1 - Math.abs(p - 36.5) / 1.5); else if (p >= 38 && p < 40) w = -0.35;
-      w *= members.length ? 0.8 : 0.2;
+      for (let u = 0; u <= 27; u += .5) {
+        const p = (u * 4 + now / 12) % 60; let w = 0;
+        if (p > 26 && p < 29) w = .15; else if (p >= 29 && p < 31) w = -.25; else if (p >= 31 && p < 34) w = .95 * (1 - Math.abs(p - 32.5) / 1.5); else if (p >= 34 && p < 36) w = -.35;
+        const y = 15 - w * (members.length ? 7 : 2);
+        u ? g.lineTo(2 + u, y) : g.moveTo(2 + u, y);
+      }
     }
-    const v = Math.max(12, Math.min(34, Math.round(23 - w * 11)));
-    const a = prev == null ? v : prev;
-    for (let k = Math.min(a, v); k <= Math.max(a, v); k++) wallPx(u, k, T.ecg);
-    prev = v;
-  }
-}
-
-/* ---------- Chairs: isometric blocks that can face four ways ----------
-   Most desks get a task chair; one gets an exercise ball and one a stool. Empty desks leave
-   their chair swivelled or pushed back at a few different angles. */
-const CHAIR_TYPE = DESKS.map((_, i) => i === 6 ? "ball" : i === 9 ? "stool" : "task");
-const EMPTY_FACING = [0, 1, 0, 3, 1, 0, 0, 3, 0, 0, 1, 2];
-const FACING = [[0, 1], [1, 0], [0, -1], [-1, 0]];
-function toWorld(cx, cy, d, u, w) { const f = FACING[d], r = [-f[1], f[0]]; return [cx + u * f[0] + w * r[0], cy + u * f[1] + w * r[1]]; }
-function partBox(c, cx, cy, d, p) {
-  const [u0, w0, z0, u1, w1, z1] = p.b, a = toWorld(cx, cy, d, u0, w0), b = toWorld(cx, cy, d, u1, w1);
-  box(c, Math.min(a[0], b[0]), Math.min(a[1], b[1]), z0, Math.max(a[0], b[0]), Math.max(a[1], b[1]), z1, p.top, p.side, p.side2);
-}
-function starBase(c, cx, cy, d, R, metal) {
-  const legs = [];
-  for (let k = 0; k < 5; k++) { const a = (k * 72 + 90 + d * 90) * Math.PI / 180; legs.push([cx + Math.cos(a) * R, cy + Math.sin(a) * R]); }
-  legs.sort((a, b) => (a[0] + a[1]) - (b[0] + b[1]));
-  const hub = iso(cx, cy, 2);
-  legs.forEach(([ex, ey]) => {
-    const e = iso(Math.round(ex), Math.round(ey), 1);
-    line(c, hub[0], hub[1], e[0], e[1], T.outline); line(c, hub[0], hub[1] + 1, e[0], e[1] + 1, metal);
-    c.fillStyle = T.outline; c.fillRect(e[0] - 1, e[1] + 1, 3, 2);
+    g.stroke();
   });
 }
-function oct(cx, cy, r, z) { const pts = []; for (let k = 0; k < 8; k++) { const a = (22.5 + k * 45) * Math.PI / 180; pts.push(iso(cx + Math.cos(a) * r, cy + Math.sin(a) * r, z)); } return pts; }
-const CHAIR = {
-  task(c, cx, cy, d) {
-    const F = { top: "#5e626e", side: "#464a55", side2: "#363942" }, M = { top: "#9a9da8", side: "#6c6f7a", side2: "#565964" };
-    starBase(c, cx, cy, d, 7, "#8c8f99");
-    const parts = [{ b: [-1, -1, 2, 1, 1, 7], ...M }, { b: [-5, -5, 7, 5, 5, 10], ...F }, { b: [-6, -1, 9, -5, 1, 13], ...M }, { b: [-7, -5, 12, -5, 5, 24], ...F }];
-    const depth = p => { const m = toWorld(cx, cy, d, (p.b[0] + p.b[3]) / 2, (p.b[1] + p.b[4]) / 2); return m[0] + m[1]; };
-    parts.sort((a, b) => depth(a) - depth(b) || a.b[2] - b.b[2]).forEach(p => partBox(c, cx, cy, d, p));
-  },
-  stool(c, cx, cy) {
-    [45, 135, 225, 315].map(a => a * Math.PI / 180).sort((a, b) => (Math.cos(a) + Math.sin(a)) - (Math.cos(b) + Math.sin(b))).forEach(a => {
-      const top = iso(cx + Math.cos(a) * 3, cy + Math.sin(a) * 3, 9), bot = iso(cx + Math.cos(a) * 6, cy + Math.sin(a) * 6, 0);
-      line(c, top[0], top[1], bot[0], bot[1], T.outline); line(c, top[0] + 1, top[1], bot[0] + 1, bot[1], "#a97b50");
-    });
-    poly(c, oct(cx, cy, 5, 4), null, "#8c8f99");
-    poly(c, oct(cx, cy, 6, 9), "#a97b50", T.outline);
-    poly(c, oct(cx, cy, 6, 11), "#c99a6b", T.outline);
-  },
-  ball(c, cx, cy) {
-    poly(c, oct(cx, cy, 7, 1), "#3a3d45", T.outline);
-    const [px, py] = iso(cx, cy, 9), R = 9;
-    for (let y = -R; y <= R; y++) for (let x = -R; x <= R; x++) {
-      const dd = Math.hypot(x, y); if (dd > R + 0.3) continue;
-      const l = (-x - y) / (R * 1.4);
-      c.fillStyle = dd > R - 0.9 ? T.outline : l > 0.35 ? "#4fc3cc" : l > -0.25 ? "#2a9fa8" : "#1f7a82";
-      c.fillRect(px + x, py + y, 1, 1);
-    }
-    c.fillStyle = "#ffffff"; c.fillRect(px - 5, py - 5, 2, 2); c.fillRect(px - 3, py - 6, 1, 1);
-  },
-};
 
-const SEAT_Z = { task: 10, stool: 11, ball: 18 };
-function chairSpot(i) {
-  // the ball and stool sit a little further back from the desk so they stay visible
-  const d = DESKS[i], type = CHAIR_TYPE[i];
-  return [d.px, d.py - 1 - (type === "task" ? 0 : 3)];
-}
-function drawPerson(m, d, now) {
-  const c = g, role = ROLES[m.role], O = T.outline, spr = personSprite(m);
-  const age = (now - m.born) / 260;
-  const drop = reduceMotion || age >= 1 ? 0 : Math.round((1 - age) * (1 - age) * 30);
-  const bob = Math.round(m.pulse * 2);
-  const [cx, cy] = chairSpot(m.desk), [sx, sy] = iso(cx, cy, SEAT_Z[CHAIR_TYPE[m.desk]]);
-  const at = blitPerson(c, spr, sx, sy - bob - drop, m.mirror);
-  // role bubble beside the head on the side they face; flashes in the role colour when they play
-  const bx = m.mirror ? at.headL - 8 : at.headR - 1, bY = at.y - 6;
-  const lit = m.pulse > 0.35;
-  c.fillStyle = O; c.fillRect(bx, bY, 9, 9); c.fillRect(m.mirror ? bx + 7 : bx, bY + 9, 2, 2);
-  c.fillStyle = lit ? role.color : T.surface; c.fillRect(bx + 1, bY + 1, 7, 7); c.fillRect(m.mirror ? bx + 7 : bx + 1, bY + 9, 1, 1);
-  bitmap(c, bx + 2, bY + 2, ICONS[m.role], lit ? T.surface : role.color);
-}
-
+// one desk: the chair sits on the far side facing the desk; a hired seat lights up in the role colour
 function drawDesk(i, now) {
   const d = DESKS[i], m = members.find(o => o.desk === i), { x0, y0 } = d, x1 = x0 + 32, y1 = y0 + 14;
-  const O = T.outline;
-  const type = CHAIR_TYPE[i];
-  if (m) CHAIR[type](g, ...chairSpot(i), m.mirror ? 0 : 1);
-  else CHAIR[type](g, d.px + (EMPTY_FACING[i] ? 3 : 0), d.py - 2, EMPTY_FACING[i]);
-  if (m) drawPerson(m, d, now);
-  else if (i === hoverDesk || i === dragDesk) {
-    if (Math.floor(now / 260) % 2 || dragDesk === i) {
-      const bx = d.sx - 5, bY = d.sy - 40;
-      g.fillStyle = O; g.fillRect(bx, bY, 11, 11);
-      g.fillStyle = T.surface; g.fillRect(bx + 1, bY + 1, 9, 9);
-      bitmap(g, bx + 3, bY + 3, ICONS.plus, "#7a2e6e");
-    }
+  const col = m ? ROLES[m.role].color : null, lit = m && m.pulse > .35;
+  const cx = d.px, cy = d.py - 1, bob = m ? m.pulse * 1.6 : 0;
+  // chair: back on the far side, seat, star base
+  for (let k = 0; k < 5; k++) { const a = k * 1.2566 + .3; seg(g, iso(cx, cy, 2), iso(cx + Math.cos(a) * 5, cy + Math.sin(a) * 5, .5), INK_LINE, .5); }
+  seg(g, iso(cx, cy, 2), iso(cx, cy, 9), INK_LINE, .8);
+  const seatCol = col ? (lit ? shade(col, 1.15) : col) : "#ffffff";
+  box(g, cx - 4, cy - 5, 18 + bob - 8, cx + 4, cy - 4, 21 + bob, { top: seatCol, left: seatCol, right: col ? shade(col, .85) : PAL.wallShade });
+  box(g, cx - 4, cy - 4, 9 + bob, cx + 4, cy + 4, 10.6 + bob, { top: seatCol, left: col ? shade(col, .9) : PAL.wallShade, right: col ? shade(col, .85) : PAL.wallShade });
+  // hover hint on an empty desk
+  if (!m && (i === hoverDesk || i === dragDesk) && (Math.floor(now / 260) % 2 || dragDesk === i)) {
+    ellipseFloor(g, cx, cy, 8, .2, null, PAL.cobalt); const p = iso(cx, cy, 24);
+    g.fillStyle = PAL.cobalt; g.font = "700 9px Archivo, sans-serif"; g.textAlign = "center"; g.fillText("+", p[0], p[1]); g.textAlign = "start";
   }
-  // legs then top slab
-  const leg = T.deskSide, leg2 = shade(T.deskSide, .8);
-  box(g, x0, y0, 0, x0 + 3, y0 + 3, 10, leg, leg, leg2);
-  box(g, x1 - 3, y0, 0, x1, y0 + 3, 10, leg, leg, leg2);
-  box(g, x0, y1 - 3, 0, x0 + 3, y1, 10, leg, leg, leg2);
-  box(g, x1 - 3, y1 - 3, 0, x1, y1, 10, leg, leg, leg2);
-  box(g, x0 - 1, y0 - 1, 10, x1 + 1, y1 + 1, 13, T.deskTop, T.deskSide, shade(T.deskSide, .82));
-  // monitor, facing the seat
-  const glowCol = m && A.playing ? (m.pulse > 0.35 ? shade(ROLES[m.role].color, 1.25) : shade(ROLES[m.role].color, .65)) : T.screen;
-  box(g, x0 + 5, y0 + 5, 13, x0 + 8, y0 + 8, 16, T.capDark, T.capDark, T.capDark);
-  box(g, x0 + 3, y0 + 1, 16, x0 + 6, y0 + 12, 28, T.cap, T.capDark, T.capDark);
-  poly(g, [iso(x0 + 6, y0 + 2, 18), iso(x0 + 6, y0 + 11, 18), iso(x0 + 6, y0 + 11, 27), iso(x0 + 6, y0 + 2, 27)], glowCol);
-  // keyboard and mug
-  poly(g, [iso(x0 + 13, y0 + 3, 13), iso(x0 + 26, y0 + 3, 13), iso(x0 + 26, y0 + 8, 13), iso(x0 + 13, y0 + 8, 13)], shade(T.paper, .82), O);
-  box(g, x1 - 5, y0 + 8, 13, x1 - 2, y0 + 11, 17, T.paper, shade(T.paper, .85), shade(T.paper, .7));
-  if (m) poly(g, [iso(x1 - 5, y0 + 11, 14), iso(x1 - 2, y0 + 11, 14), iso(x1 - 2, y0 + 11, 15), iso(x1 - 5, y0 + 11, 15)], ROLES[m.role].color);
+  // desk: white top on slim legs
+  [[x0 + 1, y0 + 1], [x1 - 1, y0 + 1], [x0 + 1, y1 - 1], [x1 - 1, y1 - 1]].forEach(([x, y]) => seg(g, iso(x, y, 0), iso(x, y, 14), INK_LINE, .55));
+  box(g, x0, y0, 14, x1, y1, 15.6, { top: "#ffffff", left: PAL.wallShade, right: PAL.wallShade });
+  // laptop with its screen toward the chair; the lid you see takes the role colour
+  box(g, cx - 5, y0 + 2, 15.6, cx + 5, y0 + 9, 16.2, { top: "#eeeeec", left: "#e2e2e0", right: "#e2e2e0" });
+  const lidCol = col ? (lit ? shade(col, 1.25) : col) : "#ffffff";
+  poly(g, [iso(cx - 5, y0 + 9, 16.2), iso(cx + 5, y0 + 9, 16.2), iso(cx + 5, y0 + 10.5, 23.5), iso(cx - 5, y0 + 10.5, 23.5)], lidCol);
+  // a mug and a notebook
+  ellipseFloor(g, x1 - 4, y0 + 10, 1.6, 15.7, col || "#ffffff"); seg(g, iso(x1 - 5.6, y0 + 10, 15.7), iso(x1 - 5.6, y0 + 10, 18.5), INK_LINE, .4); seg(g, iso(x1 - 2.4, y0 + 10, 15.7), iso(x1 - 2.4, y0 + 10, 18.5), INK_LINE, .4); ellipseFloor(g, x1 - 4, y0 + 10, 1.6, 18.5, col || "#ffffff");
+  poly(g, floorRect(x0 + 3, y0 + 4, x0 + 9, y0 + 11, 15.7), i % 2 ? PAL.yellow : PAL.mint, INK_LINE, .35);
+  // role badge over the seat, flashing on the beat
+  if (m) {
+    const p = iso(cx, cy, 34 + bob), r = 5.2;
+    g.beginPath(); g.arc(p[0], p[1], r, 0, Math.PI * 2); g.fillStyle = lit ? col : "#ffffff"; g.fill(); g.strokeStyle = INK_LINE; g.lineWidth = .45; g.stroke();
+    g.beginPath(); g.moveTo(p[0] - 1.5, p[1] + r - .5); g.lineTo(p[0], p[1] + r + 2.5); g.lineTo(p[0] + 1.5, p[1] + r - .5); g.fillStyle = lit ? col : "#ffffff"; g.fill();
+    bitmap(g, Math.round(p[0] - 2.5), Math.round(p[1] - 2.5), ICONS[m.role], lit ? "#ffffff" : col);
+  }
 }
 
 function frame(now) {
@@ -1593,19 +1542,16 @@ function frame(now) {
       if (!m) continue;
       m.pulse = 1;
       if (ev.beat) glow = 1;
-      if (Math.random() < 0.3) note(DESKS[m.desk].sx, DESKS[m.desk].sy - 44, ROLES[m.role].color);
+      if (Math.random() < 0.3) note(DESKS[m.desk].sx, DESKS[m.desk].sy - 38, ROLES[m.role].color);
     }
   }
   members.forEach(m => m.pulse *= 0.85);
   glow *= 0.9;
 
-  g.clearRect(0, 0, LW, LH);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cv.width, cv.height);
   g.drawImage(stat, 0, 0);
-  if (glow > 0.05) {
-    g.globalAlpha = 0.14 * glow;
-    fillPoly(g, [iso(0, 0), iso(200, 0), iso(200, 200), iso(0, 200)], T.coral);
-    g.globalAlpha = 1;
-  }
+  g.setTransform(SC, 0, 0, SC, 0, 0);
+  if (glow > 0.05) { g.globalAlpha = 0.12 * glow; poly(g, PLAN.map(([x, y]) => iso(x, y)), PAL.coral, null); g.globalAlpha = 1; }
   drawVitals(now);
   for (const i of DRAW_ORDER) drawDesk(i, now);
 
@@ -1614,9 +1560,12 @@ function frame(now) {
     p.x += p.vx; p.y += p.vy;
     p.life -= p.kind === "note" ? 0.012 : p.kind === "confetti" ? 0.006 : 0.03;
     if (p.life <= 0 || p.y > LH) { particles.splice(i, 1); continue; }
-    const x = Math.round(p.x), y = Math.round(p.y);
-    if (p.kind === "note") bitmap(g, x, y, NOTE, p.color, T.outline);
-    else { g.fillStyle = p.color; g.fillRect(x, y, 2, 2); }
+    g.globalAlpha = Math.min(1, p.life);
+    g.fillStyle = p.color;
+    if (p.kind === "note") { g.font = "700 9px Archivo, sans-serif"; g.fillText("♪", p.x, p.y); }
+    else if (p.kind === "confetti") g.fillRect(p.x, p.y, 2.2, 1.2);
+    else { g.beginPath(); g.arc(p.x, p.y, 1, 0, Math.PI * 2); g.fill(); }
+    g.globalAlpha = 1;
   }
   requestAnimationFrame(frame);
 }
