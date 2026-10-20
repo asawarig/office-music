@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Office Pulse</title>
+<title>Office Harmony</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="Hire a team, cover their health, and hear what a healthy office sounds like.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Figtree:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap">
 <style>
 /* Layout: one column. Header with transport controls, the axonometric office plan as the hero,
    a coverage strip that fills as roles are hired, then the hiring desk of nine role cards.
@@ -45,9 +45,9 @@
   --c-cork: #e98a4a;
   --c-coral: #ff6b5e;
 
-  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Poppins", "Helvetica Neue", Arial, sans-serif;
   --font-label: "Archivo", "Helvetica Neue", Arial, sans-serif;
-  --font-body: "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-body: "Passenger Sans", "Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -128,8 +128,8 @@ body {
 h1 {
   font-family: var(--font-display);
   font-weight: 700;
-  font-size: clamp(40px, 7vw, 68px);
-  line-height: .9;
+  font-size: clamp(40px, 7vw, 64px);
+  line-height: 1;
   letter-spacing: -.01em;
   margin: 0;
   text-wrap: balance;
@@ -164,6 +164,7 @@ button { font: inherit; color: inherit; }
 .mode button:not(.on):hover small { color: var(--fg); }
 .mode button:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; border-radius: 4px; }
 @media (prefers-reduced-motion: reduce) { .mode .thumb, .mode button { transition: none; } }
+@media (max-width: 520px) { .mode button small { display: none; } .mode button { padding: 7px 9px; } .hud { right: max(12px, env(safe-area-inset-right, 0px)); flex-wrap: wrap; } }
 .btn.play {
   background: var(--accent);
   color: var(--surface);
@@ -400,8 +401,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
   <button class="close" id="menuClose" aria-label="Close menu">×</button>
   <header class="top">
     <div class="brand">
-      <p class="eyebrow"><span class="dot" id="beatDot"></span>A group health jam</p>
-      <h1>Office <em>Pulse</em></h1>
+      <h1>Office <em>Harmony</em></h1>
       <p class="lede">Every teammate makes one office noise: ringing phones, papers knocked into neat stacks, the coffee machine, typing, clicking, the claims stamp, a pen on a glass, the photocopier and the washroom flush. Thirteen people, each with their own seat. Call them in and their noises lock into one groove, or switch to Ambient and let the office hum along at its own pace.</p>
     </div>
     <div class="transport">
@@ -2278,7 +2278,7 @@ function frame(now) {
     }
     while (visualQueue.length && visualQueue[0].t <= ct) {
       const ev = visualQueue.shift();
-      if (ev.id === "beat") { const dot = $("beatDot"); dot.classList.remove("beat"); void dot.offsetWidth; dot.classList.add("beat"); continue; }
+      if (ev.id === "beat") continue;
       const m = members.find(o => o.id === ev.id);
       if (!m) continue;
       m.pulse = 1; m.hitT = ev.t; m.hits = (m.hits || 0) + 1;
