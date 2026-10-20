@@ -1,11 +1,17 @@
 # Office Pulse
 
-An isometric pixel-art office where every hire adds an office object to the band. Knuckles on a
-desk play the kick in a heartbeat rhythm, the claims stamp hits the backbeat, keyboards and pens are
-the hi-hats, a spoon on a mug rings out the melody, the water cooler bubbles, the desk phone trills,
-the printer buzzes the bassline and the microwave hums the chords and dings. Each role covers one
-benefit on a group health policy. Cover all nine to hear the full band. A second hire in the same
-role brings a related object (stapler, mouse, glass of water, photocopier, elevator ding) and plays a new part.
+An isometric pixel-art office where every hire adds an office noise to the band:
+
+| Teammate | Noise | Part | Second hire adds |
+|---|---|---|---|
+| Teleconsult Caller | Phone rings | Lead melody | Digital desk-phone beeps |
+| Night-Shift Napper | Yawning | Chords (call and response) | A higher yawn answering on the off bars |
+| Flu-Season Survivor | Coughing | Snare on the backbeat | Small coughs and an "ah-ah-CHOO" fill |
+| Espresso Addict | Coffee machine buzz | Bass, plus knock-box kick | Steam wand, grinder, drips |
+| Deadline Typist | Typing | Hi-hats, spacebar | Fast burst into an Enter-key slam |
+| Spreadsheet Clicker | Clicking | Off-beat clicks | Pen clicks and scroll-wheel ticks |
+
+Each teammate covers one benefit on a group health policy. Cover all six to hear the full band.
 
 Everything is in one static `index.html`: Web Audio synthesis (no samples) and a hand-rasterised canvas.
 
