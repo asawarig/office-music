@@ -87,7 +87,7 @@ body {
 .hud { position: fixed; top: max(12px, env(safe-area-inset-top, 0px)); left: max(12px, env(safe-area-inset-left, 0px)); display: flex; gap: 8px; z-index: 5; }
 /* at night the page around the office darkens to match it */
 .stage { transition: background-color .8s ease; }
-body.night .stage { background: #3b4775; }
+body.night .stage { background: var(--night-page, #3b4775); }
 body.night .byline span { color: #c9d1ee; }
 .byline { position: fixed; top: max(12px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); z-index: 5; display: flex; align-items: center; gap: 8px; height: 40px; color: var(--muted); text-decoration: none; font: 400 15px/1 var(--font-body); }
 .byline img { height: 22px; width: auto; display: block; }
@@ -194,6 +194,7 @@ button { font: inherit; color: inherit; }
   color: var(--muted);
   padding: 0 4px;
 }
+.tempo select { font: inherit; font-size: 13px; padding: 4px 6px; border: 1px solid var(--edge); border-radius: 4px; background: var(--surface); color: var(--fg); }
 .tempo input { width: 96px; accent-color: var(--accent); }
 .tempo output { color: var(--fg); min-width: 7ch; font-variant-numeric: tabular-nums; }
 
@@ -424,6 +425,10 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
       <label class="tempo" for="tempo"><span id="tempoName">Tempo</span>
         <input type="range" id="tempo" min="70" max="120" value="88">
         <output id="tempoOut">88 bpm</output>
+      </label>
+      <button class="btn" id="dayBtn">Day / night</button>
+      <label class="tempo" for="nightLook">Night look
+        <select id="nightLook"></select>
       </label>
       <button class="btn" id="fillBtn">Everyone in</button>
       <button class="btn" id="clearBtn">Empty office</button>
@@ -1208,6 +1213,36 @@ function syncMode() {
    night-time sound: owls, a ticking clock, the microwave, slow typing, crickets, the vending machine,
    a wind chime, the fridge hum and rain on the glass. */
 const NSND = {
+  // a phone buzzing face-down on the desk, then a soft call-join chime
+  buzz(d, t, f, v) {
+    for (let k = 0; k < 2; k++) { const o = A.ctx.createOscillator(); o.type = "square"; o.frequency.value = 160; const lp = filt("lowpass", 500, 2), g = susGain(t + k * .32, .01, v * .5, .2, .03); o.connect(lp); lp.connect(g); g.connect(d); o.start(t + k * .32); o.stop(t + k * .32 + .3); }
+    [1, 1.5].forEach((r, k) => tone(d, t + .75 + k * .14, f * r, .16, { vel: v * .5, attack: .005, release: .2 }));
+  },
+  // packing up: a bag zip pulled shut
+  zip(d, t, v) {
+    const n = noiseSrc(t, .5), bp = filt("bandpass", 1400, 3), g = susGain(t, .02, v, .32, .05);
+    bp.frequency.setValueAtTime(900, t); bp.frequency.exponentialRampToValueAtTime(4200, t + .34);
+    const am = A.ctx.createGain(), lfo = A.ctx.createOscillator(), lg = A.ctx.createGain(); am.gain.value = .5; lfo.type = "square"; lfo.frequency.setValueAtTime(60, t); lfo.frequency.linearRampToValueAtTime(140, t + .34); lg.gain.value = .5; lfo.connect(lg); lg.connect(am.gain); lfo.start(t); lfo.stop(t + .5);
+    n.connect(bp); bp.connect(am); am.connect(g); g.connect(d);
+  },
+  // the desk lamp: a switch click and the faint ting of the bulb
+  lamp(d, t, f, v) { burstN(d, t, v, "bandpass", 3200, 5, .01); burstN(d, t + .012, v * .5, "bandpass", 1200, 4, .015); ping(d, t + .01, f, v * .25, .4); },
+  // stirring a mug of tea: spoon clinks round the rim
+  stir(d, t, f, v) { for (let k = 0; k < 3; k++) modal(d, t + k * .16, f * (1 + k * .02), v * (1 - k * .2), [1, 2.4], [1, .25], [.35, .15]); },
+  // the paper shredder chewing a page
+  shred(d, t, dur, v) {
+    const n = noiseSrc(t, dur + .1), bp = filt("bandpass", 1100, 1.5), am = A.ctx.createGain(), lfo = A.ctx.createOscillator(), lg = A.ctx.createGain();
+    am.gain.value = .6; lfo.type = "sawtooth"; lfo.frequency.value = 38; lg.gain.value = .4; lfo.connect(lg); lg.connect(am.gain); lfo.start(t); lfo.stop(t + dur + .1);
+    const g = susGain(t, .03, v, dur, .08); n.connect(bp); bp.connect(am); am.connect(g); g.connect(d);
+    tone(d, t, 92, dur, { type: "sawtooth", vel: v * .5, cutoff: 300, attack: .03, release: .08 });
+  },
+  // the hand dryer: a rising whoosh that holds, then winds down
+  dryer(d, t, dur, v) {
+    const n = noiseSrc(t, dur + .5), bp = filt("bandpass", 600, .8), g = susGain(t, .25, v, dur, .4);
+    bp.frequency.setValueAtTime(400, t); bp.frequency.exponentialRampToValueAtTime(1500, t + .3);
+    n.connect(bp); bp.connect(g); g.connect(d);
+    tone(d, t, 210, dur, { type: "triangle", vel: v * .25, cutoff: 700, attack: .25, release: .4 });
+  },
   // an owl: two soft hoots, the second longer and a little lower
   owl(d, t, f, v) {
     [[0, .22, 1], [.42, .55, .94]].forEach(([dt, dur, k]) => {
@@ -1251,37 +1286,111 @@ const NSND = {
 };
 // one night sound per role, for the musical grid (s = step in the bar) and as a one-off for ambient
 const NIGHT = {
-  phone:    { step: (m, s, c) => (s === 0 && c.bar % 2 === 0), one: (m, t, c) => NSND.owl(m.out, t, mtof(c.chord[0] + 12), .3), gap: [18, 35] },
-  cough:    { step: (m, s) => s % 4 === 0, one: (m, t, c, s = 0) => NSND.tick(m.out, t, .35, s % 8 ? .8 : 1), gap: [1, 1.2] },
+  phone:    { step: (m, s, c) => s === 0 && c.bar % 2 === 0, one: (m, t, c) => NSND.buzz(m.out, t, mtof(c.chord[0] + 24), .3), gap: [18, 35] },
+  cough:    { step: (m, s, c) => s === 8 && c.bar % 2 === 1, one: (m, t) => NSND.zip(m.out, t, .3), gap: [12, 25] },
   coffee:   { step: (m, s, c) => s === 0 && c.bar === 1, one: (m, t, c) => NSND.microwave(m.out, t, c.barLen ? c.barLen * .9 : 2.4, mtof(c.chord[2] + 24), .3), gap: [40, 70] },
   typing:   { step: (m, s) => [0, 3, 7, 10].includes(s) && Math.random() > .25, one: (m, t) => { for (let k = 0; k < 4; k++) SND.key(m.out, t + k * rand(.18, .35), .18); }, gap: [4, 10] },
-  clicking: { step: (m, s, c) => [2, 9, 13].includes(s), one: (m, t, c) => NSND.cricket(m.out, t, mtof(pick(c.chord, Math.random) + 48), .06), gap: [1.5, 4] },
+  clicking: { step: (m, s, c) => s === 4 && c.bar % 2 === 0, one: (m, t, c) => NSND.lamp(m.out, t, mtof(pick(c.chord, Math.random) + 36), .3), gap: [10, 20] },
   stamp:    { step: (m, s, c) => s === 8 && c.bar === 3, one: (m, t) => NSND.vend(m.out, t, .5), gap: [30, 55] },
-  glass:    { step: (m, s) => [0, 6, 11].includes(s), one: (m, t, c) => NSND.chime(m.out, t, mtof(pick(c.chord, Math.random) + 24), .14), gap: [3, 8] },
-  copier:   { step: (m, s) => s === 0, one: (m, t, c) => NSND.fridge(m.out, t, mtof(c.chord[0] - 24), c.barLen || 3, .1), gap: [3, 3.5] },
-  flush:    { step: (m, s, c) => s === 0 && c.bar % 2 === 0, one: (m, t, c) => NSND.rain(m.out, t, c.barLen ? c.barLen * 2 : 6, .1), gap: [8, 14] },
+  glass:    { step: (m, s) => [0, 6, 11].includes(s), one: (m, t, c) => NSND.stir(m.out, t, mtof(pick(c.chord, Math.random) + 24), .14), gap: [4, 9] },
+  copier:   { step: (m, s, c) => s === 0 && c.bar % 2 === 0, one: (m, t, c) => NSND.shred(m.out, t, c.barLen ? c.barLen * .4 : 1.2, .16), gap: [15, 30] },
+  flush:    { step: (m, s, c) => s === 0 && c.bar === 2, one: (m, t, c) => NSND.dryer(m.out, t, c.barLen ? c.barLen * .8 : 2.5, .16), gap: [45, 80] },
 };
-const NIGHT_NAMES = { phone: "an owl outside", cough: "the wall clock", coffee: "the microwave", typing: "slow late-night typing", clicking: "crickets", stamp: "the vending machine", glass: "a wind chime", copier: "the fridge hum", flush: "rain on the window" };
+const NIGHT_NAMES = { phone: "a phone buzzing", cough: "a bag zipped shut", coffee: "the microwave", typing: "slow late-night typing", clicking: "the desk lamp", stamp: "the vending machine", glass: "a spoon stirring tea", copier: "the shredder", flush: "the hand dryer" };
 // the windows you can click: [wall, from, to, bottom, top]
 const WINDOWS = [["x", 14, 54, 22, 52], ["x", 150, 196, 22, 54]];
 function windowAt(p) {
   return WINDOWS.some(([w, a, b, z0, z1]) => { const pts = w === "x" ? quadX(.2, a, b, z0, z1) : quadY(.2, a, b, z0, z1); const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]); return p.x >= Math.min(...xs) && p.x <= Math.max(...xs) && p.y >= Math.min(...ys) && p.y <= Math.max(...ys); });
 }
 A.night = false; let nightK = 0;
+// a passing shower on the glass, only when someone clicks a window
+function rainOnGlass() {
+  const t = A.ctx.currentTime + .1, d = A.master;
+  NSND.rain(d, t, 6, .07);
+  rainUntil = performance.now() + 7000;
+}
+let rainUntil = 0;
 function setNight(on) {
   A.night = on;
   document.body.classList.toggle("night", on);
   members.forEach(m => { m.amb = null; });
   toast(on ? "Night falls. The office hums a different tune." : "Morning. Back to the day shift.");
+  if (on && A.ctx) rainOnGlass();
 }
 // draw the night over the finished frame: a deep blue wash, night windows, and warm pools of light
 const STARS = [...Array(26)].map((_, i) => [(i * 37) % 100 / 100, (i * 53 % 100) / 100, .3 + (i % 3) * .2]);
+// five looks for the night, chosen with ?night=1..5 (1 by default)
+const NIGHT_STYLES = [
+  { name: "Lamplight", wash: "#3b4775", page: "#3b4775", pool: "255,196,110", poolA: .42, fixtures: "pendant", screen: .25 },
+  { name: "Neon", wash: "#2a2550", page: "#2a2550", pool: "255,90,200", poolA: .32, fixtures: "neon", screen: .55 },
+  { name: "Moonlit", wash: "#55628c", page: "#55628c", pool: "200,220,255", poolA: .2, fixtures: "moon", screen: .3 },
+  { name: "Cosy", wash: "#5a4a6e", page: "#5a4a6e", pool: "255,170,90", poolA: .5, fixtures: "string", screen: .2 },
+  { name: "Blackout", wash: "#1f2440", page: "#1f2440", pool: "255,214,150", poolA: .6, fixtures: "desklamp", screen: .35 },
+];
+let NS = NIGHT_STYLES[Math.max(0, Math.min(4, (+new URLSearchParams(location.search).get("night") || 1) - 1))];
+function setNightStyle(k) { NS = NIGHT_STYLES[k]; document.documentElement.style.setProperty("--night-page", NS.page); }
+setNightStyle(NIGHT_STYLES.indexOf(NS));
+// a soft elliptical pool of light on the floor
+function pool(x, y, z, r, rgb, a) {
+  const q = iso(x, y, z), gr = g.createRadialGradient(q[0], q[1], 0, q[0], q[1], r);
+  gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(1, `rgba(${rgb},0)`);
+  g.fillStyle = gr; g.beginPath(); g.ellipse(q[0], q[1], r, r * .6, 0, 0, 7); g.fill();
+}
+// the fixed lights in the room, drawn on top of the night wash
+const PENDANTS = [[108, 106], [180, 106], [150, 172], [32, 44], [150, 30], [222, 30]];
+function fixtures(now, k) {
+  const f = NS.fixtures;
+  if (f === "pendant") {
+    PENDANTS.forEach(([x, y]) => {
+      g.globalCompositeOperation = "source-over";
+      seg(g, iso(x, y, WH), iso(x, y, 46), "#2b2b2e", .4);
+      const a = iso(x - 3, y + 3, 46), b2 = iso(x + 3, y - 3, 46), c2 = iso(x, y, 50);
+      g.beginPath(); g.moveTo(...a); g.lineTo(...c2); g.lineTo(...b2); g.closePath(); g.fillStyle = "#2b2b2e"; g.fill();
+      g.globalCompositeOperation = "lighter"; pool(x, y, 46, 6, "255,230,170", .9); pool(x, y, 0, 40, "255,200,120", .28);
+    });
+  } else if (f === "neon") {
+    g.globalCompositeOperation = "lighter";
+    [[[0, 30, 40], [0, 140, 40], "255,60,190"], [[60, 0, 58], [200, 0, 58], "60,220,255"], [[240, 10, 30], [240, 140, 30], "255,60,190"]].forEach(([p0, p1, rgb]) => {
+      for (let w = 3; w >= 1; w--) { seg(g, iso(...p0), iso(...p1), `rgba(${rgb},${.25 + (3 - w) * .3})`, w * 1.2); }
+    });
+    pool(120, 120, 0, 120, "120,80,255", .12);
+  } else if (f === "moon") {
+    g.globalCompositeOperation = "lighter";
+    WINDOWS.forEach(([w, a2, b3, z0, z1]) => {
+      const mid = (a2 + b3) / 2, pts = [iso(0, a2, z1), iso(0, b3, z1), iso(60, b3 + 30, 0), iso(60, a2 + 30, 0)];
+      g.beginPath(); pts.forEach((q, i) => i ? g.lineTo(...q) : g.moveTo(...q)); g.closePath();
+      const q0 = iso(0, mid, z1), q1 = iso(60, mid + 30, 0), gr = g.createLinearGradient(q0[0], q0[1], q1[0], q1[1]);
+      gr.addColorStop(0, "rgba(200,220,255,.28)"); gr.addColorStop(1, "rgba(200,220,255,.04)"); g.fillStyle = gr; g.fill();
+    });
+  } else if (f === "string") {
+    g.globalCompositeOperation = "source-over";
+    const runs = [[[0, 4, 66], [0, 206, 62]], [[4, 0, 66], [236, 0, 62]]];
+    runs.forEach(([p0, p1]) => {
+      const n = 26; g.strokeStyle = "#2b2b2e"; g.lineWidth = .3; g.beginPath();
+      for (let i = 0; i <= n; i++) { const t2 = i / n, q = iso(p0[0] + (p1[0] - p0[0]) * t2, p0[1] + (p1[1] - p0[1]) * t2, p0[2] + (p1[2] - p0[2]) * t2 - Math.sin(t2 * Math.PI * 6) ** 2 * 3); i ? g.lineTo(...q) : g.moveTo(...q); }
+      g.stroke();
+      g.globalCompositeOperation = "lighter";
+      for (let i = 0; i <= n; i++) { const t2 = i / n, q = iso(p0[0] + (p1[0] - p0[0]) * t2, p0[1] + (p1[1] - p0[1]) * t2, p0[2] + (p1[2] - p0[2]) * t2 - Math.sin(t2 * Math.PI * 6) ** 2 * 3), tw = .6 + .4 * Math.sin(now / 300 + i); const gr = g.createRadialGradient(q[0], q[1], 0, q[0], q[1], 3); gr.addColorStop(0, `rgba(255,214,140,${tw})`); gr.addColorStop(1, "rgba(255,214,140,0)"); g.fillStyle = gr; g.fillRect(q[0] - 3, q[1] - 3, 6, 6); }
+      g.globalCompositeOperation = "source-over";
+    });
+  } else if (f === "desklamp") {
+    // little lamps on every desk, lit or not
+    SEATS.forEach((st, i) => {
+      if (st.kind !== "desk") return;
+      const [x, y] = st.L(-12, 4), on = members.some(m => m.desk === i);
+      g.globalCompositeOperation = "source-over";
+      seg(g, iso(x, y, 15.6), iso(x, y, 21), "#2b2b2e", .5); seg(g, iso(x, y, 21), iso(...st.L(-9, 1, 22)), "#2b2b2e", .5);
+      const h = iso(...st.L(-9, 1, 22)); g.beginPath(); g.ellipse(h[0], h[1] + .6, 1.8, 1, 0, 0, 7); g.fillStyle = on ? "#ffd27a" : "#3a3a3c"; g.fill();
+      if (on) { g.globalCompositeOperation = "lighter"; const [cx, cy] = st.L(-6, -2); pool(cx, cy, 15.6, 16, "255,214,150", .55); }
+    });
+  }
+}
 function drawNight(now) {
   nightK += ((A.night ? 1 : 0) - nightK) * .06;
   if (nightK < .01) return;
   g.save();
   g.globalCompositeOperation = "multiply"; g.globalAlpha = nightK;
-  g.fillStyle = "#3b4775"; g.fillRect(0, 0, LW, LH);
+  g.fillStyle = NS.wash; g.fillRect(0, 0, LW, LH);
   g.globalCompositeOperation = "source-over"; g.globalAlpha = nightK;
   // the windows: a night sky with a moon and stars
   WINDOWS.forEach(([w, a, b, z0, z1], wi) => {
@@ -1290,18 +1399,18 @@ function drawNight(now) {
     const at = (u, v) => w === "x" ? iso(.3, a + 1 + u * (b - a - 2), z1 - 1 - v * (z1 - z0 - 2)) : iso(a + 1 + u * (b - a - 2), .3, z1 - 1 - v * (z1 - z0 - 2));
     STARS.forEach(([u, v, r], k) => { const q = at(u, v), tw = .6 + .4 * Math.sin(now / 500 + k); g.fillStyle = `rgba(255,248,220,${tw})`; g.fillRect(q[0], q[1], r, r); });
     if (wi === 1) { const q = at(.7, .28); g.beginPath(); g.arc(q[0], q[1], 3.2, 0, 7); g.fillStyle = "#fff4cf"; g.fill(); g.beginPath(); g.arc(q[0] + 1.3, q[1] - .8, 2.8, 0, 7); g.fillStyle = "#1b2340"; g.fill(); }
+    if (performance.now() < rainUntil) { g.strokeStyle = "rgba(190,215,255,.7)"; g.lineWidth = .35; for (let k = 0; k < 18; k++) { const u = ((k * 37 + Math.floor(now / 90) * 13) % 100) / 100, v = ((now / 9 + k * 23) % 100) / 100; const q = at(u, v); g.beginPath(); g.moveTo(q[0], q[1]); g.lineTo(q[0] - .4, q[1] + 2.2); g.stroke(); } }
     seg(g, ...(w === "x" ? [iso(.3, (a + b) / 2, z0 + 2), iso(.3, (a + b) / 2, z1 - 2)] : [iso((a + b) / 2, .3, z0 + 2), iso((a + b) / 2, .3, z1 - 2)]), "#3a3a3c", .4);
   });
-  // warm light around everyone who is in, flickering on their sound
+  fixtures(now, nightK);
+  // light around everyone who is in, flickering on their sound
   g.globalCompositeOperation = "lighter";
   members.forEach(m => {
-    const st = SEATS[m.desk], x = st.kind === "desk" ? st.cx : st.x, y = st.kind === "desk" ? st.cy : st.y, q = iso(x, y, 15);
-    const r = 26 + (m.pulse || 0) * 6, gr = g.createRadialGradient(q[0], q[1], 0, q[0], q[1], r);
-    gr.addColorStop(0, "rgba(255,196,110,.42)"); gr.addColorStop(1, "rgba(255,196,110,0)");
-    g.fillStyle = gr; g.beginPath(); g.ellipse(q[0], q[1], r, r * .62, 0, 0, 7); g.fill();
+    const st = SEATS[m.desk], x = st.kind === "desk" ? st.cx : st.x, y = st.kind === "desk" ? st.cy : st.y;
+    pool(x, y, 15, 24 + (m.pulse || 0) * 6, NS.pool, NS.poolA);
   });
   // the wall screen glows
-  { const q = iso(83, 0, 40), gr = g.createRadialGradient(q[0], q[1], 0, q[0], q[1], 30); gr.addColorStop(0, "rgba(120,220,190,.25)"); gr.addColorStop(1, "rgba(120,220,190,0)"); g.fillStyle = gr; g.fillRect(q[0] - 30, q[1] - 30, 60, 60); }
+  pool(83, 0, 40, 30, "120,220,190", NS.screen);
   g.restore();
 }
 
@@ -1627,6 +1736,9 @@ function syncPlayBtn() {
   $("playBtn").setAttribute("aria-pressed", String(A.playing));
 }
 $("playBtn").addEventListener("click", () => A.playing ? stop() : start());
+$("dayBtn").addEventListener("click", () => { start(); setNight(!A.night); });
+NIGHT_STYLES.forEach((st, k) => { const o = document.createElement("option"); o.value = k; o.textContent = `${k + 1}. ${st.name}`; if (st === NS) o.selected = true; $("nightLook").appendChild(o); });
+$("nightLook").addEventListener("change", e => { setNightStyle(+e.target.value); if (!A.night) { start(); setNight(true); } });
 document.querySelectorAll(".mode button").forEach(b => {
   b.addEventListener("click", () => {
     const was = A.mode;
@@ -2117,6 +2229,16 @@ function pose(m, seat, T) {
   }
 
   if (T.talk) { mouth = Math.sin(t * 19 + idle) > -.2 ? "open" : "smile"; nod += Math.sin(t * 5) * .03; }
+  // at night everyone stretches now and then: arms up over the head, leaning back, a big yawn
+  if (A.night) {
+    const ph = ((t + idle * 2.3) % 11) / 11, st = ph < .3 ? Math.sin(Math.PI * ph / .3) : 0, k = smooth(st);
+    if (k > .01) {
+      const top = hip[2] + 12.4 + 7.5;
+      R = v3.mix(R, [.6, -2.4, top], k); L = v3.mix(L, [.6, 2.4, top], k);
+      lean -= .2 * k; nod -= .3 * k; headR = headL = null;
+      if (st > .45) mouth = "open";
+    }
+  }
   // torso and head; breathing lifts the chest a little
   const breath = Math.sin(t * 1.7 + idle) * .1, torso = 12.4;
   const neck = v3.add(hip, [Math.sin(lean) * torso, 0, Math.cos(lean) * torso + breath]);
@@ -3474,7 +3596,7 @@ const tip = $("tip");
 cv.addEventListener("pointermove", e => {
   if (windowAt(toLogical(e)) && e.pointerType !== "touch") {
     const p = toLogical(e); cv.style.cursor = "pointer";
-    tip.innerHTML = A.night ? `<b>Window</b><small>Click to bring the morning back</small>` : `<b>Window</b><small>Click to fast-forward to night</small>`;
+    tip.innerHTML = A.night ? `<b>Window</b><small>Click for rain. Morning is in the menu</small>` : `<b>Window</b><small>Click to fast-forward to night</small>`;
     tip.style.left = (p.x / LW * 100) + "%"; tip.style.top = ((p.y - 12) / LH * 100) + "%"; tip.hidden = false; hoverDesk = -1; return;
   }
   if (printAt(toLogical(e)) && e.pointerType !== "touch") {
@@ -3518,7 +3640,7 @@ cv.addEventListener("pointermove", e => {
 });
 cv.addEventListener("pointerleave", () => { hoverDesk = -1; tip.hidden = true; });
 cv.addEventListener("click", e => {
-  if (windowAt(toLogical(e))) { tip.hidden = true; setNight(!A.night); start(); return; }
+  if (windowAt(toLogical(e))) { tip.hidden = true; const was = A.night; start(); if (was) rainOnGlass(); else setNight(true); return; }
   if (printAt(toLogical(e))) { tip.hidden = true; openAlbum(); return; }
   closeAlbum();
   if (screenAt(toLogical(e))) { tip.hidden = true; openScreen(); return; }
