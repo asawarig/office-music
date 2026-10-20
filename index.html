@@ -1725,9 +1725,8 @@ function drawStatic() {
   onWallY(c, 104, 36, () => { c.strokeStyle = "#ffffff"; c.lineWidth = .35; for (let u = 0; u < 78; u += 4) { c.beginPath(); c.moveTo(u, 0); c.lineTo(u, 14); c.stroke(); } for (let v = 0; v < 14; v += 4) { c.beginPath(); c.moveTo(0, v); c.lineTo(78, v); c.stroke(); } });
   box(c, 104, 0, 0, 182, 14, 22, { top: "#ffffff", left: PAL.mint, right: PAL.mintDark });
   for (let x = 106; x < 180; x += 13) poly(c, quadY(14.05, x, x + 11, 3, 19), null, INK_LINE, .35);
-  [44, 54].forEach(z => box(c, 106, 0, z, 180, 7, z + 1.4, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }));
-  [[110, 45.4, PAL.coral], [118, 45.4, PAL.yellow], [126, 45.4, PAL.cobalt], [150, 55.4, PAL.mint], [160, 55.4, PAL.coral]].forEach(([x, z, col]) => box(c, x, 1, z, x + 5, 5.4, z + 7, { top: col, left: col, right: shade(col, .85) }));
-  [44, 54].forEach(z => poly(c, quadY(7, 106, 180, z, z + 1.4), "#ffffff"));
+  [42, 56].forEach(z => box(c, 106, 0, z, 180, 6, z + 1.4, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }));
+  [[110, 43.4, PAL.coral], [117, 43.4, PAL.yellow], [124, 43.4, PAL.cobalt], [150, 57.4, PAL.mint], [158, 57.4, PAL.coral]].forEach(([x, z, col]) => box(c, x, 1, z, x + 5, 4.6, z + 6, { top: shade(col, 1.08), left: col, right: shade(col, .85) }));
   box(c, 184, 0, 0, 202, 16, 52, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); seg(c, iso(186, 16.1, 30), iso(186, 16.1, 46), INK_LINE, .8); seg(c, iso(186, 16.1, 12), iso(186, 16.1, 26), INK_LINE, .8); seg(c, iso(184, 16.1, 28), iso(202, 16.1, 28));
   box(c, 120, 3, 22, 130, 11, 34, { top: "#2b2b2e", left: PAL.coral, right: shade(PAL.coral, .85) });
   ellipseFloor(c, 160, 7, 3.5, 22.2, "#e4e4e2"); seg(c, iso(160, 3, 22), iso(160, 3, 30)); seg(c, iso(160, 3, 30), iso(164, 3, 30));
@@ -1738,8 +1737,10 @@ function drawStatic() {
   onWallY(c, 206, 52, () => { c.fillStyle = "#ffffff"; c.strokeStyle = INK_LINE; c.lineWidth = .4; c.beginPath(); c.arc(9, 8, 6, 0, Math.PI * 2); c.fill(); c.stroke(); });
   box(c, 211, 0, 0, 221, 8, 18, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
   poly(c, quadY(8.05, 212.5, 219.5, 3, 15), null, INK_LINE, .35); seg(c, iso(216, 8.1, 3), iso(216, 8.1, 15), INK_LINE, .35);
-  box(c, 210, 0, 18, 222, 9, 21, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); ellipseFloor(c, 216, 4.6, 3, 21.1, "#e8eef9");
-  box(c, 215.4, 0, 21, 216.6, 1.4, 24, { top: "#d8d8d6", left: "#d8d8d6", right: "#c8c8c6" }, .3);
+  box(c, 210, 0, 18, 222, 9, 21, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); ellipseFloor(c, 216, 4.8, 3.4, 21.05, "#ffffff"); ellipseFloor(c, 216, 4.8, 2.5, 21.06, "#dfe7f2", INK_LINE);
+  ellipseFloor(c, 216, 4.8, .45, 21.07, "#9a9a9c", null);
+  { const tap = [iso(216, 1, 21), iso(216, 1, 25), iso(216, 1.8, 25.6), iso(216, 3, 25.2), iso(216, 3.2, 24.2)];
+    c.beginPath(); tap.forEach((q, i) => i ? c.lineTo(...q) : c.moveTo(...q)); c.strokeStyle = INK_LINE; c.lineWidth = 1.5; c.lineCap = "round"; c.lineJoin = "round"; c.stroke(); c.strokeStyle = "#d8d8d6"; c.lineWidth = .8; c.stroke(); }
   box(c, 228, 0, 0, 238, 5, 16, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
   box(c, 230.5, 5, 0, 235.5, 12, 6, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
   cylinder(c, 233, 11, 6, 8.2, 4.6, "#ffffff", .45); ellipseFloor(c, 233, 11, 3.2, 8.25, "#e8eef9");
@@ -2237,6 +2238,14 @@ function drawCopier(c) {
 }
 function kitchenTable(x, y) { ellipseFloor(g, x, y, 3.5, 0, null); seg(g, iso(x, y, 0), iso(x, y, 20), INK_LINE, .7); ellipseFloor(g, x, y, 7, 20, "#ffffff"); }
 function stool(x, y) { ellipseFloor(g, x, y, 2.4, 0, null); seg(g, iso(x, y, 0), iso(x, y, 12), INK_LINE, .5); cylinder(g, x, y, 10.8, 12, 3, PAL.yellow); }
+// a mug: the body, coffee inside, and a handle on the side you can see
+function mug(x, y, z, fill) {
+  cylinder(g, x, y, z, z + 2.9, 1.6, fill, .4);
+  ellipseFloor(g, x, y, 1.2, z + 2.85, "#7a4a2a", null);
+  const k = 1.6 / Math.SQRT2, a = iso(x + k, y - k, z + 2.3), b = iso(x + k, y - k, z + .7), o = 1.7;
+  g.beginPath(); g.moveTo(...a); g.bezierCurveTo(a[0] + o, a[1] - .2, b[0] + o, b[1] + .2, b[0], b[1]);
+  g.strokeStyle = INK_LINE; g.lineWidth = 1.2; g.lineCap = "round"; g.stroke(); g.strokeStyle = fill; g.lineWidth = .55; g.stroke();
+}
 // an upright cylinder: bottom, the two side edges and a lid, so cups and stools read as solid
 function cylinder(c, x, y, z0, z1, r, fill, lw = HAIR) {
   const k = r / Math.SQRT2, l0 = iso(x - k, y + k, z0), r0 = iso(x + k, y - k, z0), l1 = iso(x - k, y + k, z1), r1 = iso(x + k, y - k, z1);
@@ -2305,12 +2314,12 @@ function drawDeskTop(i, s, m, col, lit, F) {
     poly(g, [iso(...L(lu - 5, 2, 16.2)), iso(...L(lu + 5, 2, 16.2)), iso(...L(lu + 5, 3.5, 23.5)), iso(...L(lu - 5, 3.5, 23.5))], lidCol);
   }
   const [mx, my] = L(12, 3);
-  if (act !== "stamp") cylinder(g, mx, my, 15.6, 18.5, 1.6, col || "#ffffff", .4);
+  if (act !== "stamp") mug(mx, my, 15.6, col || "#ffffff");
   if (act !== "clicking" && act !== "stamp") poly(g, [L(-13, -3), L(-7, -3), L(-7, 4), L(-13, 4)].map(([x, y]) => iso(x, y, 15.7)), i % 2 ? PAL.yellow : PAL.mint, INK_LINE, .35);
   if (!F) return;
   const W = F.W;
   for (const pr of F.P.props) {
-    if (pr.kind === "mouse") { const p = W(pr.at); ellipseFloor(g, p[0], p[1], 1.3, 15.7 - (pr.down ? .1 : 0), "#ffffff"); }
+    if (pr.kind === "mouse") { const p = W(pr.at); cylinder(g, p[0], p[1], 15.6, 16.3 - (pr.down ? .15 : 0), 1.2, "#ffffff", .35); }
     if (pr.kind === "papers") { const [a, b] = W(pr.at); poly(g, floorRect(a - 3.5, b - 3.5, a + 3.5, b + 3.5, 15.75), "#ffffff", INK_LINE, .35); if (m.hits % 2) poly(g, floorRect(a - 1.4, b - 1.4, a + 1.4, b + 1.4, 15.8), null, PAL.coral, .5); }
     if (pr.kind === "pile") {
       // a few books and folders waiting their turn
