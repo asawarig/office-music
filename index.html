@@ -1740,7 +1740,7 @@ function drawStatic() {
   [42, 56].forEach(z => box(c, 106, 0, z, 180, 6, z + 1.4, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }));
   SNACK_BOXES.forEach(([x, z, k]) => box(c, x, 1, z, x + 5, 4.6, z + 6, { top: shade(PAL[k], 1.08), left: PAL[k], right: shade(PAL[k], .85) }));
   box(c, 184, 0, 0, 202, 16, 52, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade }); seg(c, iso(186, 16.1, 30), iso(186, 16.1, 46), INK_LINE, .8); seg(c, iso(186, 16.1, 12), iso(186, 16.1, 26), INK_LINE, .8); seg(c, iso(184, 16.1, 28), iso(202, 16.1, 28));
-  box(c, 120, 3, 22, 130, 11, 34, { top: "#2b2b2e", left: PAL.coral, right: shade(PAL.coral, .85) });
+  drawEspresso(c, 118, 2);
   ellipseFloor(c, 160, 7, 3.5, 22.2, "#e4e4e2"); seg(c, iso(160, 3, 22), iso(160, 3, 30)); seg(c, iso(160, 3, 30), iso(164, 3, 30));
   [[136, PAL.yellow], [141, PAL.cobalt]].forEach(([x, col]) => box(c, x, 6, 22, x + 3, 9, 26, { top: "#ffffff", left: col, right: shade(col, .85) }));
   // washroom: blue grid tiles up the walls, a sink, a WC and a round mirror
@@ -1770,8 +1770,8 @@ function drawStatic() {
   drawArmchair(c, 44, 160);
   ellipseFloor(c, 34, 140, 5, 14, "#ffffff"); seg(c, iso(34, 140, 0), iso(34, 140, 14), INK_LINE, .6); plant(c, 34, 140, 14, .55);
   plant(c, 6, 204, 0, 1.3);
-  // knock box for the espresso grounds
-  box(c, 119, 11, 22, 123.5, 14, 24.6, { top: "#2b2b2e", left: "#3a3a3c", right: "#2b2b2e" });
+  // knock box for the espresso grounds, beside the machine
+  box(c, 132, 9, 22, 135.5, 12.5, 24.6, { top: "#2b2b2e", left: "#3a3a3c", right: "#2b2b2e" }, .35);
 
   // front cut walls: low white slabs along the open edges of the plan
   lowWall(c, [[0, 210], [200, 210]]); lowWall(c, [[200, 150], [200, 210]]); lowWall(c, [[200, 150], [240, 150]]); lowWall(c, [[240, 0], [240, 150]]);
@@ -2278,6 +2278,25 @@ function drawCooler(c) {
   c.beginPath(); [...shoulder, bot(wl)[1], bot(wl)[0]].forEach((q, i) => i ? c.lineTo(...q) : c.moveTo(...q)); c.closePath(); c.fillStyle = hexA("#5aaedc", .45); c.fill();
   [30, 33.5].forEach(z => { c.beginPath(); for (let i = 0; i <= 12; i++) { const a = Math.PI * i / 12, u = Math.cos(a) * k, v = Math.sin(a) * 1.4; const q = iso(x - u, y + u, z - v); i ? c.lineTo(...q) : c.moveTo(...q); } c.strokeStyle = hexA("#2c6d96", .55); c.lineWidth = .35; c.stroke(); });
   seg(c, iso(x - k * .55, y + k * .55, z0 + 2), iso(x - k * .55, y + k * .55, z1 - .5), "rgba(255,255,255,.75)", .7);
+}
+// an espresso machine: a coral body on the counter with a grey top for cups, a brewing recess with
+// the group head and portafilter, a drip tray, a steam wand on the side and a pressure gauge
+function drawEspresso(c, x, y) {
+  const lw = .4, cor = PAL.coral, f = k => ({ top: shade(cor, k * 1.15), left: shade(cor, k), right: shade(cor, k * .84) });
+  box(c, x, y, 22, x + 12, y + 9, 23, { top: "#3a3a3c", left: "#2b2b2e", right: "#2b2b2e" }, lw);          // feet / base plate
+  box(c, x, y, 23, x + 12, y + 3.5, 35, f(1), lw);                                                        // back column
+  box(c, x, y + 3.5, 23, x + 12, y + 9, 25, f(.95), lw);                                                  // drip tray housing
+  poly(c, floorRect(x + 2, y + 4.5, x + 10, y + 8.4, 25.05), "#9a9a9c", INK_LINE, .3);                     // drip grate
+  for (let k = 0; k < 4; k++) seg(c, iso(x + 3 + k * 2, y + 4.8, 25.1), iso(x + 3 + k * 2, y + 8.1, 25.1), "#6b6b6e", .25);
+  box(c, x, y + 3.5, 31, x + 12, y + 8, 35, f(1), lw);                                                    // the head, over the recess
+  poly(c, floorRect(x + .5, y + .5, x + 11.5, y + 3, 35.05), "#d8d8d6", INK_LINE, .3);                     // cup warmer on top
+  cylinder(c, x + 6, y + 6, 29.2, 31, 1.6, "#c9c9c6", .35);                                                // group head
+  box(c, x + 5, y + 5.4, 28.4, x + 7, y + 6.6, 29.2, { top: "#2b2b2e", left: "#2b2b2e", right: "#2b2b2e" }, .3);
+  seg(c, iso(x + 6, y + 6.6, 28.8), iso(x + 6, y + 12, 28.4), "#2b2b2e", 1.3);                              // portafilter handle, pointing out at you
+  poly(c, quadY(y + 8.05, x + 8.5, x + 11, 32, 34), "#ffffff", INK_LINE, .3);                               // gauge
+  seg(c, iso(x + 9.75, y + 8.1, 33), iso(x + 10.4, y + 8.1, 33.6), "#d6545a", .35);
+  seg(c, iso(x + 12, y + 7.5, 32), iso(x + 13.2, y + 8, 26.6), "#9a9a9c", .7);                              // steam wand
+  ellipseFloor(c, x + 2.6, y + 1.8, .9, 35.1, "#ffffff"); ellipseFloor(c, x + 5, y + 1.8, .9, 35.1, "#ffffff");
 }
 function drawCopier(c) {
   const lw = .4, grey = "#e4e4e2";
