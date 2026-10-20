@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Office Pulse Scenes</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Layout: a sketchbook. Five numbered scene studies, one per reference, each a large drawing with
+   its four-colour swatch strip and a short note. The page chrome stays quiet so the drawings lead. */
+:root {
+  --bg: #efece4; --surface: #f8f6f0; --fg: #1f1d1a; --muted: #6a665e; --line: #1f1d1a;
+  --font-hand: "Gaegu", "Comic Sans MS", "Marker Felt", cursive;
+  --font-body: "Figtree", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #1a1916; --surface: #24221e; --fg: #efece4; --muted: #a8a399; --line: #efece4; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #1a1916; --surface: #24221e; --fg: #efece4; --muted: #a8a399; --line: #efece4; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap {
+  max-width: 1000px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 72px; display: grid; gap: 44px;
+}
+h1 { font-family: var(--font-hand); font-weight: 700; font-size: clamp(40px, 7vw, 64px); line-height: .95; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--font-hand); font-weight: 700; font-size: 32px; line-height: 1; margin: 0; }
+.lede { color: var(--muted); max-width: 62ch; margin: 10px 0 0; }
+.scene { display: grid; gap: 12px; }
+.scene-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+.num { font-family: var(--font-hand); font-size: 22px; font-weight: 700; border: 2px solid var(--line); border-radius: 50%; width: 38px; height: 38px; display: grid; place-items: center; }
+.scene p { margin: 0; color: var(--muted); max-width: 70ch; flex-basis: 100%; }
+canvas { display: block; width: 100%; max-width: 100%; border-radius: 6px; }
+.swatches { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.swatches span { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--line); }
+.swatches small { color: var(--muted); margin-left: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Office scenes, five ways</h1>
+    <p class="lede">A fresh start from your five references: loose ink lines, flat colour, and the shading from the gnome drawing, with flat cast shadows, solid blacks and paper-white highlights. Each scene uses four colours at most. Everyone seated faces their desk, with the chair turned in.</p>
+  </header>
+  <div id="scenes" style="display:grid;gap:56px"></div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+let R = rng(7);
+
+/* ---------- hand-drawn toolkit ----------
+   Lines wobble with smooth noise and overshoot a little at the ends; fills sit slightly off the line
+   like a print; washes add soft blotches inside a shape. */
+let C, INK, LW = 1.6;
+function noiseFn() { const a = R() * 6.28, b = R() * 6.28, f1 = .04 + R() * .05, f2 = .12 + R() * .1; return t => Math.sin(t * f1 + a) * .6 + Math.sin(t * f2 + b) * .4; }
+function wobble(pts, closed, amp = .9) {
+  const out = [], n = noiseFn(), segs = closed ? pts.length : pts.length - 1;
+  let dist = 0;
+  for (let i = 0; i < segs; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length], len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    const steps = Math.max(1, Math.ceil(len / 7)), nx = -(b[1] - a[1]) / len, ny = (b[0] - a[0]) / len;
+    for (let s = 0; s < steps; s++) { const t = s / steps, off = n(dist + len * t) * amp; out.push([a[0] + (b[0] - a[0]) * t + nx * off, a[1] + (b[1] - a[1]) * t + ny * off]); }
+    dist += len;
+  }
+  if (!closed) out.push(pts[pts.length - 1]);
+  return out;
+}
+function path(pts, closed) { C.beginPath(); pts.forEach((p, i) => i ? C.lineTo(p[0], p[1]) : C.moveTo(p[0], p[1])); if (closed) C.closePath(); }
+function ink(pts, closed = false, w = LW, col = INK) {
+  let p = pts;
+  if (!closed && pts.length === 2) {   // straight strokes overshoot a touch, like a pen
+    const [a, b] = pts, len = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, ux = (b[0] - a[0]) / len, uy = (b[1] - a[1]) / len, o = .8 + R() * 1.6;
+    p = [[a[0] - ux * o, a[1] - uy * o], [b[0] + ux * o, b[1] + uy * o]];
+  }
+  C.save(); C.strokeStyle = col; C.lineWidth = w; C.lineJoin = "round"; C.lineCap = "round";
+  path(wobble(p, closed), closed); C.stroke(); C.restore();
+}
+function fill(pts, col, wash = 0) {
+  if (!col) return;
+  C.save(); C.fillStyle = col;
+  path(wobble(pts.map(p => [p[0] + .7, p[1] + .6]), true, .6), true); C.fill();
+  if (wash) {
+    C.clip();
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const n = Math.min(60, Math.max(4, ((x1 - x0) * (y1 - y0)) / 900));
+    for (let i = 0; i < n; i++) {
+      C.globalAlpha = .05 + R() * .05; C.fillStyle = R() < .5 ? wash : "#ffffff";
+      C.beginPath(); C.ellipse(x0 + R() * (x1 - x0), y0 + R() * (y1 - y0), 6 + R() * 26, 4 + R() * 14, R() * 3, 0, 6.3); C.fill();
+    }
+  }
+  C.restore();
+}
+function shape(pts, col, opts = {}) { fill(pts, col, opts.wash); if (opts.line !== false) ink(pts, true, opts.w || LW); }
+function dot(x, y, r, col = INK) { C.fillStyle = col; C.beginPath(); C.arc(x, y, r, 0, 6.3); C.fill(); }
+function circle(x, y, r, col, w = LW) {
+  const pts = []; for (let k = 0; k < 22; k++) { const a = k / 22 * 6.283; pts.push([x + Math.cos(a) * r, y + Math.sin(a) * r]); }
+  shape(pts, col, { w });
+}
+// dry-brush ticks scattered inside an area, like the marks on the gnome's baskets
+function ticks(pts, n, len = 5, col = INK, w = 1) {
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  C.save(); path(pts, true); C.clip();
+  for (let i = 0; i < n; i++) { const x = Math.min(...xs) + R() * (Math.max(...xs) - Math.min(...xs)), y = Math.min(...ys) + R() * (Math.max(...ys) - Math.min(...ys)), a = -.5 + R() * .3; ink([[x, y], [x + Math.cos(a) * len, y + Math.sin(a) * len]], false, w, col); }
+  C.restore();
+}
+function text(str, x, y, size, col = INK, rot = 0) {
+  C.save(); C.translate(x, y); C.rotate(rot); C.fillStyle = col; C.font = `700 ${size}px Gaegu, "Comic Sans MS", cursive`; C.textAlign = "center"; C.fillText(str, 0, 0); C.restore();
+}
+function paper(W, H, strength = .05) {
+  C.save();
+  for (let i = 0; i < 2600; i++) { C.globalAlpha = R() * strength; C.fillStyle = R() < .5 ? "#000" : "#fff"; C.fillRect(R() * W, R() * H, 1 + R() * 1.5, 1 + R() * 1.5); }
+  C.restore();
+}
+
+/* ---------- projection and boxes ---------- */
+let PJ = (x, y, z) => [x, y];
+// centre a room of X by Y by Z units in the canvas
+function fitIso(W, H, X, Y, Z, s, nudgeY = 0) {
+  const pts = [[0, 0, Z], [X, 0, 0], [0, Y, 0], [X, Y, 0], [X, 0, Z], [0, Y, Z], [X, Y, -0.5]].map(([x, y, z]) => [(x - y) * .866 * s, (x + y) * .5 * s - z * s]);
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  iso(W / 2 - (Math.min(...xs) + Math.max(...xs)) / 2, H / 2 - (Math.min(...ys) + Math.max(...ys)) / 2 + nudgeY, s);
+}
+function iso(ox, oy, s, ang = .5) { PJ = (x, y, z = 0) => [ox + (x - y) * .866 * s, oy + (x + y) * ang * s - z * s]; }
+// box with its three visible faces: top, the side facing you-left (+y) and the side facing you-right (+x)
+function box(x0, y0, z0, x1, y1, z1, t, opts = {}) {
+  const L = [PJ(x0, y1, z0), PJ(x1, y1, z0), PJ(x1, y1, z1), PJ(x0, y1, z1)];
+  const Rt = [PJ(x1, y0, z0), PJ(x1, y1, z0), PJ(x1, y1, z1), PJ(x1, y0, z1)];
+  const Tp = [PJ(x0, y0, z1), PJ(x1, y0, z1), PJ(x1, y1, z1), PJ(x0, y1, z1)];
+  shape(L, t.left, opts); shape(Rt, t.right, opts); shape(Tp, t.top, opts);
+  return { L, Rt, Tp };
+}
+// flat cast shadow on the floor: the footprint swept along the light direction
+let SHADOW = [0, 0];
+function castShadow(x0, y0, x1, y1, h, col) {
+  const [dx, dy] = SHADOW, pts = [[x0, y0], [x1, y0], [x1, y1], [x0, y1], [x0 + dx * h, y0 + dy * h], [x1 + dx * h, y0 + dy * h], [x1 + dx * h, y1 + dy * h], [x0 + dx * h, y1 + dy * h]];
+  const hull = convexHull(pts).map(([x, y]) => PJ(x, y, 0));
+  fill(hull, col);
+}
+function convexHull(p) {
+  p = p.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lo = [], up = [];
+  for (const q of p) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (const q of p.slice().reverse()) { while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+const quadX = (x, y0, y1, z0, z1) => [PJ(x, y0, z0), PJ(x, y1, z0), PJ(x, y1, z1), PJ(x, y0, z1)];   // on the left wall
+const quadY = (y, x0, x1, z0, z1) => [PJ(x0, y, z0), PJ(x1, y, z0), PJ(x1, y, z1), PJ(x0, y, z1)];   // on the right wall
+
+/* ---------- office kit ---------- */
+function desk(x, y, w, d, t, z = 0) {
+  const h = 2.4 + z;
+  box(x + .15, y + .1, z + .9, x + w - .15, y + .2, h - .25, { top: t.right, left: t.right, right: t.right });   // modesty panel
+  box(x + .1, y + d - .25, z, x + .35, y + d - .05, h - .25, t);
+  box(x + w - .35, y + d - .25, z, x + w - .1, y + d - .05, h - .25, t);
+  box(x, y, h - .25, x + w, y + d, h, t);
+}
+function laptop(x, y, t, z = 0) {
+  box(x, y, 2.4 + z, x + .9, y + 1.2, 2.47 + z, t);
+  shape([PJ(x, y, 2.47 + z), PJ(x, y + 1.2, 2.47 + z), PJ(x - .25, y + 1.2, 3.25 + z), PJ(x - .25, y, 3.25 + z)], t.dark);
+}
+function monitor(x, y, t, wide = 1.6) {
+  box(x, y, 2.4, x + .5, y + .4, 2.6, t);
+  box(x + .15, y + .1, 2.6, x + .3, y + .25, 3.0, t);
+  const s = box(x - .2, y + .1, 3.0, x + .1, y + .1 + wide, 4.2, { top: t.dark, left: t.dark, right: t.dark });
+  return s;
+}
+function screenFacing(x, y, wide, col) { shape(quadX(x + .1, y + .2, y + wide, 3.1, 4.1), col); }
+function keyboard(x, y, t) { box(x, y, 2.4, x + .5, y + 1.3, 2.5, t); }
+function mug(x, y, t) { box(x, y, 2.4, x + .25, y + .25, 2.75, t); }
+// office chair; facing is the direction the sitter looks: "x" (toward you-right), "-x", "y" (toward you-left), "-y"
+function chair(cx, cy, facing, t, opts = {}) {
+  const z0 = opts.z || 0, P0 = PJ; PJ = (x, y, z = 0) => P0(x, y, z + z0);
+  const v = { x: [1, 0], "-x": [-1, 0], y: [0, 1], "-y": [0, -1] }[facing];
+  const back = [cx - v[0] * .65, cy - v[1] * .65];
+  // base
+  const hub = PJ(cx, cy, .25);
+  for (let k = 0; k < 5; k++) { const a = k * 1.2566 + .4, e = PJ(cx + Math.cos(a) * .7, cy + Math.sin(a) * .7, .08); ink([hub, e], false, 2.2); dot(e[0], e[1] + 1.5, 2); }
+  ink([PJ(cx, cy, .25), PJ(cx, cy, 1.0)], false, 3);
+  const drawBack = () => {
+    const [bx, by] = back, px = v[1] !== 0 ? .55 : .12, py = v[0] !== 0 ? .55 : .12;
+    box(bx - px, by - py, 1.3, bx + px, by + py, opts.tall ? 3.4 : opts.low ? 2.2 : 2.8, opts.backTone || { top: t.dark, left: t.dark, right: t.mid });
+  };
+  if (facing === "x" || facing === "y") drawBack();
+  box(cx - .55, cy - .55, 1.0, cx + .55, cy + .55, 1.25, { top: t.mid, left: t.dark, right: t.dark });
+  PJ = P0;
+  const later = () => { const P1 = PJ; PJ = (x, y, z = 0) => P1(x, y, z + z0); drawBack(); PJ = P1; };
+  return { drawBack: facing === "-x" || facing === "-y" ? later : () => {}, seat: [cx, cy, 1.25 + z0] };
+}
+
+/* people: round cartoon bodies with dot eyes, after the cubicle reference.
+   view "front": facing you across a desk; "back": facing a wall desk, back to you; "side": in profile. */
+function person(seat, view, t, look = {}) {
+  const [sx, sy] = PJ(...seat), f = look.dir || 1, sc = look.scale || 1;
+  const body = look.shirt || t.mid, skin = look.skin || t.light, hair = look.hair === undefined ? INK : look.hair;
+  C.save(); C.translate(sx, sy); C.scale(sc, sc);
+  if (view === "side" || look.legs) {
+    // thighs forward, shins down, little shoes
+    ink([[0, -2], [f * 16, 2]], false, 9, INK); ink([[0, -2], [f * 16, 2]], false, 6.5, look.trousers || t.dark);
+    ink([[f * 16, 2], [f * 18, 20]], false, 8, INK); ink([[f * 16, 2], [f * 18, 20]], false, 5.5, look.trousers || t.dark);
+    C.fillStyle = INK; C.beginPath(); C.ellipse(f * 21, 22, 6, 3.2, 0, 0, 6.3); C.fill();
+  }
+  // torso
+  const torso = [[-11, -2], [-12, -18], [-8, -28], [8, -28], [12, -18], [11, -2]];
+  shape(torso, body, { wash: look.wash });
+  // arms reaching toward the desk
+  if (view === "front") {
+    for (const s of [-1, 1]) { ink([[s * 10, -22], [s * 12, -8]], false, 7.5); ink([[s * 10, -22], [s * 12, -8]], false, 5, body); circle(s * 12, -6, 3.2, skin, 1.4); }
+  } else if (view === "side") {
+    ink([[f * 2, -22], [f * 16, -14]], false, 7.5); ink([[f * 2, -22], [f * 16, -14]], false, 5, body); circle(f * 18, -14, 3.2, skin, 1.4);
+  } else {
+    for (const s of [-1, 1]) { ink([[s * 10, -22], [s * 9, -12]], false, 7.5); ink([[s * 10, -22], [s * 9, -12]], false, 5, body); }
+  }
+  // head
+  const hx = view === "side" ? f * 2 : 0, hy = -40;
+  circle(hx, hy, 12.5, skin);
+  if (view === "back") {
+    if (hair) { C.save(); path(wobble(circlePts(hx, hy, 12.5), true, .5), true); C.clip(); fill(circlePts(hx, hy + 4, 13), hair); C.restore(); ink(circlePts(hx, hy, 12.5), true); }
+    circle(hx - 12, hy + 1, 2.6, skin, 1.3); circle(hx + 12, hy + 1, 2.6, skin, 1.3);
+  } else {
+    const ex = view === "side" ? f * 5 : 0;
+    if (hair) { C.save(); path(circlePts(hx, hy, 12.5), true); C.clip(); fill(look.long ? [[hx - 14, hy - 14], [hx + 14, hy - 14], [hx + 14, hy + 14], [hx + 9, hy + 14], [hx + 9, hy - 4], [hx - 9, hy - 4], [hx - 9, hy + 14], [hx - 14, hy + 14]] : [[hx - 14, hy - 16], [hx + 14, hy - 16], [hx + 14, hy - 5], [hx + 4, hy - 7], [hx - 14, hy - 3]], hair); C.restore(); ink(circlePts(hx, hy, 12.5), true); }
+    if (look.sleepy) { ink([[hx + ex - 7, hy + 1], [hx + ex - 2, hy + 1]], false, 1.5); ink([[hx + ex + 2, hy + 1], [hx + ex + 7, hy + 1]], false, 1.5); }
+    else { dot(hx + ex - 4.5, hy + 1, 1.7); dot(hx + ex + 4.5, hy + 1, 1.7); }
+    C.save(); C.strokeStyle = INK; C.lineWidth = 1.4; C.beginPath(); C.arc(hx + ex, hy + 5, 3, .3, 2.84); C.stroke(); C.restore();
+    if (look.glasses) { ink(circlePts(hx + ex - 4.5, hy + 1, 3.6), true, 1.3); ink(circlePts(hx + ex + 4.5, hy + 1, 3.6), true, 1.3); }
+  }
+  C.restore();
+}
+function circlePts(x, y, r) { const p = []; for (let k = 0; k < 22; k++) { const a = k / 22 * 6.283; p.push([x + Math.cos(a) * r, y + Math.sin(a) * r]); } return p; }
+function plant(x, y, t, big = 1) {
+  box(x - .35 * big, y - .35 * big, 0, x + .35 * big, y + .35 * big, .8 * big, t);
+  const [px, py] = PJ(x, y, .8 * big);
+  for (let k = 0; k < 7; k++) {
+    const a = -Math.PI / 2 + (k - 3) * .38, len = (22 + R() * 14) * big;
+    const tip = [px + Math.cos(a) * len, py + Math.sin(a) * len], mid = [(px + tip[0]) / 2 + Math.cos(a + 1.57) * 6, (py + tip[1]) / 2 + Math.sin(a + 1.57) * 6];
+    const leaf = [[px, py], mid, tip, [(px + tip[0]) / 2 - Math.cos(a + 1.57) * 4, (py + tip[1]) / 2 - Math.sin(a + 1.57) * 4]];
+    shape(leaf, k % 2 ? t.mid : t.dark, { w: 1.3 });
+  }
+}
+function cooler(x, y, t, z = 0, h = 2.6) {
+  box(x, y, z, x + .8, y + .8, z + h, t);
+  const [cx, cy] = PJ(x + .4, y + .4, z + h + .45);
+  shape([[cx - 11, cy + 9], [cx - 12, cy - 6], [cx - 6, cy - 14], [cx + 6, cy - 14], [cx + 12, cy - 6], [cx + 11, cy + 9]], t.light, { wash: t.mid });
+  ink([[cx - 9, cy - 2], [cx + 9, cy - 2]], false, 1.2);
+}
+
+/* ---------- the five scenes ---------- */
+const SCENES = [
+  { n: 1, name: "The cubicle", ref: "after the sepia cubicle",
+    note: "One cut-away cubicle like a little box: cork board, a poster that asks after your heart, two monitors and a big lounge chair. Flat sepia with solid black shadows.",
+    pal: ["#f1d39a", "#e0b878", "#fbf0d9", "#2c1a10"], draw: cubicle },
+  { n: 2, name: "The break nook", ref: "after the wallpaper vignette",
+    note: "A torn-out piece of wall with patterned wallpaper, floorboards stepping out at the bottom, a sofa, a lamp, and the water cooler where the fishbowl was. Soft grey wash.",
+    pal: ["#d8d5cd", "#a6a39c", "#5f5d59", "#1d1c1a"], draw: nook },
+  { n: 3, name: "Two floors", ref: "after the ochre cross-section",
+    note: "A sliced-open two-storey office: desks downstairs and on the mezzanine, a coffee counter tucked under it, stairs, and sun from a tall window cutting across the floor in a lighter ochre.",
+    pal: ["#fbf7ef", "#b8801f", "#f2b445", "#2a1b0a"], draw: section },
+  { n: 4, name: "From above", ref: "after the top-down bathroom",
+    note: "Looking straight down into the office, walls leaning out. Round heads at desks, a red door, a rug and a plant. Orange on night blue.",
+    pal: ["#15222e", "#ef8b5c", "#c43b2c", "#3b160c"], draw: topdown },
+  { n: 5, name: "Ink wash", ref: "shading from the gnome painting",
+    note: "The full office in grey ink wash: paper white, two greys and black. Flat cast shadows from a window on the left, solid blacks for screens and chairs, dry-brush ticks on the wood.",
+    pal: ["#f3f1ea", "#cfccc4", "#8f8c86", "#1b1a19"], draw: wash },
+];
+
+function cubicle(W, H, [bg, tone, cream, inkc]) {
+  INK = inkc; C.fillStyle = bg; C.fillRect(0, 0, W, H);
+  fitIso(W, H, 9, 9, 7, 44);
+  const t = { light: cream, mid: tone, dark: inkc, top: cream, left: tone, right: tone };
+  const D = 9, Hh = 7;
+  // walls with thick cut edges
+  shape(quadX(0, 0, D, 0, Hh), tone); shape(quadY(0, 0, D, 0, Hh), tone, { wash: inkc });
+  shape([PJ(0, 0, 0), PJ(D, 0, 0), PJ(D, D, 0), PJ(0, D, 0)], bg);
+  for (let k = 1; k < 4; k++) { ink([PJ(0, k * D / 4, 0), PJ(D, k * D / 4, 0)], false, 1.1); ink([PJ(k * D / 4, 0, 0), PJ(k * D / 4, D, 0)], false, 1.1); }
+  shape([PJ(-.4, D, 0), PJ(0, D, 0), PJ(0, D, Hh), PJ(-.4, D, Hh)], inkc); shape([PJ(D, -.4, 0), PJ(D, 0, 0), PJ(D, 0, Hh), PJ(D, -.4, Hh)], inkc);
+  shape([PJ(-.4, -.4, Hh), PJ(D, -.4, Hh), PJ(D, 0, Hh), PJ(0, 0, Hh), PJ(0, D, Hh), PJ(-.4, D, Hh)], cream);
+  shape([PJ(-.4, D, 0), PJ(D, D, 0), PJ(D, D, -.5), PJ(-.4, D, -.5)], inkc); shape([PJ(D, -.4, 0), PJ(D, D, 0), PJ(D, D, -.5), PJ(D, -.4, -.5)], inkc);
+  // cork board and notes on the left wall
+  shape(quadX(0, .6, 6, 3.6, 6.3), tone, { w: 2.2 }); ink(quadX(.02, .8, 5.8, 3.8, 6.1), true, 1.2);
+  [[1.1, 4.4, "UH."], [2.6, 5.0, ""], [4.2, 4.2, ""], [3.4, 5.4, ""]].forEach(([y, z, s], i) => { shape(quadX(.03, y, y + 1.1, z, z + .9), cream); if (s) { const p = PJ(0, y + .55, z + .35); text(s, p[0], p[1], 14, inkc, .5); } else for (let r = 0; r < 3; r++) ink([PJ(.04, y + .2, z + .65 - r * .2), PJ(.04, y + .9, z + .65 - r * .2)], false, .9); dot(...PJ(.04, y + .55, z + .82), 2); });
+  // poster on the right wall
+  shape(quadY(0, 4.6, 8.2, 2.2, 6.2), cream, { w: 2 });
+  let p = PJ(6.4, 0, 5.6); text("HOW'S THE HEART?", p[0], p[1], 15, inkc, -.46);
+  p = PJ(6.4, 0, 3.9); circle(p[0], p[1] - 6, 11, cream); dot(p[0] - 4, p[1] - 7, 3); dot(p[0] + 4, p[1] - 9, 3); ink([[p[0] - 7, p[1] + 5], [p[0] - 9, p[1] + 20]], false); ink([[p[0] + 7, p[1] + 3], [p[0] + 9, p[1] + 18]], false);
+  p = PJ(6.4, 0, 2.6); text("KEEP IT BEATING", p[0], p[1], 13, inkc, -.46);
+  // desk along the left wall, two monitors and a laptop
+  SHADOW = [.55, .2];
+  castShadow(.2, 1, 2.6, 6.4, 1.4, inkc);
+  box(.2, 1, 2.2, 2.6, 6.4, 2.45, t);
+  box(2.2, 1.1, 0, 2.5, 1.3, 2.2, t); box(2.2, 6.1, 0, 2.5, 6.3, 2.2, t);
+  box(.25, 1.05, .2, 2.4, 1.15, 2.2, { top: tone, left: tone, right: tone });
+  monitor(.6, 3.3, t, 2.2); keyboard(1.4, 3.4, t); monitor(.7, 1.4, t, 1.2);
+  box(1.0, 5.2, 2.45, 2.0, 6.2, 2.55, t); shape(quadX(1.0, 5.3, 6.1, 2.55, 3.4), inkc);
+  box(1.6, 6.6, 0, 2.6, 7.2, .3, t);   // power strip on the floor
+  ink([PJ(2.1, 6.6, .15), PJ(2.4, 5.2, 0), PJ(2.3, 4.0, 1.2)], false, 1.3);
+  // big chair and a lounging teammate facing the desk
+  castShadow(4.4, 3.0, 6.4, 5.4, 3.6, inkc);
+  const ch = chair(4.6, 4.2, "-x", t, { low: true, backTone: { top: cream, left: cream, right: tone } });
+  person([4.4, 4.2, 1.25], "side", t, { dir: -1, legs: true, shirt: cream, skin: cream, trousers: cream, sleepy: true, hair: null, scale: 1.6 });
+  ch.drawBack();
+  paper(W, H, .04);
+}
+
+function nook(W, H, [bg, mid, dark, inkc]) {
+  INK = inkc; C.fillStyle = bg; C.fillRect(0, 0, W, H);
+  fitIso(W, H, 11, 5.3, 9.4, 46, 10);
+  const t = { light: bg, mid, dark, top: bg, left: mid, right: dark };
+  // irregular torn wall piece (one wall plane, y = 0) with wallpaper
+  const wall = [PJ(-1, 0, 0), PJ(11, 0, 0), PJ(11, 0, 6.6), PJ(10, 0, 8.2), PJ(7, 0, 8.8), PJ(3, 0, 8.6), PJ(0, 0, 9.4), PJ(-1, 0, 8.4)];
+  shape(wall, bg, { w: 2.2 });
+  for (let x = 0; x <= 10; x += 1.4) { ink([PJ(x, 0, .2), PJ(x, 0, 8.2)], false, 1); ink([PJ(x + .18, 0, .2), PJ(x + .18, 0, 8.2)], false, .7); }
+  for (let x = .7; x < 10; x += 2.8) for (let z = 1.6; z < 8; z += 2.2) { const q = PJ(x + ((z * 10) % 2 ? 1.4 : 0), 0, z); flower(q[0], q[1], mid); }
+  // floorboards stepping out
+  [[-1, 0, 11, 3.6], [0, 3.6, 9.5, 4.6], [1.2, 4.6, 8.2, 5.3]].forEach(([x0, y0, x1, y1]) => {
+    box(x0, y0, -.45, x1, y1, 0, { top: mid, left: dark, right: dark });
+    for (let x = x0 + 1.6; x < x1; x += 1.9) ink([PJ(x, y0, 0), PJ(x, y1, 0)], false, .9);
+  });
+  SHADOW = [.35, .55];
+  // framed picture: the team, with a heartbeat drawn across it
+  shape(quadY(0, 3, 7.4, 4.4, 7.6), dark, { w: 2.2 }); shape(quadY(-.02, 3.3, 7.1, 4.7, 7.3), mid, { wash: dark });
+  const h1 = PJ(3.5, 0, 6), pts = [[0, 0], [1, 0], [1.4, .7], [1.8, -.9], [2.2, 0], [3.4, 0]].map(([a, b]) => { const q = PJ(3.5 + a, 0, 6 + b); return q; }); ink(pts, false, 2.4, bg);
+  for (let k = 0; k < 3; k++) { const q = PJ(4 + k * 1.1, 0, 5.2); circle(q[0], q[1], 9, bg, 1.4); dot(q[0] - 3, q[1] - 1, 1.3); dot(q[0] + 3, q[1] - 1, 1.3); }
+  // left cabinet with lamp
+  castShadow(.2, .3, 2.4, 2.5, 2.6, mid);
+  box(.2, .3, 0, 2.4, 2.5, 2.6, t);
+  shape([PJ(.4, 2.5, .3), PJ(2.2, 2.5, .3), PJ(2.2, 2.5, 2.3), PJ(.4, 2.5, 2.3)], inkc);
+  for (let k = 0; k < 5; k++) box(.5 + k * .32, 2.3, .35, .75 + k * .32, 2.5, 1.2 + R() * .6, { top: bg, left: k % 2 ? bg : mid, right: dark });
+  box(.5, 2.3, 1.4, 2.1, 2.5, 1.5, { top: mid, left: mid, right: dark });
+  const lb = PJ(1.3, 1.4, 2.6); shape([[lb[0] - 8, lb[1]], [lb[0] - 6, lb[1] - 24], [lb[0] + 6, lb[1] - 24], [lb[0] + 8, lb[1]]], dark);
+  shape([[lb[0] - 22, lb[1] - 24], [lb[0] - 14, lb[1] - 56], [lb[0] + 14, lb[1] - 56], [lb[0] + 22, lb[1] - 24]], bg, { wash: mid });
+  // sofa with someone taking a break
+  castShadow(3.2, .5, 7.6, 3.0, 2.4, mid);
+  box(3.2, .5, 0, 7.6, 1.2, 3.0, t); box(3.2, .5, 0, 7.6, 3.0, 1.4, t); box(3.0, .5, 0, 3.6, 3.0, 2.0, t); box(7.2, .5, 0, 7.8, 3.0, 2.0, t);
+  shape([PJ(6.0, .55, 3.0), PJ(7.2, .55, 3.0), PJ(7.2, 1.3, 2.2), PJ(6.3, 1.3, 1.6)], dark);   // a cardigan thrown over the back
+  for (let k = 0; k < 6; k++) ink([PJ(6.35 + k * .15, 1.3, 1.62 + k * .1), PJ(6.35 + k * .15, 1.42, 1.5 + k * .1)], false, 1);
+  person([5.0, 1.9, 1.4], "front", t, { shirt: bg, skin: bg, hair: dark, sleepy: true, scale: 1.5 });
+  text("take five", ...PJ(5.4, 3.05, .6), 16, inkc, -.45);
+  // right cabinet with the water cooler
+  castShadow(8.2, .3, 10.2, 2.4, 2.2, mid);
+  box(8.2, .3, 0, 10.2, 2.4, 2.2, t);
+  shape([PJ(8.4, 2.4, .3), PJ(10, 2.4, .3), PJ(10, 2.4, 1.9), PJ(8.4, 2.4, 1.9)], inkc);
+  [0, 1, 2].forEach(k => box(8.6 + k * .45, 2.25, .35, 8.95 + k * .45, 2.4, 1.85, { top: bg, left: mid, right: dark }));
+  cooler(8.8, .9, t, 2.2, 1.0);
+  // wall socket and cable
+  shape(quadY(-.02, .2, .7, .6, 1.1), bg); dot(...PJ(.35, -.03, .85), 1.3); dot(...PJ(.55, -.03, .85), 1.3);
+  ink([PJ(.45, 0, .7), PJ(.3, 1, 0), PJ(.4, 2.0, .2)], false, 1.4);
+  paper(W, H, .05);
+}
+function flower(x, y, col) {
+  shape([[x, y - 12], [x + 5, y - 6], [x + 9, y - 13], [x + 7, y - 2], [x - 7, y - 2], [x - 9, y - 13], [x - 5, y - 6]], col, { w: 1.1 });
+  ink([[x, y - 2], [x, y + 8]], false, 1.1); ink([[x, y + 4], [x - 7, y + 1]], false, 1); ink([[x, y + 4], [x + 7, y + 1]], false, 1);
+}
+
+function section(W, H, [white, ochre, sun, inkc]) {
+  INK = inkc; C.fillStyle = white; C.fillRect(0, 0, W, H);
+  const X = 12, Y = 7.5, F = 6, Hh = 12;
+  fitIso(W, H, X, Y, Hh, 33, 10);
+  const t = { light: sun, mid: ochre, dark: inkc, top: ochre, left: ochre, right: ochre }, lit = { top: sun, left: sun, right: ochre, dark: inkc, mid: sun };
+  // shell
+  shape([PJ(0, 0, 0), PJ(X, 0, 0), PJ(X, Y, 0), PJ(0, Y, 0)], ochre);
+  shape(quadX(0, 0, Y, 0, Hh), ochre); shape(quadY(0, 0, X, 0, Hh), ochre);
+  // tall window on the left wall lets the sun in: a lit band on the floor and the stairs
+  shape(quadX(.02, 2.2, 4.6, 1.2, 4.8), sun, { w: 1.8 }); ink([PJ(.03, 3.4, 1.2), PJ(.03, 3.4, 4.8)], false, 1.4);
+  fill([PJ(0, 2.2, 0), PJ(0, 4.6, 0), PJ(7.5, Y, 0), PJ(7.5, 5.1, 0)], sun);
+  for (let k = 1; k < 8; k++) ink([PJ(0, k, 0), PJ(X, k, 0)], false, .9);
+  // under the mezzanine: coffee counter and tiles on the back wall
+  box(7.0, 0, 0, 10.6, 1.1, 2.4, t); box(8.0, .15, 2.4, 8.9, .85, 3.6, { top: ochre, left: inkc, right: inkc }); mug(9.3, .4, t);
+  for (let x = 7.0; x < 10.6; x += 0.9) for (let z = 3.0; z < 5.4; z += .8) ink(quadY(.02, x, x + .9, z, z + .8), true, .8);
+  shape(quadY(.02, 4.4, 5.9, 0, 4.0), ochre, { w: 1.8 }); dot(...PJ(5.6, .02, 2.0), 2.5);
+  // ground floor: desk on the left wall (teammate faces it, back to you) and an open desk (teammate faces you)
+  SHADOW = [.8, .15];
+  box(.2, 4.9, 2.2, 1.8, 7.2, 2.4, t); box(1.4, 5.0, 0, 1.7, 5.2, 2.2, t); box(1.4, 6.9, 0, 1.7, 7.1, 2.2, t);
+  box(.2, 5.4, 3.0, .32, 6.7, 4.0, { top: inkc, left: inkc, right: inkc });
+  const c1 = chair(2.9, 6.0, "-x", t, { low: true }); person([2.9, 6.0, 1.25], "back", t, { shirt: white, skin: white, hair: inkc, scale: 1.25 }); c1.drawBack();
+  chair(4.4, 2.4, "y", t, { low: true }); person([4.4, 2.4, 1.25], "front", t, { shirt: white, skin: white, glasses: true, scale: 1.25 });
+  desk(3.0, 3.1, 3.0, 1.3, t); laptop(4.6, 3.3, t);
+  // mezzanine slab, railing and its two desks against the back wall
+  box(0, 0, F - .4, X * .58, Y * .58, F, { top: ochre, left: ochre, right: inkc });
+  fill([PJ(0, 0, F), PJ(X * .58, 0, F), PJ(X * .58, Y * .58, F), PJ(0, Y * .58, F)], ochre);
+  shape(quadY(.02, .6, 6.4, F + 1.8, F + 5.2), sun, { w: 1.8 }); for (let k = 1; k < 4; k++) ink([PJ(.6 + k * 1.45, .02, F + 1.8), PJ(.6 + k * 1.45, .02, F + 5.2)], false, 1.1);
+  [[.6, "white"], [3.8, "sun"]].forEach(([x, sh]) => {
+    desk(x, .2, 2.6, 1.2, t, F); box(x + 1.0, .35, F + 2.4, x + 2.0, .5, F + 3.4, { top: inkc, left: inkc, right: inkc });
+    const c = chair(x + 1.3, 2.4, "-y", t, { z: F, low: true }); person([x + 1.3, 2.4, F + 1.25], "back", t, { shirt: sh === "sun" ? sun : white, skin: white, hair: inkc, scale: 1.15 }); c.drawBack();
+  });
+  for (let x = .3; x < X * .58; x += .7) ink([PJ(x, Y * .58, F), PJ(x, Y * .58, F + 1.8)], false, 1.1);
+  ink([PJ(0, Y * .58, F + 1.8), PJ(X * .58, Y * .58, F + 1.8)], false, 2);
+  // stairs climbing to the mezzanine, sunlit treads
+  const steps = 8;
+  for (let k = steps - 1; k >= 0; k--) box(X * .58 + 4.4 - (k + 1) * .55, Y * .58 + .1, 0, X * .58 + 4.4 - k * .55, Y * .58 + 1.4, (k + 1) * F / steps, { top: k % 2 ? sun : white, left: ochre, right: ochre });
+  ink([PJ(X * .58 + 4.4, Y * .58 + 1.4, 1.4), PJ(X * .58, Y * .58 + 1.4, F + 1.4)], false, 1.8);
+  plant(11.2, 6.6, { top: ochre, left: ochre, right: ochre, mid: sun, dark: ochre }, 1.3);
+  // cut edges in ink
+  shape([PJ(-.3, Y, -.4), PJ(X, Y, -.4), PJ(X, Y, 0), PJ(-.3, Y, 0)], inkc); shape([PJ(X, -.3, -.4), PJ(X, Y, -.4), PJ(X, Y, 0), PJ(X, -.3, 0)], inkc);
+  shape([PJ(-.3, Y, 0), PJ(0, Y, 0), PJ(0, Y, Hh), PJ(-.3, Y, Hh)], inkc); shape([PJ(X, -.3, 0), PJ(X, 0, 0), PJ(X, 0, Hh), PJ(X, -.3, Hh)], inkc);
+  shape([PJ(-.3, -.3, Hh), PJ(X, -.3, Hh), PJ(X, 0, Hh), PJ(0, 0, Hh), PJ(0, Y, Hh), PJ(-.3, Y, Hh)], inkc);
+  paper(W, H, .03);
+}
+
+function topdown(W, H, [navy, orange, red, inkc]) {
+  INK = inkc; C.fillStyle = navy; C.fillRect(0, 0, W, H);
+  // floor rectangle and four walls leaning out toward the frame edges (a top-down view with perspective)
+  const fl = [[250, 170], [660, 160], [690, 470], [220, 490]], out = [[110, 40], [800, 30], [850, 600], [70, 620]];
+  const wallTones = [orange, orange, orange, orange];
+  for (let i = 0; i < 4; i++) shape([out[i], out[(i + 1) % 4], fl[(i + 1) % 4], fl[i]], wallTones[i], { wash: red });
+  ink([out[0], fl[0]], false, 1.4); ink([out[1], fl[1]], false, 1.4); ink([out[2], fl[2]], false, 1.4); ink([out[3], fl[3]], false, 1.4);
+  shape(fl, orange);
+  // tile grid on the floor, in red
+  const lerp = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t], fp = (u, v) => lerp(lerp(fl[0], fl[1], u), lerp(fl[3], fl[2], u), v);
+  for (let k = 1; k < 10; k++) { ink([fp(k / 10, 0), fp(k / 10, 1)], false, 1.1, red); ink([fp(0, k / 10), fp(1, k / 10)], false, 1.1, red); }
+  // door in the top wall
+  shape([lerp(out[0], out[1], .44), lerp(out[0], out[1], .62), lerp(fl[0], fl[1], .6), lerp(fl[0], fl[1], .45)], red, { w: 2 });
+  dot(...lerp(lerp(out[0], out[1], .58), lerp(fl[0], fl[1], .57), .55), 3);
+  // window on the bottom wall and a poster on the right wall
+  const wq = [lerp(out[3], out[2], .32), lerp(out[3], out[2], .52), lerp(fl[3], fl[2], .51), lerp(fl[3], fl[2], .34)];
+  shape(wq, navy, { w: 2 }); ink([lerp(wq[0], wq[1], .5), lerp(wq[3], wq[2], .5)], false, 1.6, orange);
+  const pq = [lerp(lerp(out[1], out[2], .3), lerp(fl[1], fl[2], .3), .4), lerp(lerp(out[1], out[2], .5), lerp(fl[1], fl[2], .5), .4), lerp(lerp(out[1], out[2], .5), lerp(fl[1], fl[2], .5), .8), lerp(lerp(out[1], out[2], .3), lerp(fl[1], fl[2], .3), .8)];
+  shape(pq, orange, { w: 1.6 }); ink([lerp(pq[0], pq[3], .3), lerp(pq[0], pq[3], .45), lerp(pq[1], pq[2], .4), lerp(pq[1], pq[2], .6)], false, 2, red);
+  // rug, plant, water cooler
+  const rug = [fp(.38, .42), fp(.62, .42), fp(.62, .6), fp(.38, .6)]; shape(rug, red); ink([fp(.41, .45), fp(.59, .45), fp(.59, .57), fp(.41, .57)], true, 1.2, orange);
+  const pl = fp(.06, .08); circle(pl[0], pl[1], 22, red); for (let k = 0; k < 8; k++) { const a = k * .785; shape([[pl[0], pl[1]], [pl[0] + Math.cos(a - .3) * 26, pl[1] + Math.sin(a - .3) * 26], [pl[0] + Math.cos(a) * 34, pl[1] + Math.sin(a) * 34], [pl[0] + Math.cos(a + .3) * 26, pl[1] + Math.sin(a + .3) * 26]], k % 2 ? orange : red, { w: 1.2 }); }
+  const wc = fp(.94, .1); circle(wc[0], wc[1], 18, orange); circle(wc[0], wc[1], 11, navy, 1.4);
+  // desks seen from above, each with someone facing it: heads, shoulders and hands toward the desk
+  const desks = [[.14, .22, 0], [.42, .18, 0], [.7, .22, 0], [.14, .78, 2], [.7, .78, 2], [.88, .5, 1]];
+  desks.forEach(([u, v, dir], i) => {
+    const dv = dir === 0 ? [0, -1] : dir === 2 ? [0, 1] : [1, 0];
+    const c0 = fp(u, v), w = 70, d = 40;
+    const rect = dir === 1 ? [[c0[0] - d / 2, c0[1] - w / 2], [c0[0] + d / 2, c0[1] - w / 2], [c0[0] + d / 2, c0[1] + w / 2], [c0[0] - d / 2, c0[1] + w / 2]]
+                           : [[c0[0] - w / 2, c0[1] - d / 2], [c0[0] + w / 2, c0[1] - d / 2], [c0[0] + w / 2, c0[1] + d / 2], [c0[0] - w / 2, c0[1] + d / 2]];
+    shape(rect, orange, { w: 1.8 });
+    // monitor along the far edge, keyboard near the sitter
+    const far = [c0[0] + dv[0] * (dir === 1 ? 12 : 0), c0[1] + dv[1] * 12];
+    if (dir === 1) shape([[c0[0] + 10, c0[1] - 20], [c0[0] + 16, c0[1] - 20], [c0[0] + 16, c0[1] + 20], [c0[0] + 10, c0[1] + 20]], inkc);
+    else shape([[c0[0] - 20, far[1] - 3], [c0[0] + 20, far[1] - 3], [c0[0] + 20, far[1] + 3], [c0[0] - 20, far[1] + 3]], inkc);
+    // chair and sitter on the near side, facing the desk
+    const sp = [c0[0] - dv[0] * 42, c0[1] - dv[1] * 38];
+    circle(sp[0] - dv[0] * 6, sp[1] - dv[1] * 6, 19, red, 1.6);
+    const sh = [[sp[0] - 15, sp[1] - 7], [sp[0] + 15, sp[1] - 7], [sp[0] + 15, sp[1] + 7], [sp[0] - 15, sp[1] + 7]].map(([x, y]) => dir === 1 ? [sp[0] + (y - sp[1]), sp[1] + (x - sp[0])] : [x, y]);
+    shape(sh, [orange, red][i % 2] === red ? orange : orange, { w: 1.6 });
+    for (const s of [-1, 1]) { const hand = dir === 1 ? [sp[0] + 20, sp[1] + s * 10] : [sp[0] + s * 10, sp[1] + dv[1] * 20]; ink([[sp[0] + (dir === 1 ? 0 : s * 11), sp[1] + (dir === 1 ? s * 11 : 0)], hand], false, 5); circle(hand[0], hand[1], 3.6, orange, 1.2); }
+    circle(sp[0], sp[1], 11, i % 3 === 1 ? red : inkc, 1.6);
+    if (i % 3 !== 1) { C.save(); C.strokeStyle = orange; C.lineWidth = 1.4; C.beginPath(); C.arc(sp[0] - 3, sp[1] - 3, 5, 3.4, 4.6); C.stroke(); C.restore(); }
+  });
+  paper(W, H, .05);
+}
+
+function wash(W, H, [paperCol, light, mid, black]) {
+  INK = black; C.fillStyle = paperCol; C.fillRect(0, 0, W, H);
+  fitIso(W, H, 12, 10, 7.5, 37);
+  const t = { light: paperCol, mid: light, dark: black, top: paperCol, left: light, right: mid };
+  const X = 12, Y = 10, Hh = 7.5;
+  // walls and floor, washed
+  shape(quadX(0, 0, Y, 0, Hh), light, { wash: mid }); shape(quadY(0, 0, X, 0, Hh), mid, { wash: black });
+  shape([PJ(0, 0, 0), PJ(X, 0, 0), PJ(X, Y, 0), PJ(0, Y, 0)], light, { wash: mid });
+  for (let k = 1; k < 10; k++) ink([PJ(0, k, 0), PJ(X, k, 0)], false, 1);
+  ticks([PJ(0, 0, 0), PJ(X, 0, 0), PJ(X, Y, 0), PJ(0, Y, 0)], 120, 7, black, 1);
+  // a window on the left wall throws light across the floor
+  shape(quadX(.02, 2, 5.6, 2.6, 6.2), paperCol, { w: 2.2 }); ink([PJ(.03, 3.8, 2.6), PJ(.03, 3.8, 6.2)], false, 1.6); ink([PJ(.03, 2, 4.4), PJ(.03, 5.6, 4.4)], false, 1.6);
+  fill([PJ(0, 2, 0), PJ(0, 5.6, 0), PJ(4.4, 7.4, 0), PJ(4.4, 3.8, 0)], paperCol);
+  // poster and clock on the back wall
+  shape(quadY(.02, 7.6, 10.4, 3.2, 6.4), paperCol, { w: 1.8 });
+  const hb = [[0, 0], [.6, 0], [.9, .8], [1.3, -.9], [1.6, 0], [2.4, 0]].map(([a, b]) => PJ(7.8 + a, .01, 4.8 + b)); ink(hb, false, 2.4);
+  text("drink water", ...PJ(9.0, .02, 3.6), 16, black, -.46);
+  const ck = PJ(5, .02, 6); circle(ck[0], ck[1], 14, paperCol, 2); ink([[ck[0], ck[1]], [ck[0], ck[1] - 9]], false, 1.6); ink([[ck[0], ck[1]], [ck[0] + 6, ck[1] + 2]], false, 1.6);
+  // bookshelf against the left wall
+  SHADOW = [.65, .2];
+  castShadow(.1, 7, 1.2, 9.6, 4.6, mid);
+  box(.1, 7, 0, 1.2, 9.6, 4.6, t);
+  for (let z = .4; z < 4.4; z += 1.05) { shape([PJ(1.2, 7.1, z), PJ(1.2, 9.5, z), PJ(1.2, 9.5, z + .85), PJ(1.2, 7.1, z + .85)], black); for (let y = 7.25; y < 9.3; y += .32) if (R() < .8) box(1.0, y, z, 1.22, y + .26, z + .5 + R() * .3, { top: paperCol, left: R() < .5 ? paperCol : light, right: mid }); }
+  // desks: two along the back wall with people facing them, two in the open with people facing you
+  const deskT = { top: paperCol, left: light, right: mid };
+  [[3.2, .3], [8.2, .3]].forEach(([x, y], i) => {
+    castShadow(x, y, x + 3.2, y + 1.6, 2.4, mid);
+    desk(x, y, 3.2, 1.6, deskT);
+    box(x + .9, y + .2, 2.4, x + 2.3, y + .4, 3.8, { top: black, left: black, right: black }); keyboard(x + 1, y + .8, deskT);
+    if (i === 0) mug(x + 2.7, y + .9, deskT);
+    const c = chair(x + 1.6, y + 2.6, "-y", { mid: black, dark: black }, { low: true, backTone: { top: light, left: mid, right: mid } });
+    person([x + 1.6, y + 2.6, 1.25], "back", t, { shirt: i ? mid : light, skin: paperCol, hair: i ? black : mid, scale: 1.35 });
+    c.drawBack();
+  });
+  [[2.6, 7.0], [7.6, 7.0]].forEach(([x, y], i) => {
+    castShadow(x, y, x + 3.2, y + 1.6, 2.4, mid);
+    const c = chair(x + 1.6, y - .9, "y", { mid: black, dark: black }, { low: true, backTone: { top: light, left: mid, right: mid } });
+    person([x + 1.6, y - .9, 1.25], "front", t, { shirt: i ? paperCol : mid, skin: paperCol, hair: black, glasses: i === 1, long: i === 0, scale: 1.35 });
+    desk(x, y, 3.2, 1.6, deskT);
+    laptop(x + 2.0, y + .3, { top: paperCol, left: light, right: mid, dark: black }); mug(x + .6, y + .8, deskT);
+  });
+  // a swivelled empty chair, a plant and the water cooler
+  chair(6.4, 4.6, "x", { mid: black, dark: black }, { low: true, backTone: { top: light, left: mid, right: mid } });
+  castShadow(11.0, 5.4, 11.8, 6.2, 3, mid); cooler(11.0, 5.4, t);
+  castShadow(1.8, .4, 2.6, 1.2, 2, mid); plant(2.2, .8, { top: paperCol, left: light, right: mid, mid: mid, dark: black }, 1.1);
+  // cut edges
+  shape([PJ(-.3, Y, -.4), PJ(X, Y, -.4), PJ(X, Y, 0), PJ(-.3, Y, 0)], black); shape([PJ(X, -.3, -.4), PJ(X, Y, -.4), PJ(X, Y, 0), PJ(X, -.3, 0)], mid);
+  paper(W, H, .06);
+}
+
+/* ---------- build the page ---------- */
+const host = document.getElementById("scenes");
+const cards = SCENES.map(s => {
+  const el = document.createElement("article");
+  el.className = "scene";
+  el.innerHTML = `<div class="scene-head"><span class="num">${s.n}</span><h2>${s.name}</h2><span class="swatches">${s.pal.map(c => `<span style="background:${c}"></span>`).join("")}<small>${s.ref}</small></span><p>${s.note}</p></div><canvas></canvas>`;
+  host.appendChild(el);
+  return el.querySelector("canvas");
+});
+function drawAll() {
+  SCENES.forEach((s, i) => {
+    const W = 900, H = 640, cv = cards[i];
+    cv.width = W * DPR; cv.height = H * DPR; cv.style.aspectRatio = `${W} / ${H}`;
+    C = cv.getContext("2d"); C.setTransform(DPR, 0, 0, DPR, 0, 0);
+    R = rng(11 + i * 97); LW = 1.6;
+    s.draw(W, H, s.pal);
+  });
+}
+drawAll();
+document.fonts && document.fonts.ready.then(drawAll);
+})();
+</script>
+</body>
+</html>
