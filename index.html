@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
 /* Layout: one column. Header with transport controls, the axonometric office plan as the hero,
-   a coverage strip that fills as roles are hired, then the hiring desk of eight role cards.
+   a coverage strip that fills as roles are hired, then the hiring desk of nine role cards.
    The chrome follows the drawing: thin hairline borders, white panels, flat colour accents. */
 :root {
   --bg: #ebebea;
@@ -364,7 +364,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
     <div class="brand">
       <p class="eyebrow"><span class="dot" id="beatDot"></span>A group health jam</p>
       <h1>Office <em>Pulse</em></h1>
-      <p class="lede">Every teammate makes one office noise: ringing phones, coughs, the coffee machine, typing, clicking, the claims stamp, a pen on a glass and the photocopier. Hire them into the empty office and the noises lock into one groove. Cover all eight benefits to hear the whole band.</p>
+      <p class="lede">Every teammate makes one office noise: ringing phones, coughs, the coffee machine, typing, clicking, the claims stamp, a pen on a glass, the photocopier and the washroom flush. Hire them into the empty office and the noises lock into one groove. Cover all nine benefits to hear the whole band.</p>
     </div>
     <div class="transport">
       <button class="btn play" id="playBtn" aria-pressed="false">
@@ -381,7 +381,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
   </header>
 
   <div class="stage" id="stage">
-    <canvas id="office" width="440" height="310" role="img" aria-label="An axonometric office plan with twelve desks, a meeting room, kitchen, washroom and lounge. Hired desks light up in their role colour when they play."></canvas>
+    <canvas id="office" width="440" height="310" role="img" aria-label="An axonometric office plan with three pods of desks, a meeting room, kitchen, photocopier, water cooler, washroom and lounge. Each hire appears at a desk or in the room their sound belongs to, and acts it out when they play."></canvas>
     <div class="tags" id="tags"></div>
     <div class="empty" id="empty" hidden><b>The office is empty and quiet</b><span>Hire someone below to start the music</span></div>
     <div class="tip" id="tip" hidden></div>
@@ -390,7 +390,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
   <section class="cover" aria-live="polite">
     <div class="cover-head">
       <div class="cover-label">Team cover</div>
-      <div class="cover-num" id="coverNum">0<span>/8</span></div>
+      <div class="cover-num" id="coverNum">0<span>/9</span></div>
     </div>
     <div class="cover-body">
       <div class="bar" id="coverBar"></div>
@@ -487,7 +487,7 @@ function ensureNodes(m) {
   m.out = ctx.createGain();
   m.out.gain.value = role.gain * Math.pow(0.8, same);
   const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
-  if (pan.pan) pan.pan.value = (DESKS[m.desk].sx - LW / 2) / (LW / 2) * 0.7;
+  if (pan.pan) pan.pan.value = (SEATS[m.desk].sx - LW / 2) / (LW / 2) * 0.7;
   const rs = ctx.createGain(); rs.gain.value = role.rev;
   const ds = ctx.createGain(); ds.gain.value = role.dly;
   m.out.connect(pan); pan.connect(A.master); pan.connect(rs); rs.connect(A.rev); pan.connect(ds); ds.connect(A.dly);
@@ -712,6 +712,27 @@ const SND = {
     n.connect(bp); bp.connect(am); am.connect(g); g.connect(d);
     tone(d, t, 180, dur, { type: "sawtooth", vel: v * 0.3, cutoff: 900, attack: 0.03, release: 0.06 });
   },
+  // toilet flush: the lever clunk, then a rushing swirl that sweeps down and gurgles away
+  flush(d, t, dur, v) {
+    burstN(d, t, v * 0.5, "bandpass", 520, 3, 0.05);
+    modal(d, t, 880, v * 0.07, [1, 1.62], [1, .5], [.05, .03]);
+    const ctx = A.ctx, n = noiseSrc(t, dur + 0.3), bp = filt("bandpass", 2400, 1.3);
+    bp.frequency.setValueAtTime(2600, t + 0.05); bp.frequency.exponentialRampToValueAtTime(260, t + dur);
+    const lfo = ctx.createOscillator(), lg = ctx.createGain();
+    lfo.frequency.setValueAtTime(5, t); lfo.frequency.linearRampToValueAtTime(11, t + dur); lg.gain.value = 300;
+    lfo.connect(lg); lg.connect(bp.frequency); lfo.start(t); lfo.stop(t + dur + 0.3);
+    const g = susGain(t + 0.03, dur * 0.18, v, dur * 0.55, dur * 0.4);
+    n.connect(bp); bp.connect(g); g.connect(d);
+  },
+  // the cistern refilling: a soft whistle that rises as the tank fills
+  refill(d, t, f, dur, v) {
+    const o = A.ctx.createOscillator(); o.type = "sine";
+    o.frequency.setValueAtTime(f * 0.94, t); o.frequency.exponentialRampToValueAtTime(f, t + dur * 0.4);
+    const g = susGain(t, dur * 0.3, v, dur, 0.15);
+    o.connect(g); g.connect(d); o.start(t); o.stop(t + dur + 0.25);
+    const n = noiseSrc(t, dur + 0.2), bp = filt("bandpass", 3000, 2), ng = susGain(t, dur * 0.3, v * 0.25, dur, 0.15);
+    n.connect(bp); bp.connect(ng); ng.connect(d);
+  },
   // coffee dripping into the cup
   drip(d, t, f, v) {
     const o = ping(d, t, f, v, 0.09);
@@ -856,6 +877,22 @@ const ROLES = {
       return true;
     },
   },
+  flush: {
+    title: "Washroom Regular", sound: "Toilet flush", covers: "Day-care treatments", color: "#5b6ee1",
+    gain: 0.5, rev: 0.3, dly: 0.1,
+    play(m, s, t, c) {
+      if (m.variant % 2 === 0) {
+        if (c.bar % 2 === 1 && s === 8) { SND.flush(m.out, t, c.barLen * 0.75, 0.5); return true; }
+        if (c.bar % 2 === 0 && s === 2) { SND.refill(m.out, t, mtof(c.chord[2] + 24), c.sixteenth * 6, 0.05); return false; }
+        return false;
+      }
+      // the second regular is the dripping cistern, picking out chord tones
+      const i = [4, 11, 14].indexOf(s);
+      if (i < 0 || (s === 14 && c.bar % 2)) return false;
+      SND.drip(m.out, t, mtof(c.chord[(i + c.bar) % 4] + 12), 0.35);
+      return true;
+    },
+  },
 };
 
 const ROLE_IDS = Object.keys(ROLES);
@@ -904,17 +941,56 @@ const LW = 440, LH = 310, K = 0.9, OX = 206.5, OY = 85, WH = 70, SC = 3;
 const iso = (x, y, z = 0) => [OX + (x - y) * K, OY + (x + y) * K / 2 - z * K];
 const PLAN = [[0, 0], [240, 0], [240, 150], [200, 150], [200, 210], [0, 210]];
 
-const DESKS = [];
-for (let r = 0; r < 4; r++) for (let c = 0; c < 3; c++) {
-  const x0 = 78 + c * 42, y0 = 84 + r * 34, px = x0 + 16, py = y0 - 7;
-  const [sx, sy] = iso(px, py);
-  DESKS.push({
-    x0, y0, px, py, sx, sy, depth: x0 + y0,
-    box: [iso(x0, y0 + 14)[0] - 3, sy - 34, iso(x0 + 32, y0)[0] + 3, iso(x0 + 32, y0 + 14)[1] + 3],
-    tagY: iso(px, y0 + 14)[1] + 2,
-  });
-}
-const DRAW_ORDER = DESKS.map((_, i) => i).sort((a, b) => DESKS[a].depth - DESKS[b].depth);
+/* Seats: twelve desks in three pods of four, where people face each other across the desks,
+   plus spots in the rooms for the sounds that belong there. Desks are 32 wide and 14 deep,
+   and the chair sits 15 behind the desk's centre. f is the way the person faces. */
+const FACE = { S: [0, 1], N: [0, -1], E: [1, 0], W: [-1, 0] };
+const pod4 = (x, y) => [[x - 16, y - 7, "S"], [x + 16, y - 7, "S"], [x - 16, y + 7, "N"], [x + 16, y + 7, "N"]];
+const pod4x = (x, y) => [[x - 7, y - 16, "E"], [x - 7, y + 16, "E"], [x + 7, y - 16, "W"], [x + 7, y + 16, "W"]];
+const LAYOUT = {
+  desks: [...pod4(108, 106), ...pod4(196, 106), ...pod4x(150, 172)],
+  rugs: [[66, 74, 150, 138, "mint"], [154, 74, 238, 138, "sky"], [112, 144, 188, 202, "coralLight"]],
+  plants: [[152, 80, 1], [152, 132, .9], [92, 160, 1.1], [196, 158, .9]],
+};
+// room spots: the role that plays there, where the person stands or sits, and the way they face
+const SPOTS = [
+  { place: "meeting", label: "the meeting room", x: 22, y: 30, f: "S", seated: true, roles: ["phone"] },
+  { place: "meeting", label: "the meeting room", x: 42, y: 30, f: "S", seated: true, roles: ["phone"] },
+  { place: "copier", label: "the photocopier", x: 79, y: 21, f: "N", roles: ["copier"] },
+  { place: "cooler", label: "the water cooler", x: 96, y: 19, f: "S", roles: ["glass"] },
+  { place: "kitchen", label: "the kitchen", x: 125, y: 20.5, f: "N", roles: ["coffee"] },
+  { place: "kitchen", label: "the kitchen", x: 141, y: 20.5, f: "N", roles: ["coffee"] },
+  { place: "washroom", label: "the washroom", x: 216, y: 17.5, f: "N", roles: ["flush"] },
+  { place: "queue", label: "the washroom queue", x: 193, y: 66, f: "E", roles: ["flush"] },
+];
+// a point in a desk's own space: u across the desk (-16..16), v from the sitter's edge (-7) to the far edge (7)
+function deskSpace(x, y, f) { const [fx, fy] = FACE[f]; return (u, v, z = 0) => [x - u * fy + v * fx, y + u * fx + v * fy, z]; }
+const SEATS = [
+  ...LAYOUT.desks.map(([x, y, f]) => {
+    const L = deskSpace(x, y, f), [px, py] = L(0, -15);
+    return { kind: "desk", place: "desk", label: "a desk", f, L, cx: x, cy: y, x: px, y: py, seated: true, depth: x + y };
+  }),
+  ...SPOTS.map(s => ({ kind: "spot", ...s, depth: s.place === "meeting" ? 50 : s.x + s.y })),
+];
+SEATS.forEach(s => {
+  [s.sx, s.sy] = iso(s.x, s.y);
+  const top = s.sy - (s.seated ? 30 : 38);
+  if (s.kind === "desk") {
+    const pts = [s.L(-16, -7), s.L(16, -7), s.L(16, 7), s.L(-16, 7)].map(([a, b]) => iso(a, b, 14));
+    const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+    s.box = [Math.min(...xs, s.sx - 7) - 2, Math.min(top, ...ys), Math.max(...xs, s.sx + 7) + 2, Math.max(...ys, s.sy) + 3];
+    s.tagY = Math.max(...ys, s.sy) + 4;
+  } else {
+    s.box = [s.sx - 8, top, s.sx + 8, s.sy + 3];
+    s.tagY = s.sy + 4;
+  }
+});
+const DESK_COUNT = LAYOUT.desks.length;
+// everything that is drawn in depth order: seats (desk or spot, with their person) and plants
+const DRAW_ORDER = [
+  ...SEATS.map((s, i) => ({ depth: s.depth, seat: i })),
+  ...LAYOUT.plants.map(([x, y, k]) => ({ depth: x + y, plant: [x, y, k] })),
+].sort((a, b) => a.depth - b.depth);
 
 /* ---------- Role icons (5 x 5) ---------- */
 const ICONS = {
@@ -927,6 +1003,7 @@ const ICONS = {
   coffee:   ["..#.#", ".#.#.", "####.", "#####", "###.."],
   typing:   [".....", "#####", "#.#.#", "#####", "....."],
   clicking: [".###.", "#.#.#", "#####", "#####", ".###."],
+  flush:    ["##...", "##...", "#####", ".###.", ".##.."],
   plus:    ["..#..", "..#..", "#####", "..#..", "..#.."],
 };
 const GLYPHS = {
@@ -1127,14 +1204,19 @@ function makeMember(roleId, desk, name, seed) {
   return m;
 }
 
+// where a new hire goes: their room if it has space, otherwise the asked-for desk or the nearest free one
+function seatFor(roleId, want) {
+  const taken = new Set(members.map(m => m.desk)), ids = SEATS.map((_, i) => i).filter(i => !taken.has(i));
+  const near = list => want == null ? pick(list, Math.random) : list.sort((a, b) => dist(SEATS[a], SEATS[want]) - dist(SEATS[b], SEATS[want]))[0];
+  const room = ids.filter(i => SEATS[i].roles && SEATS[i].roles.includes(roleId));
+  if (room.length) return near(room);
+  const desks = ids.filter(i => SEATS[i].kind === "desk");
+  if (!desks.length) return -1;
+  return want != null && desks.includes(want) ? want : near(desks);
+}
 function hire(roleId, deskIndex) {
-  const taken = new Set(members.map(m => m.desk));
-  if (deskIndex == null || taken.has(deskIndex)) {
-    const free = DESKS.map((_, i) => i).filter(i => !taken.has(i));
-    if (!free.length) { toast("The office is full. Send someone home to make room."); return null; }
-    deskIndex = deskIndex == null ? free[Math.floor(Math.random() * free.length)]
-      : free.sort((a, b) => dist(DESKS[a], DESKS[deskIndex]) - dist(DESKS[b], DESKS[deskIndex]))[0];
-  }
+  deskIndex = seatFor(roleId, deskIndex);
+  if (deskIndex < 0) { toast("The office is full. Send someone home to make room."); return null; }
   const used = new Set(members.map(m => m.name));
   const name = pick(NAMES.filter(n => !used.has(n)), Math.random) || "Alex";
   const role = ROLES[roleId];
@@ -1143,7 +1225,8 @@ function hire(roleId, deskIndex) {
   members.push(m);
   ensureNodes(m);
   render();
-  if (!wasCovered) toast(`${name} joined as ${role.title}. ${role.covers} now covered.`);
+  const where = SEATS[deskIndex].kind === "spot" ? ` and headed to ${SEATS[deskIndex].label}` : "";
+  if (!wasCovered) toast(`${name} joined as ${role.title}${where}. ${role.covers} now covered.`);
   else toast(`${name} joined as a second ${role.title} and plays a harmony part.`);
   if (coveredSet().size === ROLE_IDS.length && !wasCovered) celebrate();
   return m;
@@ -1155,7 +1238,7 @@ function fire(m) {
   ROLE_IDS.forEach(id => members.filter(o => o.role === id).forEach((o, i) => {
     if (o.variant !== i) { o.variant = i; if (ROLES[id].setup) ROLES[id].setup(o); }
   }));
-  burst(DESKS[m.desk].sx, DESKS[m.desk].sy - 20, ROLES[m.role].color, 12);
+  burst(SEATS[m.desk].sx, SEATS[m.desk].sy - 20, ROLES[m.role].color, 12);
   render();
   toast(`${m.name} headed home to rest. Still covered, of course.`);
 }
@@ -1199,7 +1282,7 @@ function render() {
     badge.hidden = !n; badge.textContent = "×" + n;
   });
   tagsEl.replaceChildren(...members.map(m => {
-    const d = DESKS[m.desk], t = document.createElement("span");
+    const d = SEATS[m.desk], t = document.createElement("span");
     t.className = "tag"; t.textContent = m.name;
     t.style.left = (d.sx / LW * 100) + "%"; t.style.top = (d.tagY / LH * 100) + "%";
     return t;
@@ -1384,6 +1467,8 @@ function drawStatic() {
   poly(c, floorRect(14, 150, 58, 196, .1), PAL.coralLight, INK_LINE, .35);
   for (let k = 0; k < 4; k++) poly(c, floorRect(18 + k * 10, 154, 24 + k * 10, 192, .12), null, "#ffffff", .5);
 
+  // a rug under each pod
+  LAYOUT.rugs.forEach(([x0, y0, x1, y1, col]) => poly(c, floorRect(x0, y0, x1, y1, .1), PAL[col], INK_LINE, .35));
   // back walls, white, with a thin cap where they are cut
   poly(c, quadX(0, 0, 210, 0, WH), PAL.wall); poly(c, quadY(0, 0, 240, 0, WH), PAL.wallShade);
   poly(c, [iso(-4, -4, WH), iso(240, -4, WH), iso(240, 0, WH), iso(0, 0, WH), iso(0, 210, WH), iso(-4, 210, WH)], "#ffffff", INK_LINE, .5);
@@ -1442,6 +1527,14 @@ function drawStatic() {
   box(c, 44, 160, 0, 60, 176, 9, { top: shade(PAL.cobalt, 1.25), left: PAL.cobalt, right: shade(PAL.cobalt, .85) }); box(c, 56, 160, 0, 60, 176, 18, { top: shade(PAL.cobalt, 1.25), left: PAL.cobalt, right: shade(PAL.cobalt, .85) });
   ellipseFloor(c, 34, 140, 5, 14, "#ffffff"); seg(c, iso(34, 140, 0), iso(34, 140, 14), INK_LINE, .6); plant(c, 34, 140, 14, .55);
   plant(c, 6, 204, 0, 1.3);
+  // photocopier against the back wall, with its control panel at the front
+  box(c, 70, 1, 0, 88, 14, 20, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
+  poly(c, floorRect(71, 2, 87, 12, 20.05), PAL.sky, INK_LINE, .35);
+  box(c, 72, 11, 20, 78, 14, 21, { top: PAL.coral, left: PAL.coral, right: shade(PAL.coral, .85) });
+  poly(c, quadY(14.05, 72, 86, 4, 8), "#ffffff", INK_LINE, .35); poly(c, quadY(14.05, 72, 86, 10, 14), "#ffffff", INK_LINE, .35);
+  box(c, 88, 4, 9, 91, 11, 10, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
+  // knock box for the espresso grounds
+  box(c, 119, 11, 22, 123.5, 14, 24.6, { top: "#2b2b2e", left: "#3a3a3c", right: "#2b2b2e" });
   // water cooler by the kitchen
   box(c, 92, 2, 0, 100, 10, 26, { top: "#ffffff", left: "#ffffff", right: PAL.wallShade });
   const wb = iso(96, 6, 31); poly(c, [[wb[0] - 3.4, wb[1] + 4.5], [wb[0] - 3.8, wb[1] - 2], [wb[0] - 1.6, wb[1] - 5], [wb[0] + 1.6, wb[1] - 5], [wb[0] + 3.8, wb[1] - 2], [wb[0] + 3.4, wb[1] + 4.5]], hexA("#7cc7f2", .7));
@@ -1463,7 +1556,7 @@ function note(x, y, color) {
   particles.push({ x: x + (Math.random() - .5) * 10, y, vx: (Math.random() - .5) * .25, vy: -.45 - Math.random() * .25, life: 1, color, kind: "note" });
 }
 function celebrate() {
-  toast("All eight benefits covered. This is what a healthy office sounds like.");
+  toast("All nine benefits covered. This is what a healthy office sounds like.");
   if (reduceMotion) return;
   const cols = ROLE_IDS.map(id => ROLES[id].color);
   for (let i = 0; i < 120; i++) particles.push({ x: Math.random() * LW, y: -Math.random() * 120, vx: (Math.random() - .5) * .6, vy: Math.random() * .8 + .5, life: 2, color: pick(cols, Math.random), kind: "confetti" });
@@ -1479,7 +1572,7 @@ function drawVitals(now) {
     g.font = "600 4px Archivo, sans-serif"; g.textBaseline = "top";
     g.fillText("♥", 2, 2);
     g.fillStyle = PAL.ecg; g.fillText(`${A.bpm} BPM`, 7, 2);
-    g.fillStyle = hexA(PAL.ecg, .6); g.fillText(`${members.length}/12 AT DESKS`, 2, H - 6);
+    g.fillStyle = hexA(PAL.ecg, .6); g.fillText(`${members.length} IN TODAY`, 2, H - 6);
     g.beginPath(); g.strokeStyle = PAL.ecg; g.lineWidth = .5; g.lineJoin = "round";
     const live = A.playing && A.analyser && members.length;
     if (live) {
@@ -1498,52 +1591,444 @@ function drawVitals(now) {
   });
 }
 
-// one desk: the chair sits on the far side facing the desk; a hired seat lights up in the role colour
-function drawDesk(i, now) {
-  const d = DESKS[i], m = members.find(o => o.desk === i), { x0, y0 } = d, x1 = x0 + 32, y1 = y0 + 14;
-  const col = m ? shade(ROLES[m.role].color, 1.3) : null, lit = m && m.pulse > .35;
-  const cx = d.px, cy = d.py - 1, bob = m ? m.pulse * 1.6 : 0;
-  // chair: back on the far side, seat, star base
-  for (let k = 0; k < 5; k++) { const a = k * 1.2566 + .3; seg(g, iso(cx, cy, 2), iso(cx + Math.cos(a) * 5, cy + Math.sin(a) * 5, .5), INK_LINE, .5); }
-  seg(g, iso(cx, cy, 2), iso(cx, cy, 9), INK_LINE, .8);
-  const seatCol = col ? (lit ? shade(col, 1.15) : col) : "#ffffff";
-  box(g, cx - 4, cy - 5, 18 + bob - 8, cx + 4, cy - 4, 21 + bob, { top: seatCol, left: seatCol, right: col ? shade(col, .85) : PAL.wallShade });
-  box(g, cx - 4, cy - 4, 9 + bob, cx + 4, cy + 4, 10.6 + bob, { top: seatCol, left: col ? shade(col, .9) : PAL.wallShade, right: col ? shade(col, .85) : PAL.wallShade });
-  // hover hint on an empty desk
-  if (!m && (i === hoverDesk || i === dragDesk) && (Math.floor(now / 260) % 2 || dragDesk === i)) {
-    ellipseFloor(g, cx, cy, 8, .2, null, PAL.cobalt); const p = iso(cx, cy, 24);
-    g.fillStyle = PAL.cobalt; g.font = "700 9px Archivo, sans-serif"; g.textAlign = "center"; g.fillText("+", p[0], p[1]); g.textAlign = "start";
+/* ---------- People: crayon figures with patterned clothes ----------
+   Each person is a small skeleton in their own space (x forward, y across, z up), posed from the
+   sound they just made, then turned to face their desk or room and drawn flat with crayon grain. */
+const v3 = {
+  add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]],
+  sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+  mul: (a, s) => [a[0] * s, a[1] * s, a[2] * s],
+  dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+  mix: (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t],
+};
+const vlen = a => Math.hypot(a[0], a[1], a[2]), vnorm = a => v3.mul(a, 1 / (vlen(a) || 1));
+const clamp01 = x => Math.max(0, Math.min(1, x));
+const smooth = x => { x = clamp01(x); return x * x * (3 - 2 * x); };
+// two-bone limb: the hand stops where the arm can reach, and the elbow bends toward the pole
+function reach(root, target, l1, l2, pole) {
+  const d = v3.sub(target, root), D = Math.max(.5, Math.min(vlen(d), l1 + l2 - .1)), dir = vnorm(d);
+  const a = Math.acos(Math.max(-1, Math.min(1, (l1 * l1 + D * D - l2 * l2) / (2 * l1 * D))));
+  const side = vnorm(v3.sub(pole, v3.mul(dir, v3.dot(pole, dir))));
+  return [v3.add(root, v3.add(v3.mul(dir, Math.cos(a) * l1), v3.mul(side, Math.sin(a) * l1))), v3.add(root, v3.mul(dir, D))];
+}
+
+const SKINS = ["#f1c8a5", "#e0a77f", "#c68a5c", "#a46a3f", "#7a4b2a", "#f6d3b3"];
+const HAIRS = ["#1f1b19", "#3b2618", "#7a3f2a", "#c26a2a", "#9c9c9c", "#1f1b19"];
+const PANTS = ["#5a6fbf", "#2b2b2e", "#8a8f9c", "#3f5aa8", "#b98c66", "#e27aa6"];
+const SHOE_COLS = ["#2b2b2e", "#5a3a28", "#ffffff", "#ee6f6a"];
+function mixHex(a, b, t) {
+  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), A1 = p(a), B1 = p(b);
+  return "#" + A1.map((v, i) => Math.round(v + (B1[i] - v) * t).toString(16).padStart(2, "0")).join("");
+}
+// a look from the member's seed; the jumper takes a soft version of their role colour
+function lookFor(m) {
+  if (m.look) return m.look;
+  const r = rng(m.seed + 7), col = ROLES[m.role].color;
+  return m.look = {
+    skin: pick(SKINS, r), hair: pick(HAIRS, r), hairStyle: pick(["short", "bun", "long", "bob", "short"], r),
+    top: mixHex(col, "#ffffff", .42), trim: shade(col, .85), pattern: pick(["stripes", "dots", "plain", "stripes"], r),
+    pants: pick(PANTS, r), pantsDots: r() < .3, shoes: pick(SHOE_COLS, r),
+  };
+}
+
+// first-order lag toward a target, measured in seconds
+function follow(an, key, target, t, tau) {
+  const last = an[key + "T"], a = last == null ? 1 : 1 - Math.exp(-Math.max(0, Math.min(.1, t - last)) / tau);
+  an[key + "T"] = t; return an[key] = an[key] == null ? target : an[key] + (target - an[key]) * a;
+}
+function followV(an, key, target, t, tau) {
+  const last = an[key + "T"], a = last == null ? 1 : 1 - Math.exp(-Math.max(0, Math.min(.1, t - last)) / tau);
+  an[key + "T"] = t; return an[key] = an[key] ? v3.mix(an[key], target, a) : target;
+}
+/* Pose: joints in the person's own space. T holds the clock (t), seconds since their last sound (hit)
+   and how close the next one is (soon, 0..1), so a hand can start moving just before the sound. */
+function pose(m, seat, T) {
+  const v = m.variant % 2, standing = !seat.seated, place = seat.place, an = m.an || (m.an = { mx: 0, my: 0, tx: 0, ty: 0, n: -1 });
+  const t = T.t, hit = T.hit, soon = T.soon, idle = (m.seed % 97) / 13;
+  const strike = Math.max(soon * soon, hit < .06 ? 1 : 0), back = hit < .06 ? 1 : Math.max(0, 1 - smooth((hit - .06) / .32));
+  let lean = standing ? .05 : .12, nod = 0, turn = 0, tilt = 0, mouth = "smile";
+  const hip = standing ? [0, Math.sin(t * .7 + idle) * .25, 19.6] : [0, 0, 11.6];
+  let R = null, L = null;            // hand targets in person space: R on the -y side, L on +y
+  let headR = null, headL = null;    // hand targets given relative to the head, resolved after the torso
+  const props = [];
+  const deskZ = 16.5;
+  const ownDesk = !standing && place === "desk";
+  // the role decides the action; a desk-bound copy of a room role gets a simple desk version
+  const act = place === "desk" ? ({ coffee: "sip", copier: "typing", flush: "scroll", glass: "glassDesk" }[m.role] || m.role) : place;
+  if (act === "typing") {
+    const side = m.hits % 2 ? 1 : -1, tap = Math.max(soon, Math.exp(-hit * 18));
+    R = [11.2 + Math.sin(t * .9 + idle) * .3, -2.6 + Math.sin(t * .6) * .4, deskZ + .3 - (side < 0 ? tap * .45 : 0)];
+    L = [11.2 + Math.sin(t * .8 + 2) * .3, 2.6 + Math.sin(t * .5 + 1) * .4, deskZ + .3 - (side > 0 ? tap * .45 : 0)];
+    lean = .2; nod = .04 + Math.sin(t * 1.3 + idle) * .02;
+  } else if (act === "clicking") {
+    if (an.n !== m.hits && m.hits % 3 === 0) { an.n = m.hits; an.tx = (Math.random() - .5) * 1.6; an.ty = (Math.random() - .5) * 1.2; }
+    an.mx += (an.tx - an.mx) * .08; an.my += (an.ty - an.my) * .08;
+    const press = Math.max(soon, Math.exp(-hit * 22));
+    R = [10.6 + an.mx, -7.4 + an.my, deskZ + .55 - press * .35];
+    L = [10.4, 3.2, deskZ - .1];
+    props.push({ kind: "mouse", at: [11.2 + an.mx, -7.4 + an.my, 15.6], down: press > .5 });
+    lean = .16; nod = .05 + press * .02; turn = -.08;
+  } else if (act === "cough") {
+    // a cough doubles the body over quickly, then it eases back up; the fist comes up just before
+    const fit = smooth(Math.max(soon * .4, hit < .12 ? .4 + hit / .2 : Math.exp(-(hit - .12) * 5)));
+    lean = .12 + follow(an, "fit", fit, t, .05) * .22; nod = fit * .2;
+    mouth = fit > .35 ? "open" : "flat";
+    // the fist rises over a quarter second and stays up while the coughs keep coming
+    const up = follow(an, "up", soon > 0 || hit < 1 ? 1 : 0, t, .15);
+    if (up > .02) headL = { up, at: [2.2, .6, -1.4] };
+    L = [10.4, 3, deskZ - .1];
+    R = [10.4, -3, deskZ - .1];
+  } else if (act === "stamp") {
+    if (v === 0) {
+      const down = Math.max(strike, back);
+      R = v3.mix([9.4, -2.6, 22], [11.4, -2, deskZ + 1.4], down);
+      props.push({ kind: "stamp", hand: "R" });
+      lean = .14 + down * .08; nod = .1;
+    } else {
+      const down = Math.max(strike, back * .9);
+      R = v3.mix([11, -3.2, deskZ + 2.6], [11, -3.2, deskZ + 1.7], down);
+      props.push({ kind: "stapler", at: [11.2, -3.2, 15.6], down });
+      lean = .16; nod = .08;
+    }
+    L = [10.8, 3.2, deskZ - .1];
+    props.push({ kind: "papers", at: [11.5, -1, 15.6] });
+  } else if (act === "glassDesk") {
+    const tap = Math.max(strike, back);
+    L = [10.6, 2.4, deskZ + .4];
+    R = v3.mix([10.2, -1.6, deskZ + 3.2], [10.8, .9, deskZ + 2.6], tap);
+    props.push({ kind: "glass", hand: "L", sit: true }, { kind: "pen", hand: "R" });
+    nod = .06;
+  } else if (act === "phone" || act === "meeting") {
+    headR = { up: 1, at: [.2, -2.4, -.4] };
+    R = place === "meeting" ? [6.4, -2.6, 16.6] : [10.4, -3, deskZ - .1];
+    const talk = hit < .7 ? Math.sin(Math.PI * hit / .7) : 0;
+    L = place === "meeting" ? [6.6 + talk * .8, 2.6, 16.6 + talk * 1.6] : [10.4, 3, deskZ - .1];
+    tilt = -.22; nod = .04 + Math.sin(t * 2.2 + idle) * .03;
+    mouth = hit < .5 && Math.sin(t * 22) > 0 ? "open" : "smile";
+    props.push({ kind: "handset", hand: "R" });
+  } else if (act === "sip") {
+    // a sip every few seconds: lift, hold at the lips, put it down
+    const ph = (t + idle) % 4.5, up = smooth(ph / .5) * smooth((1.9 - ph) / .5);
+    L = [11.2, 2.6, deskZ + .3];
+    R = [10.2, -5, deskZ + .2];
+    if (up > .02) headR = { up, at: [2.2, -.4, -1.5] };
+    props.push({ kind: "cup", hand: "R" });
+    mouth = up > .7 ? "sip" : "smile";
+  } else if (act === "scroll") {
+    R = [7, -1.2, 15.5]; L = [7, 1.2, 15.5]; nod = .35;
+    props.push({ kind: "mobile" });
+  } else if (act === "kitchen") {
+    if (v === 0) {
+      // knocking the portafilter on the knock box
+      const down = Math.max(strike, back);
+      R = v3.mix([6.4, -2.6, 28], [7.2, -2.6, 25.8], down);
+      props.push({ kind: "portafilter", hand: "R" });
+      lean = .12 + down * .05; nod = .1;
+    } else {
+      // swirling a milk jug under the steam wand
+      const w = t * 5;
+      R = [7.4 + Math.cos(w) * .35, -1.4 + Math.sin(w) * .35, 26.5 + back * .4];
+      props.push({ kind: "jug", hand: "R" });
+      nod = .14;
+    }
+    L = [7.6, 3, 22.6];
+  } else if (act === "copier") {
+    const press = Math.max(strike, back);
+    R = v3.mix([6.8, -3.6, 23.2], [7.6, -3.6, 21], press);
+    L = [7.8, 2.6, 20.6 + Math.sin(t * 1.1) * .1];
+    lean = .22; nod = .12;
+  } else if (act === "cooler") {
+    // leaning on the cooler, tapping a glass with a pen in time
+    const tap = Math.max(strike, back);
+    L = [5, 1.6, 25.4];
+    R = v3.mix([4.6, -2.2, 27.4], [5.2, .2, 27.4], tap);
+    props.push({ kind: "glass", hand: "L" }, { kind: "pen", hand: "R" });
+    lean = -.04; nod = .06 + tap * .03; turn = .06;
+  } else if (act === "washroom") {
+    const w = t * 8;
+    R = [8.2, -1.1 + Math.sin(w) * .55, 23.6 + Math.cos(w) * .3];
+    L = [8.2, 1.1 - Math.sin(w) * .55, 23.6 - Math.cos(w) * .3];
+    const look = Math.max(soon, back);
+    lean = .2; nod = .25 - look * .15; turn = look * .5;
+  } else if (act === "queue") {
+    R = [5.2, -1, 25.6]; L = [5.2, 1, 25.6]; nod = .38;
+    props.push({ kind: "mobile" });
+  } else {
+    R = [10.4, -3, deskZ - .1]; L = [10.4, 3, deskZ - .1];
   }
-  // desk: white top on slim legs
-  [[x0 + 1, y0 + 1], [x1 - 1, y0 + 1], [x0 + 1, y1 - 1], [x1 - 1, y1 - 1]].forEach(([x, y]) => seg(g, iso(x, y, 0), iso(x, y, 14), INK_LINE, .55));
-  box(g, x0, y0, 14, x1, y1, 15.6, { top: "#ffffff", left: PAL.wallShade, right: PAL.wallShade });
-  // laptop with its screen toward the chair; the lid you see takes the role colour
-  box(g, cx - 5, y0 + 2, 15.6, cx + 5, y0 + 9, 16.2, { top: "#eeeeec", left: "#e2e2e0", right: "#e2e2e0" });
+
+  // torso and head; breathing lifts the chest a little
+  const breath = Math.sin(t * 1.7 + idle) * .1, torso = 12.4;
+  const neck = v3.add(hip, [Math.sin(lean) * torso, 0, Math.cos(lean) * torso + breath]);
+  const ha = lean + nod;
+  const head = v3.add(neck, [Math.sin(ha) * 2.8 * Math.cos(turn), Math.sin(turn) * 1.2 + tilt * 2.4, Math.cos(ha) * 2.8]);
+  const shR = v3.add(neck, [-.4, -3.8, -1.3]), shL = v3.add(neck, [-.4, 3.8, -1.3]);
+  const fromHead = (h, rest) => v3.mix(rest, v3.add(head, h.at), smooth(h.up));
+  if (headR) R = fromHead(headR, R); if (headL) L = fromHead(headL, L);
+  // hands follow their targets through a short lag, so nothing ever jumps from one frame to the next
+  R = followV(an, "R", R, t, .035); L = followV(an, "L", L, t, .035);
+  // elbows hang down and out; as a hand rises to the face its elbow swings out to the side
+  const poleR = v3.mix([-.3, -.6, -1], [.1, -1, -.7], headR ? smooth(headR.up) : 0), poleL = v3.mix([-.3, .6, -1], [.15, .8, -1], headL ? smooth(headL.up) : 0);
+  const [elR, hR] = reach(shR, R, 7, 6.6, poleR), [elL, hL] = reach(shL, L, 7, 6.6, poleL);
+  const hipR = v3.add(hip, [0, -2.2, 0]), hipL = v3.add(hip, [0, 2.2, 0]);
+  let knR, knL, anR, anL;
+  if (standing) {
+    knR = v3.add(hipR, [.5, -.2, -9.2]); knL = v3.add(hipL, [.5, .2, -9.2]);
+    anR = [hipR[0] + .1, hipR[1] - .3, 1.1]; anL = [hipL[0] + .1, hipL[1] + .3, 1.1];
+  } else {
+    knR = v3.add(hipR, [8.2, -.4, .6]); knL = v3.add(hipL, [8.2, .4, .6]);
+    anR = v3.add(knR, [1.2, 0, -10.6]); anL = v3.add(knL, [1.2, 0, -10.6]);
+  }
+  let toeR = v3.add(anR, [2.6, 0, 0]), toeL = v3.add(anL, [2.6, 0, 0]);
+  if (act === "queue") toeR = v3.add(toeR, [0, 0, 1.2 * Math.max(strike, back)]);   // tapping a foot while waiting
+  return { hip, neck, head, shR, shL, elR, elL, hR, hL, hipR, hipL, knR, knL, anR, anL, toeR, toeL, mouth, props, act };
+}
+
+/* drawing: turn the pose to face the seat's way, project, and draw in two passes around the desk */
+function worldOf(seat) {
+  const [fx, fy] = FACE[seat.f];
+  return p => [seat.x + p[0] * fx - p[1] * fy, seat.y + p[0] * fy + p[1] * fx, p[2]];
+}
+let grain = null;
+function grainPattern() {
+  if (grain) return grain;
+  const gc = document.createElement("canvas"); gc.width = gc.height = 96; const x = gc.getContext("2d"), r = mulberry(11);
+  for (let i = 0; i < 1100; i++) {
+    const px = r() * 96, py = r() * 96, l = 2 + r() * 4;
+    x.strokeStyle = r() < .55 ? "rgba(0,0,0,.18)" : "rgba(255,255,255,.3)"; x.lineWidth = 1;
+    x.beginPath(); x.moveTo(px, py); x.lineTo(px + (r() - .5) * 1.5, py + l); x.stroke();
+  }
+  return grain = g.createPattern(gc, "repeat");
+}
+// crayon pass: draw into a small layer, rub grain into whatever was drawn, then lay it on the office
+const LAYER_W = 70, LAYER_H = 84, layer = document.createElement("canvas");
+layer.width = LAYER_W * SC; layer.height = LAYER_H * SC;
+const lctx = layer.getContext("2d");
+function crayon(anchor, fn) {
+  const ox = Math.round(anchor[0] - LAYER_W / 2), oy = Math.round(anchor[1] - LAYER_H + 18);
+  lctx.setTransform(1, 0, 0, 1, 0, 0); lctx.clearRect(0, 0, layer.width, layer.height);
+  lctx.setTransform(SC, 0, 0, SC, -ox * SC, -oy * SC);
+  fn(lctx);
+  lctx.setTransform(1, 0, 0, 1, 0, 0);
+  lctx.globalCompositeOperation = "source-atop"; lctx.fillStyle = grainPattern(); lctx.fillRect(0, 0, layer.width, layer.height);
+  lctx.globalCompositeOperation = "source-over";
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(layer, ox * SC, oy * SC); g.restore();
+}
+function strokeLine(c, pts, w, col, cap = "round") {
+  c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]));
+  c.strokeStyle = col; c.lineWidth = w; c.lineCap = cap; c.lineJoin = "round"; c.stroke();
+}
+function hull2(p) {
+  p = p.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+  const cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), lo = [], up = [];
+  for (const q of p) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+  for (const q of p.slice().reverse()) { while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+  return lo.slice(0, -1).concat(up.slice(0, -1));
+}
+const mix2 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+const U = K;   // screen units per world unit
+function figure(m, seat, P) {
+  const W = worldOf(seat), S = {}, Wd = {};
+  for (const k of ["hip", "neck", "head", "shR", "shL", "elR", "elL", "hR", "hL", "hipR", "hipL", "knR", "knL", "anR", "anL", "toeR", "toeL"]) { Wd[k] = W(P[k]); S[k] = iso(...Wd[k]); }
+  const [fx, fy] = FACE[seat.f];
+  const faceShows = fx + fy > 0;                                    // facing toward you, so the face shows
+  const dir = (fx - fy) >= 0 ? 1 : -1;                              // which way they face on screen
+  const farR = Wd.shR[0] + Wd.shR[1] < Wd.shL[0] + Wd.shL[1];        // the right side is the far side
+  return { S, Wd, W, faceShows, dir, far: farR ? "R" : "L", near: farR ? "L" : "R", look: lookFor(m), P };
+}
+function drawLower(c, F) {
+  const { S, look, far, near } = F;
+  [[far, .82], [near, 1]].forEach(([s, k]) => {
+    const col = shade(look.pants, k);
+    strokeLine(c, [S["hip" + s], S["kn" + s], S["an" + s]], 2.8 * U, col, "butt");
+    if (look.pantsDots) { c.fillStyle = shade(look.pants, .62); for (let i = 1; i < 5; i++) { const p = mix2(S["kn" + s], S["an" + s], i / 5); c.fillRect(p[0] + (i % 2 ? -.5 : .4), p[1], .55, .55); } }
+    strokeLine(c, [S["an" + s], S["toe" + s]], 1.5 * U, k < 1 ? shade(look.shoes, .85) : look.shoes);
+  });
+}
+function drawUpper(c, F) {
+  const { S, look, far, near, faceShows, dir, P } = F;
+  const arm = (s, k) => {
+    strokeLine(c, [S["sh" + s], S["el" + s], S["h" + s]], 2 * U, shade(look.top, k));
+    c.beginPath(); c.arc(S["h" + s][0], S["h" + s][1], .8 * U, 0, 7); c.fillStyle = shade(look.skin, k < 1 ? .9 : 1); c.fill();
+  };
+  // long hair falls behind the shoulders
+  const r = 2.3 * U, [hx, hy] = S.head;
+  if (look.hairStyle === "long") { c.beginPath(); c.ellipse(hx - dir * r * .15, hy + r * .55, r * 1.1, r * 1.35, 0, 0, 7); c.fillStyle = look.hair; c.fill(); }
+  arm(far, .84);
+  const body = hull2([S["sh" + far], S["sh" + near], mix2(S.hipR, S.shR, -.05), mix2(S.hipL, S.shL, -.05)]);
+  const bodyPath = () => { c.beginPath(); body.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); };
+  bodyPath(); c.fillStyle = look.top; c.fill(); c.strokeStyle = look.top; c.lineWidth = 2.6 * U; c.lineJoin = "round"; c.stroke();
+  if (look.pattern !== "plain") {
+    c.save(); bodyPath(); c.lineWidth = 2.6 * U; c.stroke(); c.clip();
+    const [nx, ny] = S.neck;
+    if (look.pattern === "stripes") for (let k = -2; k < 16; k += 1.6) strokeLine(c, [[nx - 14, ny + k], [nx + 14, ny + k + 2]], .45, look.trim);
+    else { c.fillStyle = look.trim; for (let k = 0; k < 16; k += 1.8) for (let i = -10; i < 10; i += 1.8) c.fillRect(nx + i + (k % 3.6 ? .9 : 0), ny + k, .5, .5); }
+    c.restore();
+  }
+  strokeLine(c, [S.neck, mix2(S.neck, S.head, .55)], 1.1 * U, look.skin);
+  c.beginPath(); c.arc(hx, hy, r, 0, 7); c.fillStyle = look.skin; c.fill();
+  // hair: a cap on top from the front, nearly all of the head from behind
+  c.save(); c.beginPath(); c.arc(hx, hy, r, 0, 7); c.clip(); c.fillStyle = look.hair;
+  if (!faceShows) c.fillRect(hx - r, hy - r, r * 2, r * 1.65);
+  else { c.beginPath(); c.ellipse(hx - dir * r * .35, hy - r * .55, r * 1.05, r * (look.hairStyle === "bob" ? .9 : .65), 0, 0, 7); c.fill(); if (look.hairStyle === "bob") c.fillRect(hx - dir * r * 1.1 - (dir > 0 ? 0 : -r * .1), hy - r * .2, r * .7 * dir, r * 1.1); }
+  c.restore();
+  if (look.hairStyle === "bun") { c.beginPath(); c.arc(hx - dir * r * .45, hy - r * 1.02, r * .45, 0, 7); c.fillStyle = look.hair; c.fill(); }
+  if (faceShows) {
+    const ink = "#3a2a22", er = Math.max(.32, r * .12);
+    c.fillStyle = ink; c.beginPath(); c.arc(hx + dir * r * .2, hy - r * .05, er, 0, 7); c.arc(hx + dir * r * .66, hy, er, 0, 7); c.fill();
+    c.globalAlpha = .5; c.fillStyle = "#e8857a"; c.beginPath(); c.ellipse(hx + dir * r * .42, hy + r * .38, r * .22, r * .13, 0, 0, 7); c.fill(); c.globalAlpha = 1;
+    const mx = hx + dir * r * .45, my = hy + r * .55;
+    if (P.mouth === "open") { c.beginPath(); c.ellipse(mx, my, r * .17, r * .16, 0, 0, 7); c.fillStyle = ink; c.fill(); }
+    else if (P.mouth === "sip") { c.beginPath(); c.arc(mx, my, r * .1, 0, 7); c.strokeStyle = ink; c.lineWidth = .3; c.stroke(); }
+    else strokeLine(c, [[mx - r * .15, my], [mx + r * .15, my]], .3, ink);
+  }
+  arm(near, 1);
+}
+// things held in the hands, drawn after the figure
+function drawHeld(F) {
+  const { Wd, W, P } = F;
+  for (const pr of P.props) {
+    const h = pr.hand ? Wd["h" + pr.hand] : null;
+    if (pr.kind === "handset") { const a = iso(...v3.add(h, [0, 0, 1.6])), b = iso(...v3.add(h, [0, 0, -1.8])); seg(g, a, b, INK_LINE, 2); seg(g, a, b, PAL.coral, 1.4); }
+    else if (pr.kind === "stamp") { box(g, h[0] - 1.3, h[1] - 1.3, h[2] - 2.6, h[0] + 1.3, h[1] + 1.3, h[2] - 1.6, { top: PAL.coral, left: PAL.coral, right: shade(PAL.coral, .85) }, .35); seg(g, iso(...v3.add(h, [0, 0, -1.6])), iso(...v3.add(h, [0, 0, .6])), INK_LINE, 1.1); }
+    else if (pr.kind === "glass") { const b = pr.sit ? [h[0], h[1], 15.6] : v3.add(h, [0, 0, -.6]); cupAt(b, 1.3, 4, hexA("#cfe6f5", .75), true); }
+    else if (pr.kind === "pen") { const tip = Wd.hL ? v3.mix(h, v3.add(Wd.hL, [0, 0, pr.hand ? 2.4 : 0]), .55) : h; seg(g, iso(...h), iso(...tip), INK_LINE, .7); }
+    else if (pr.kind === "cup") cupAt(v3.add(h, [0, 0, -1]), 1.1, 2.4, "#ffffff");
+    else if (pr.kind === "portafilter") { const tip = W(v3.add(F.P.hR, [2.6, .4, -.3])); seg(g, iso(...h), iso(...tip), "#2b2b2e", 1.2); ellipseFloor(g, tip[0], tip[1], 1.1, tip[2], "#9a9a9c"); }
+    else if (pr.kind === "jug") cupAt(v3.add(h, [0, 0, -2.2]), 1.2, 2.8, "#e4e4e2");
+    else if (pr.kind === "mobile") { const p = iso(...v3.mix(Wd.hR, Wd.hL, .5)); g.fillStyle = "#2b2b2e"; g.fillRect(p[0] - .9, p[1] - 1.6, 1.8, 2.6); g.fillStyle = PAL.sky; g.fillRect(p[0] - .6, p[1] - 1.3, 1.2, 1.9); }
+  }
+}
+function cupAt(b, r, h, fill, see) {
+  ellipseFloor(g, b[0], b[1], r, b[2], fill, INK_LINE);
+  seg(g, iso(b[0] - r * .7, b[1] + r * .7, b[2]), iso(b[0] - r * .7, b[1] + r * .7, b[2] + h), INK_LINE, .3);
+  seg(g, iso(b[0] + r * .7, b[1] - r * .7, b[2]), iso(b[0] + r * .7, b[1] - r * .7, b[2] + h), INK_LINE, .3);
+  if (see) { poly(g, [iso(b[0] - r * .7, b[1] + r * .7, b[2]), iso(b[0] + r * .7, b[1] - r * .7, b[2]), iso(b[0] + r * .7, b[1] - r * .7, b[2] + h * .6), iso(b[0] - r * .7, b[1] + r * .7, b[2] + h * .6)], hexA("#7cc7f2", .45), null); }
+  ellipseFloor(g, b[0], b[1], r, b[2] + h, see ? hexA("#ffffff", .4) : fill, INK_LINE);
+}
+function shadowAt(x, y, r) {
+  const pts = []; for (let k = 0; k < 20; k++) { const a = k / 20 * Math.PI * 2; pts.push(iso(x + Math.cos(a) * r, y + Math.sin(a) * r, .05)); }
+  poly(g, pts, "rgba(120,90,30,.13)", null);
+}
+
+/* clock for a member: seconds since their last sound and how near the next is */
+function clockFor(m, now) {
+  const ct = A.ctx && A.playing ? A.ctx.currentTime : null;
+  const hit = ct != null && m.hitT != null ? Math.max(0, ct - m.hitT) : 99;
+  const soon = ct != null && m.soonT != null && m.soonT > ct ? clamp01(1 - (m.soonT - ct) / .12) : 0;
+  return { t: now / 1000, hit, soon };
+}
+
+// one seat with its person: the order depends on whether the chair is in front of or behind the desk
+function drawSeat(i, now) {
+  const s = SEATS[i], m = members.find(o => o.desk === i);
+  const col = m ? shade(ROLES[m.role].color, 1.3) : null, lit = m && m.pulse > .35;
+  const F = m ? figure(m, s, pose(m, s, clockFor(m, now))) : null;
+  const anchor = iso(s.x, s.y, 0);
+  const lower = () => F && crayon(anchor, c => drawLower(c, F));
+  const upper = () => { if (!F) return; crayon(anchor, c => drawUpper(c, F)); drawHeld(F); };
+  if (s.kind === "desk") {
+    const L = s.L, chairBehind = s.f === "S" || s.f === "E";
+    const seatCol = col ? (lit ? shade(col, 1.15) : col) : "#ffffff", side = col ? shade(col, .87) : PAL.wallShade;
+    const [cx, cy] = L(0, -15);
+    const base = () => {
+      for (let k = 0; k < 5; k++) { const a = k * 1.2566 + .3; seg(g, iso(cx, cy, 2), iso(cx + Math.cos(a) * 5, cy + Math.sin(a) * 5, .5), INK_LINE, .5); }
+      seg(g, iso(cx, cy, 2), iso(cx, cy, 9), INK_LINE, .8);
+      lbox(g, L, -4, -19, 9, 4, -11, 10.6, { top: seatCol, left: side, right: side });
+    };
+    const backrest = () => lbox(g, L, -4, -20.5, 10, 4, -19.5, m ? 19 : 21, { top: seatCol, left: seatCol, right: side });
+    if (m) shadowAt(cx, cy, 6);
+    if (chairBehind) { backrest(); base(); lower(); drawDeskTop(i, s, m, col, lit, F); upper(); }
+    else { drawDeskTop(i, s, m, col, lit, F); lower(); base(); upper(); backrest(); }   // the seat hides the legs running away under the desk
+    if (!m) hoverHint(i, cx, cy, now);
+  } else {
+    if (m) {
+      shadowAt(s.x, s.y, 5);
+      lower();
+      if (s.place === "meeting") meetingTableTop();
+      upper();
+      roomFx(s, m, F);
+    } else hoverHint(i, s.x, s.y, now);
+  }
+  if (m) badge(m, F ? F.S.head : iso(s.x, s.y, 30), col, lit);
+}
+function hoverHint(i, x, y, now) {
+  if (!((i === hoverDesk || i === dragDesk) && (Math.floor(now / 260) % 2 || dragDesk === i))) return;
+  ellipseFloor(g, x, y, 7, .2, null, PAL.cobalt); const p = iso(x, y, 22);
+  g.fillStyle = PAL.cobalt; g.font = "700 9px Archivo, sans-serif"; g.textAlign = "center"; g.fillText("+", p[0], p[1]); g.textAlign = "start";
+}
+function badge(m, head, col, lit) {
+  const p = [head[0], head[1] - 9 - m.pulse * 1.5], r = 4.4;
+  g.beginPath(); g.arc(p[0], p[1], r, 0, Math.PI * 2); g.fillStyle = lit ? col : "#ffffff"; g.fill(); g.strokeStyle = INK_LINE; g.lineWidth = .45; g.stroke();
+  g.beginPath(); g.moveTo(p[0] - 1.3, p[1] + r - .5); g.lineTo(p[0], p[1] + r + 2); g.lineTo(p[0] + 1.3, p[1] + r - .5); g.fillStyle = lit ? col : "#ffffff"; g.fill();
+  bitmap(g, Math.round(p[0] - 2.5), Math.round(p[1] - 2.5), ICONS[m.role], lit ? "#ffffff" : col);
+}
+// a box given in a desk's own space
+function lbox(c, L, u0, v0, z0, u1, v1, z1, f, lw) {
+  const [ax, ay] = L(u0, v0), [bx, by] = L(u1, v1);
+  box(c, Math.min(ax, bx), Math.min(ay, by), z0, Math.max(ax, bx), Math.max(ay, by), z1, f, lw);
+}
+function drawDeskTop(i, s, m, col, lit, F) {
+  const L = s.L, act = F ? F.P.act : null;
+  [[-15, -6], [15, -6], [-15, 6], [15, 6]].forEach(([u, v]) => { const [x, y] = L(u, v); seg(g, iso(x, y, 0), iso(x, y, 14), INK_LINE, .55); });
+  lbox(g, L, -16, -7, 14, 16, 7, 15.6, { top: "#ffffff", left: PAL.wallShade, right: PAL.wallShade });
+  // laptop, screen toward the sitter; the lid takes the role colour (moved aside for paperwork)
+  const lu = act === "stamp" ? 8 : 0;
+  lbox(g, L, lu - 5, -5, 15.6, lu + 5, 2, 16.2, { top: "#eeeeec", left: "#e2e2e0", right: "#e2e2e0" });
   const lidCol = col ? (lit ? shade(col, 1.25) : col) : "#ffffff";
-  poly(g, [iso(cx - 5, y0 + 9, 16.2), iso(cx + 5, y0 + 9, 16.2), iso(cx + 5, y0 + 10.5, 23.5), iso(cx - 5, y0 + 10.5, 23.5)], lidCol);
-  // a mug and a notebook
-  ellipseFloor(g, x1 - 4, y0 + 10, 1.6, 15.7, col || "#ffffff"); seg(g, iso(x1 - 5.6, y0 + 10, 15.7), iso(x1 - 5.6, y0 + 10, 18.5), INK_LINE, .4); seg(g, iso(x1 - 2.4, y0 + 10, 15.7), iso(x1 - 2.4, y0 + 10, 18.5), INK_LINE, .4); ellipseFloor(g, x1 - 4, y0 + 10, 1.6, 18.5, col || "#ffffff");
-  poly(g, floorRect(x0 + 3, y0 + 4, x0 + 9, y0 + 11, 15.7), i % 2 ? PAL.yellow : PAL.mint, INK_LINE, .35);
-  // role badge over the seat, flashing on the beat
-  if (m) {
-    const p = iso(cx, cy, 34 + bob), r = 5.2;
-    g.beginPath(); g.arc(p[0], p[1], r, 0, Math.PI * 2); g.fillStyle = lit ? col : "#ffffff"; g.fill(); g.strokeStyle = INK_LINE; g.lineWidth = .45; g.stroke();
-    g.beginPath(); g.moveTo(p[0] - 1.5, p[1] + r - .5); g.lineTo(p[0], p[1] + r + 2.5); g.lineTo(p[0] + 1.5, p[1] + r - .5); g.fillStyle = lit ? col : "#ffffff"; g.fill();
-    bitmap(g, Math.round(p[0] - 2.5), Math.round(p[1] - 2.5), ICONS[m.role], lit ? "#ffffff" : col);
+  poly(g, [iso(...L(lu - 5, 2, 16.2)), iso(...L(lu + 5, 2, 16.2)), iso(...L(lu + 5, 3.5, 23.5)), iso(...L(lu - 5, 3.5, 23.5))], lidCol);
+  const [mx, my] = L(12, 3);
+  if (act !== "stamp") { ellipseFloor(g, mx, my, 1.6, 15.7, col || "#ffffff"); seg(g, iso(mx - 1.6, my, 15.7), iso(mx - 1.6, my, 18.5), INK_LINE, .4); seg(g, iso(mx + 1.6, my, 15.7), iso(mx + 1.6, my, 18.5), INK_LINE, .4); ellipseFloor(g, mx, my, 1.6, 18.5, col || "#ffffff"); }
+  if (act !== "clicking" && act !== "stamp") poly(g, [L(-13, -3), L(-7, -3), L(-7, 4), L(-13, 4)].map(([x, y]) => iso(x, y, 15.7)), i % 2 ? PAL.yellow : PAL.mint, INK_LINE, .35);
+  if (!F) return;
+  const W = F.W;
+  for (const pr of F.P.props) {
+    if (pr.kind === "mouse") { const p = W(pr.at); ellipseFloor(g, p[0], p[1], 1.3, 15.7 - (pr.down ? .1 : 0), "#ffffff"); }
+    if (pr.kind === "papers") { const [a, b] = W(pr.at); poly(g, floorRect(a - 3.5, b - 3.5, a + 3.5, b + 3.5, 15.75), "#ffffff", INK_LINE, .35); if (m.hits % 2) poly(g, floorRect(a - 1.4, b - 1.4, a + 1.4, b + 1.4, 15.8), null, PAL.coral, .5); }
+    if (pr.kind === "stapler") { const [a, b] = W(pr.at); box(g, a - 1, b - 1, 15.6, a + 1, b + 1, 16.6 - pr.down * .4, { top: "#2b2b2e", left: "#2b2b2e", right: "#2b2b2e" }, .3); }
+  }
+}
+function meetingTableTop() {
+  box(g, 14, 36, 14.5, 50, 52, 16, { top: "#ffffff", left: PAL.wallShade, right: PAL.wallShade });
+  plant(g, 32, 44, 16, .5);
+}
+// room effects: copier light, coffee steam, the flush swirl, a note from the cooler
+function roomFx(s, m, F) {
+  const hit = F ? clockFor(m, performance.now()).hit : 99;
+  if (s.place === "copier") {
+    const barLen = 240 / A.bpm, k = m.variant % 2 ? 1 - clamp01(hit / .2) : clamp01(hit / barLen);
+    if (hit < barLen) { const x = 71 + k * 16; g.globalAlpha = .75; poly(g, floorRect(x, 2, x + 1.6, 12, 20.1), "#fff4b0", null); g.globalAlpha = 1; }
+  } else if (s.place === "kitchen" && hit < 1) {
+    const p = iso(s.x - 1, 7, 34), a = 1 - hit; g.globalAlpha = a; g.strokeStyle = "#9a9a9c"; g.lineWidth = .45;
+    for (let k = 0; k < 2; k++) { const x = p[0] - 1.5 + k * 3, ph = performance.now() / 250 + k; g.beginPath(); g.moveTo(x, p[1]); g.bezierCurveTo(x + Math.sin(ph) * 2, p[1] - 3 - hit * 4, x - Math.sin(ph) * 2, p[1] - 6 - hit * 6, x, p[1] - 9 - hit * 8); g.stroke(); }
+    g.globalAlpha = 1;
+  } else if ((s.place === "washroom" || s.place === "queue") && hit < 1.6 && s.place === "washroom") {
+    const a = 1 - hit / 1.6, sp = performance.now() / 120;
+    g.globalAlpha = a; ellipseFloor(g, 233, 11, 3.4, 8.2, hexA("#7cc7f2", .8), null);
+    g.strokeStyle = PAL.cobalt; g.lineWidth = .4;
+    for (let k = 0; k < 3; k++) { g.beginPath(); for (let j = 0; j <= 10; j++) { const ang = sp + k * 2.1 + j * .25, rr = 3 - j * .25; const q = iso(233 + Math.cos(ang) * rr, 11 + Math.sin(ang) * rr, 8.3); j ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); } g.stroke(); }
+    g.globalAlpha = 1;
   }
 }
 
 function frame(now) {
   if (A.ctx) {
     const ct = A.ctx.currentTime;
+    // the next sound coming up, so hands can start moving just before it
+    for (const ev of visualQueue) {
+      if (ev.t > ct + 0.12) break;
+      if (ev.id === "beat") continue;
+      const m = members.find(o => o.id === ev.id);
+      if (m && !(m.soonT > ct)) m.soonT = ev.t;
+    }
     while (visualQueue.length && visualQueue[0].t <= ct) {
       const ev = visualQueue.shift();
       if (ev.id === "beat") { const dot = $("beatDot"); dot.classList.remove("beat"); void dot.offsetWidth; dot.classList.add("beat"); continue; }
       const m = members.find(o => o.id === ev.id);
       if (!m) continue;
-      m.pulse = 1;
+      m.pulse = 1; m.hitT = ev.t; m.hits = (m.hits || 0) + 1;
       if (ev.beat) glow = 1;
-      if (Math.random() < 0.3) note(DESKS[m.desk].sx, DESKS[m.desk].sy - 38, ROLES[m.role].color);
+      if (Math.random() < 0.3) note(SEATS[m.desk].sx, SEATS[m.desk].sy - 44, ROLES[m.role].color);
     }
   }
   members.forEach(m => m.pulse *= 0.85);
@@ -1554,7 +2039,7 @@ function frame(now) {
   g.setTransform(SC, 0, 0, SC, 0, 0);
   if (glow > 0.05) { g.globalAlpha = 0.12 * glow; poly(g, PLAN.map(([x, y]) => iso(x, y)), PAL.coral, null); g.globalAlpha = 1; }
   drawVitals(now);
-  for (const i of DRAW_ORDER) drawDesk(i, now);
+  for (const it of DRAW_ORDER) it.plant ? plant(g, it.plant[0], it.plant[1], 0, it.plant[2]) : drawSeat(it.seat, now);
 
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
@@ -1578,12 +2063,12 @@ function toLogical(e) {
 }
 function deskAt(p) {
   let hit = -1;
-  for (const i of DRAW_ORDER) { const [a, b, c, d] = DESKS[i].box; if (p.x >= a && p.x <= c && p.y >= b && p.y <= d) hit = i; }
+  for (const { seat: i } of DRAW_ORDER.filter(o => o.seat != null)) { const [a, b, c, d] = SEATS[i].box; if (p.x >= a && p.x <= c && p.y >= b && p.y <= d) hit = i; }
   return hit;
 }
 function nearestDesk(p) {
   let best = 0;
-  DESKS.forEach((d, i) => { if (Math.hypot(d.sx - p.x, d.sy - 8 - p.y) < Math.hypot(DESKS[best].sx - p.x, DESKS[best].sy - 8 - p.y)) best = i; });
+  SEATS.forEach((d, i) => { if (Math.hypot(d.sx - p.x, d.sy - 8 - p.y) < Math.hypot(SEATS[best].sx - p.x, SEATS[best].sy - 8 - p.y)) best = i; });
   return best;
 }
 const tip = $("tip");
@@ -1592,9 +2077,9 @@ cv.addEventListener("pointermove", e => {
   hoverDesk = i;
   const m = members.find(o => o.desk === i);
   if (m && e.pointerType !== "touch") {
-    const r = ROLES[m.role], d = DESKS[i];
+    const r = ROLES[m.role], d = SEATS[i];
     tip.innerHTML = `<b>${m.name}</b> · ${r.title}<small>Member #${m.memberNo} · covers ${r.covers.toLowerCase()}</small><small>Click to send home</small>`;
-    tip.style.left = (d.sx / LW * 100) + "%"; tip.style.top = ((d.sy - 42) / LH * 100) + "%";
+    tip.style.left = (d.sx / LW * 100) + "%"; tip.style.top = ((d.sy - 48) / LH * 100) + "%";
     tip.hidden = false;
   } else tip.hidden = true;
 });
@@ -1605,11 +2090,12 @@ cv.addEventListener("click", e => {
   const m = members.find(o => o.desk === i);
   tip.hidden = true;
   if (m) { fire(m); return; }
-  // empty desk: hire whoever fills the biggest coverage gap
+  // an empty room spot hires its own role; an empty desk hires a desk role that fills the biggest gap
   start();
-  const cov = coveredSet();
-  const missing = ROLE_IDS.filter(id => !cov.has(id));
-  hire(pick(missing.length ? missing : ROLE_IDS, Math.random), i);
+  if (SEATS[i].roles) { hire(SEATS[i].roles[0], i); return; }
+  const cov = coveredSet(), deskRoles = ROLE_IDS.filter(id => !SPOTS.some(sp => sp.roles.includes(id)));
+  const missing = deskRoles.filter(id => !cov.has(id));
+  hire(pick(missing.length ? missing : deskRoles, Math.random), i);
 });
 cv.addEventListener("dragover", e => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; dragDesk = nearestDesk(toLogical(e)); });
 cv.addEventListener("dragleave", () => { dragDesk = -1; });
@@ -1629,7 +2115,7 @@ readTokens();
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", readTokens);
 new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 document.fonts && document.fonts.ready.then(render);
-[["coffee", 5, "Priya"], ["typing", 2, "Kabir"], ["phone", 9, "Meera"]].forEach(([id, desk, name], i) => {
+[["coffee", DESK_COUNT + 4, "Priya"], ["typing", 2, "Kabir"], ["phone", DESK_COUNT, "Meera"], ["clicking", 1, "Arjun"]].forEach(([id, desk, name], i) => {
   const m = makeMember(id, desk, name, 1234 + i * 99);
   m.born = -1e4;
   members.push(m);
