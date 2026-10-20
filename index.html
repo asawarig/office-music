@@ -514,7 +514,7 @@ function ensureNodes(m) {
   m.out = ctx.createGain();
   m.out.gain.value = role.gain * Math.pow(0.8, same);
   const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
-  if (pan.pan) pan.pan.value = Math.max(-1, Math.min(1, (SEATS[m.desk].sx - LW / 2) / (LW / 2) * (A.mode === "ambient" ? .95 : .7)));
+  if (pan.pan) pan.pan.value = Math.max(-1, Math.min(1, ((A.night && nightSpot(m) ? iso(nightSpot(m).x, nightSpot(m).y)[0] : SEATS[m.desk].sx) - LW / 2) / (LW / 2) * (A.mode === "ambient" ? .95 : .7)));
   const rs = ctx.createGain(); rs.gain.value = role.rev;
   const ds = ctx.createGain(); ds.gain.value = role.dly;
   m.out.connect(pan); pan.connect(A.master); pan.connect(rs); rs.connect(A.rev); pan.connect(ds); ds.connect(A.dly);
@@ -1134,7 +1134,7 @@ function chatterTick(ct) {
     if (A.chatTalk <= 0) { A.chatTalk = Math.floor(rand(3, 8)); A.chatNext = ct + rand(18, 40); return; }
     const others = group.filter(m => m !== A.chatLast), who = pick(others.length ? others : group, Math.random);
     const t0 = Math.max(A.chatNext, ct + .02);
-    A.chatPan.pan && A.chatPan.pan.setValueAtTime(Math.max(-1, Math.min(1, (SEATS[who.desk].sx - LW / 2) / (LW / 2) * .8)), t0);
+    A.chatPan.pan && A.chatPan.pan.setValueAtTime(Math.max(-1, Math.min(1, (posOf(who)[0] - LW / 2) / (LW / 2) * .8)), t0);
     const kind = A.chatLast && chance(.18) ? "back" : chance(.07) ? "laugh" : "say";
     const end = sentence(who, t0, kind);
     who.talkUntil = end;
@@ -1165,7 +1165,7 @@ function applyMix(fade = .8) {
   A.revOut.gain.setTargetAtTime(amb ? .95 : .55, t, fade / 3);
   A.dly.delayTime.setTargetAtTime(amb ? .55 : 60 / A.bpm * 0.75, t, .05);
   A.room.gain.setTargetAtTime(amb && A.playing ? 1 : 0, t, fade);
-  members.forEach(m => { const pan = m.nodes && m.nodes[0]; if (pan && pan.pan) pan.pan.setTargetAtTime(Math.max(-1, Math.min(1, (SEATS[m.desk].sx - LW / 2) / (LW / 2) * (amb ? .95 : .7))), t, fade / 3); });
+  members.forEach(m => panTo(m, fade / 3));
 }
 function roomTone(ctx) {
   // air conditioning: soft low noise, and the faint hum of the lights
@@ -1357,11 +1357,17 @@ function whereIs(m, now) {
   }
   return m.away ? nightSpot(m) : null;
 }
+const posOf = m => m.at ? iso(...m.at) : [SEATS[m.desk].sx, SEATS[m.desk].sy];
+// stereo position follows where they are headed
+function panTo(m, fade = .8) {
+  const pan = m.nodes && m.nodes[0], spot = A.night && nightSpot(m), sx = spot ? iso(spot.x, spot.y)[0] : SEATS[m.desk].sx;
+  if (pan && pan.pan) pan.pan.setTargetAtTime(Math.max(-1, Math.min(1, (sx - LW / 2) / (LW / 2) * (A.mode === "ambient" ? .95 : .7))), A.ctx.currentTime, fade);
+}
 function setNight(on) {
   A.night = on;
   document.body.classList.toggle("night", on);
   startWalks(on);
-  members.forEach(m => { m.amb = null; });
+  members.forEach(m => { m.amb = null; if (A.ctx) panTo(m, 1.5); });
   toast(on ? "Night falls. The office hums a different tune." : "Morning. Back to the day shift.");
 }
 // draw the night over the finished frame: a deep blue wash, night windows, and warm pools of light
@@ -1820,7 +1826,7 @@ function callIn(seat) {
 function fire(m) {
   members = members.filter(o => o !== m);
   releaseNodes(m);
-  burst(SEATS[m.desk].sx, SEATS[m.desk].sy - 20, ROLES[m.role].color, 12);
+  const [bx, by] = posOf(m); burst(bx, by - 20, ROLES[m.role].color, 12);
   render();
 }
 
@@ -2957,7 +2963,7 @@ function frame(now) {
       if (!m) continue;
       m.pulse = 1; m.hitT = ev.t; m.hits = (m.hits || 0) + 1;
       if (ev.beat) glow = 1;
-      if (Math.random() < 0.3) note(SEATS[m.desk].sx, SEATS[m.desk].sy - 44, ROLES[m.role].color);
+      if (Math.random() < 0.3) { const [nx, ny] = posOf(m); note(nx, ny - 44, ROLES[m.role].color); }
     }
   }
   members.forEach(m => m.pulse *= 0.85);
@@ -2995,7 +3001,21 @@ function toLogical(e) {
 }
 function deskAt(p) {
   let hit = -1;
-  for (const { seat: i } of DRAW_ORDER.filter(o => o.seat != null)) { const [a, b, c, d] = SEATS[i].box; if (p.x >= a && p.x <= c && p.y >= b && p.y <= d) hit = i; }
+  for (const { seat: i } of DRAW_ORDER.filter(o => o.seat != null)) {
+    const [a, b, c, d] = SEATS[i].box, m = members.find(o => o.desk === i);
+    if (m && m.at) continue;
+    if (p.x >= a && p.x <= c && p.y >= b && p.y <= d) hit = i;
+  }
+  return hit;
+}
+// someone away from their seat, hit where they are now; the one nearest the front wins
+function movedAt(p) {
+  let hit = null, best = -1;
+  for (const m of members) {
+    if (!m.at) continue;
+    const [sx, sy] = iso(...m.at), seated = m.walk ? false : (nightSpot(m) || {}).seated;
+    if (p.x >= sx - 8 && p.x <= sx + 8 && p.y >= sy - (seated ? 30 : 38) && p.y <= sy + 3 && m.at[0] + m.at[1] > best) { hit = m; best = m.at[0] + m.at[1]; }
+  }
   return hit;
 }
 /* ---------- Out-of-office calendars ----------
@@ -3790,6 +3810,12 @@ cv.addEventListener("pointermove", e => {
     tip.innerHTML = `<b>Snack box</b><small>Click for an employee snack fact</small>`;
     tip.style.left = (q[0] / LW * 100) + "%"; tip.style.top = (q[1] / LH * 100) + "%"; tip.hidden = false; hoverDesk = -1; return;
   }
+  const mv = movedAt(toLogical(e));
+  if (mv) {
+    const [sx, sy] = posOf(mv); cv.style.cursor = "pointer"; hoverDesk = -1;
+    if (e.pointerType !== "touch") { tip.innerHTML = `<b>${mv.name}</b>`; tip.style.left = (sx / LW * 100) + "%"; tip.style.top = ((sy - 48) / LH * 100) + "%"; tip.hidden = false; }
+    return;
+  }
   const i = deskAt(toLogical(e));
   hoverDesk = i;
   const m = members.find(o => o.desk === i);
@@ -3816,8 +3842,10 @@ cv.addEventListener("click", e => {
   const sb = snackBoxAt(toLogical(e));
   if (sb >= 0) { tip.hidden = true; openSnack(sb); return; }
   closeSnack();
-  const i = deskAt(toLogical(e));
+  const mv = movedAt(toLogical(e));
   closeCal();
+  if (mv) { tip.hidden = true; fire(mv); return; }
+  const i = deskAt(toLogical(e));
   if (i < 0) return;
   const m = members.find(o => o.desk === i);
   tip.hidden = true;
