@@ -2158,6 +2158,7 @@ function drawStatic() {
   else poly(c, quadX(.3, 95, 115, 29, 45), "#2b8cff");
   poly(c, quadX(.3, 95, 115, 29, 45), null, INK_LINE, .35);
   windowOnX(c, 150, 196, 22, 54);
+  drawClockFace(c);
 
   // back wall: meeting-room whiteboard, the vitals screen frame, kitchen run, washroom tiles
   drawWhiteboard(c);
@@ -2233,6 +2234,28 @@ function celebrate() {
   for (let i = 0; i < 120; i++) particles.push({ x: Math.random() * LW, y: -Math.random() * 120, vx: (Math.random() - .5) * .6, vy: Math.random() * .8 + .5, life: 2, color: pick(cols, Math.random), kind: "confetti" });
 }
 
+// a wall clock in the lounge, between the album and the window; it keeps the real time
+const CLOCK = { y0: 127, z1: 49, r: 7.5 };
+function drawClockFace(c) {
+  onWallX(c, CLOCK.y0, CLOCK.z1, () => {
+    const r = CLOCK.r;
+    c.beginPath(); c.arc(r, r, r, 0, 7); c.fillStyle = "#ffffff"; c.fill(); c.lineWidth = 1.1; c.strokeStyle = "#2b2b2d"; c.stroke();
+    c.beginPath(); c.arc(r, r, r - 1.1, 0, 7); c.lineWidth = .25; c.strokeStyle = INK_LINE; c.stroke();
+    for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2, l = k % 3 ? .7 : 1.4; c.beginPath(); c.moveTo(r + Math.sin(a) * (r - 1.6), r - Math.cos(a) * (r - 1.6)); c.lineTo(r + Math.sin(a) * (r - 1.6 - l), r - Math.cos(a) * (r - 1.6 - l)); c.lineWidth = k % 3 ? .3 : .55; c.strokeStyle = "#2b2b2d"; c.stroke(); }
+  });
+}
+function drawClockHands() {
+  const d = new Date(), h = (d.getHours() % 12 + d.getMinutes() / 60) / 12, m = (d.getMinutes() + d.getSeconds() / 60) / 60, sec = d.getSeconds() / 60, r = CLOCK.r;
+  onWallX(g, CLOCK.y0, CLOCK.z1, () => {
+    const hand = (t, len, w, col) => { const a = t * Math.PI * 2; g.beginPath(); g.moveTo(r, r); g.lineTo(r + Math.sin(a) * len, r - Math.cos(a) * len); g.lineWidth = w; g.lineCap = "round"; g.strokeStyle = col; g.stroke(); };
+    hand(h, r * .45, .8, "#2b2b2d"); hand(m, r * .7, .55, "#2b2b2d"); hand(sec, r * .75, .25, PAL.coral);
+    g.beginPath(); g.arc(r, r, .5, 0, 7); g.fillStyle = PAL.coral; g.fill();
+  });
+}
+function clockAt(p) {
+  const pts = [iso(0, CLOCK.y0, CLOCK.z1), iso(0, CLOCK.y0 + CLOCK.r * 2, CLOCK.z1 - CLOCK.r * 2)];
+  return p.x >= pts[1][0] - 1 && p.x <= pts[0][0] + 1 && p.y >= pts[0][1] - 1 && p.y <= pts[1][1] + 1;
+}
 // the vitals screen on the back wall, drawn in the wall's own coordinates
 const waveBuf = new Uint8Array(2048);
 function drawVitals(now) {
@@ -3079,6 +3102,7 @@ function frame(now) {
   g.setTransform(SC, 0, 0, SC, 0, 0);
   if (glow > 0.05) { g.globalAlpha = 0.12 * glow; poly(g, PLAN.map(([x, y]) => iso(x, y)), PAL.coral, null); g.globalAlpha = 1; }
   drawVitals(now);
+  drawClockHands();
   const order = awayItems(now);
   if (order.length) order.push(...DRAW_ORDER), order.sort((a, b) => a.depth - b.depth);
   for (const it of order.length ? order : DRAW_ORDER) it.draw ? it.draw() : it.plant ? plant(g, it.plant[0], it.plant[1], 0, ...it.plant.slice(2)) : drawSeat(it.seat, now);
@@ -3527,7 +3551,7 @@ function openSnack(b) {
 // only one popup is open at a time; this closes whichever it is and says whether there was one
 function closePopups() {
   const open = !!document.querySelector(".board > [role=dialog]");
-  closeSnack(); closeCal(); closeWB(); closeShelf(); closeScreen(); closeAlbum();
+  closeSnack(); closeCal(); closeWB(); closeShelf(); closeScreen(); closeAlbum(); closeClock();
   return open;
 }
 // a click anywhere outside a popup closes it (popups stop their own clicks from getting here)
@@ -3824,6 +3848,35 @@ function openAlbum() {
   albEl.style.top = Math.max(8, Math.min(bh - h - 8, ay / LH * bh - h / 2)) + "px";
   albEl.querySelector(".next").focus();
 }
+let clkEl = null;
+function closeClock() { if (clkEl) { clkEl.remove(); clkEl = null; } }
+function openClock() {
+  closePopups();
+  const board = cv.parentElement, d = new Date();
+  clkEl = document.createElement("div"); clkEl.className = "clockpop"; clkEl.setAttribute("role", "dialog"); clkEl.setAttribute("aria-label", "When does corporate India log off?");
+  const ang = t => t * 360;
+  clkEl.innerHTML = `<button class="cx" aria-label="Close">×</button>
+    <svg class="face" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="#fff" stroke="#2b2b2d" stroke-width="2.4"/>${[...Array(12)].map((_, k) => `<line x1="20" y1="5" x2="20" y2="${k % 3 ? 7 : 9}" stroke="#2b2b2d" stroke-width="${k % 3 ? .8 : 1.4}" transform="rotate(${k * 30} 20 20)"/>`).join("")}
+      <line x1="20" y1="20" x2="20" y2="11" stroke="#2b2b2d" stroke-width="2" stroke-linecap="round" transform="rotate(${ang((d.getHours() % 12 + d.getMinutes() / 60) / 12)} 20 20)"/>
+      <line x1="20" y1="20" x2="20" y2="7.5" stroke="#2b2b2d" stroke-width="1.4" stroke-linecap="round" transform="rotate(${ang(d.getMinutes() / 60)} 20 20)"/><circle cx="20" cy="20" r="1.4" fill="#ee6f6a"/></svg>
+    <p class="q">Do you know when corporate India logs off?</p>
+    <a class="go" href="https://www.plumhq.com/fun/log-your-logoff" target="_blank" rel="noopener">Find out →</a>`;
+  board.appendChild(clkEl);
+  clkEl.querySelector(".cx").onclick = closeClock;
+  clkEl.addEventListener("click", e => e.stopPropagation());
+  const bw = board.clientWidth, bh = board.clientHeight, [ax, ay] = iso(0, CLOCK.y0 + CLOCK.r, CLOCK.z1 - CLOCK.r), w = clkEl.offsetWidth, h = clkEl.offsetHeight;
+  clkEl.style.left = Math.max(8, Math.min(bw - w - 8, ax / LW * bw + 16)) + "px";
+  clkEl.style.top = Math.max(8, Math.min(bh - h - 8, ay / LH * bh - h / 2)) + "px";
+}
+const CLK_CSS = `
+.clockpop { position: absolute; z-index: 5; width: 300px; padding: 20px 20px 22px; background: #fff; color: #2b2b2e; border: 1px solid #3a3a3c; box-shadow: 1px 1px 0 #cfd6e2, 2px 2px 0 #cfd6e2, 3px 3px 0 #cfd6e2, 4px 4px 0 #cfd6e2, 5px 5px 0 #cfd6e2, 5px 5px 0 1px #3a3a3c; font-family: var(--font-body); display: grid; gap: 12px; justify-items: start; }
+.clockpop .face { width: 46px; height: 46px; }
+.clockpop .q { margin: 0; padding-right: 24px; font: 400 21px/1.2 var(--font-display); text-wrap: balance; }
+.clockpop .go { display: inline-block; padding: 9px 16px; background: #ee6f6a; color: #fff; text-decoration: none; font: 400 14px/1 var(--font-label); border: 1px solid #3a3a3c; box-shadow: 1px 1px 0 #b9494a, 2px 2px 0 #b9494a, 3px 3px 0 #b9494a, 4px 4px 0 #b9494a, 4px 4px 0 1px #3a3a3c; transition: transform .08s, box-shadow .08s; }
+.clockpop .go:hover { background: #f27f7a; }
+.clockpop .go:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #b9494a, 1px 1px 0 1px #3a3a3c; }
+.clockpop .go:focus-visible { outline: 3px solid #5b6ee1; outline-offset: 3px; }
+`;
 const ALB_CSS = `
 .album { position: absolute; z-index: 6; width: 500px; font-family: var(--font-body); color: #2b2b2e; }
 .album .cover { background: #2c3a66; border: 1px solid #1d2648; border-radius: 6px 10px 10px 6px; padding: 10px 10px 10px 22px; box-shadow: inset 12px 0 0 #23305a, inset 13px 0 0 #1d2648, 5px 7px 0 rgba(58,58,60,.18); }
@@ -3849,7 +3902,7 @@ const ALB_CSS = `
 .album a:focus-visible, .album button:focus-visible { outline: 3px solid #d6545a; outline-offset: 2px; }
 `;
 // the popup styles go last in the page so nothing else overrides them
-document.body.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOARD_CSS}${SNACK_CSS}${WB_CSS}${SHELF_CSS}${SCR_CSS}${ALB_CSS}
+document.body.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOARD_CSS}${SNACK_CSS}${WB_CSS}${SHELF_CSS}${SCR_CSS}${ALB_CSS}${CLK_CSS}
 /* every popup shares one close button in its top right corner */
 .board > [role=dialog] .cx { position: absolute; top: 10px; right: 10px; margin: 0; padding: 0; width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid #3a3a3c; border-radius: 0; background: #fff; color: #2b2b2d; font: 400 18px/1 var(--font-label); cursor: pointer; z-index: 3; box-shadow: 1px 1px 0 #cfd6e2, 2px 2px 0 #cfd6e2, 3px 3px 0 #cfd6e2, 3px 3px 0 1px #3a3a3c; }
 .board > [role=dialog] .cx:hover { background: #f3f7fb; }
@@ -3889,6 +3942,7 @@ function openCal(i) {
 const tip = $("tip");
 // what is under a point on the office: its name, a hint, where the tip sits, and what a click does
 function whatAt(p) {
+  if (clockAt(p)) return { key: "clock", at: iso(0, CLOCK.y0 + CLOCK.r, CLOCK.z1 + 1), title: "Clock", hover: "When does corporate India log off?", hint: "find out when corporate India logs off", act: openClock };
   const w = windowAt(p);
   if (w) return { key: "window", at: iso(0, (w[1] + w[2]) / 2, w[4]), title: "Window", hover: A.night ? "Click to bring the morning back" : "Click to fast-forward to night", hint: A.night ? "bring the morning back" : "fast-forward to night", act: () => { start(); setNight(!A.night); } };
   const mv = movedAt(p);
@@ -3941,7 +3995,7 @@ document.addEventListener("keydown", e => {
 /* ---------- Explore: small slabs float over everything you can click ---------- */
 const MARK_SVG = `<svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 15v8" stroke="#3a3a3c" stroke-width="1.2" stroke-linecap="round"/><path d="M10 1 19 5.5 10 10 1 5.5Z" fill="#f6a5a1"/><path d="M1 5.5 10 10v4L1 9.5Z" fill="#ee6f6a"/><path d="M10 10 19 5.5v4L10 14Z" fill="#c4534f"/><path d="M10 1 19 5.5v4L10 14 1 9.5v-4ZM1 5.5 10 10 19 5.5M10 10v4" fill="none" stroke="#3a3a3c" stroke-width=".8" stroke-linejoin="round"/></svg>`;
 function markSpots() {
-  const [a, b, c2, d] = WB_BOX(), pts = [iso(0, 105, 40), iso(83, 0, 44), [(a + c2) / 2, (b + d) / 2 - 4], iso(234, 107, 14)];
+  const [a, b, c2, d] = WB_BOX(), pts = [iso(0, CLOCK.y0 + CLOCK.r, CLOCK.z1 + 2), iso(0, 105, 40), iso(83, 0, 44), [(a + c2) / 2, (b + d) / 2 - 4], iso(234, 107, 14)];
   // one mark over each run of snack boxes on a shelf
   [...new Set(SNACK_BOXES.map(sb => sb[1]))].forEach(z => { const xs = SNACK_BOXES.filter(sb => sb[1] === z).map(sb => sb[0]); pts.push(iso((Math.min(...xs) + Math.max(...xs) + 5) / 2, 2.8, z + 7)); });
   LAYOUT.hot.filter(i => !CAST[i]).forEach(i => pts.push(iso(SEATS[i].cx, SEATS[i].cy, 24)));
