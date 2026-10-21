@@ -1926,6 +1926,7 @@ function drawClockHands() {
     g.beginPath(); g.arc(r, r, .5, 0, 7); g.fillStyle = PAL.coral; g.fill();
   });
 }
+const timeNow = () => new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }).toLowerCase();
 function clockAt(p) {
   const pts = [iso(0, CLOCK.y0, CLOCK.z1), iso(0, CLOCK.y0 + CLOCK.r * 2, CLOCK.z1 - CLOCK.r * 2)];
   return p.x >= pts[1][0] - 1 && p.x <= pts[0][0] + 1 && p.y >= pts[0][1] - 1 && p.y <= pts[1][1] + 1;
@@ -1987,8 +1988,8 @@ const TOPS = ["#2b2b2e", "#2c3a66", "#d94f3d", "#e2a23b", "#2f7f57", "#6a4fb3", 
 const PANTS = ["#e85a9a", "#4c6fc2", "#2b2b2e", "#e2a23b", "#2f7f57", "#c0392b", "#8a8f9c"];
 const SHOE_COLS = ["#2b2b2e", "#5a3a28", "#ffffff", "#ee6f6a"];
 // bold crayon colours: a plain jumper and trousers that never match, after the first crayon style
-// a few people have a fixed look: Avani wears her hair long, Shriram is bald
-const LOOK_FOR = { Avani: { hairStyle: "long", hair: "#1f1b19" }, Shriram: { hairStyle: "bald" } };
+// a few people have a fixed look: Avani and Trayi wear their hair long, Ruhani wears hers in a bun, Shriram is bald
+const LOOK_FOR = { Avani: { hairStyle: "long", hair: "#1f1b19" }, Trayi: { hairStyle: "long", hair: "#3b2618" }, Ruhani: { hairStyle: "bun", hair: "#1f1b19" }, Shriram: { hairStyle: "bald" } };
 function lookFor(m) {
   if (m.look) return m.look;
   const r = rng(m.seed + 7), top = pick(TOPS, r);
@@ -2249,6 +2250,8 @@ function drawUpper(c, F) {
     c.restore();
   }
   strokeLine(c, [S.neck, mix2(S.neck, S.head, .55)], 1.1 * U, look.skin);
+  // from behind, long hair hangs down over the back
+  if (look.hairStyle === "long" && !faceShows) { c.beginPath(); c.ellipse(hx, hy + r * 1.05, r * 1.02, r * 1.55, 0, 0, 7); c.fillStyle = look.hair; c.fill(); }
   c.beginPath(); c.arc(hx, hy, r, 0, 7); c.fillStyle = look.skin; c.fill();
   // hair: a cap on top from the front, nearly all of the head from behind
   if (look.hairStyle === "bald") {
@@ -3444,6 +3447,7 @@ function openClock() {
     <svg class="face" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="#fff" stroke="#2b2b2d" stroke-width="2.4"/>${[...Array(12)].map((_, k) => `<line x1="20" y1="5" x2="20" y2="${k % 3 ? 7 : 9}" stroke="#2b2b2d" stroke-width="${k % 3 ? .8 : 1.4}" transform="rotate(${k * 30} 20 20)"/>`).join("")}
       <line x1="20" y1="20" x2="20" y2="11" stroke="#2b2b2d" stroke-width="2" stroke-linecap="round" transform="rotate(${ang((d.getHours() % 12 + d.getMinutes() / 60) / 12)} 20 20)"/>
       <line x1="20" y1="20" x2="20" y2="7.5" stroke="#2b2b2d" stroke-width="1.4" stroke-linecap="round" transform="rotate(${ang(d.getMinutes() / 60)} 20 20)"/><circle cx="20" cy="20" r="1.4" fill="#ee6f6a"/></svg>
+    <p class="t">It's ${timeNow()}.</p>
     <p class="q">Do you know when corporate India logs off?</p>
     <a class="go" href="https://www.plumhq.com/fun/log-your-logoff" target="_blank" rel="noopener">Find out →</a>`;
   board.appendChild(clkEl);
@@ -3456,6 +3460,7 @@ function openClock() {
 const CLK_CSS = `
 .clockpop { position: absolute; z-index: 5; width: 300px; padding: 20px 20px 22px; background: #fff; color: #2b2b2e; border: 1px solid #3a3a3c; box-shadow: 1px 1px 0 #cfd6e2, 2px 2px 0 #cfd6e2, 3px 3px 0 #cfd6e2, 4px 4px 0 #cfd6e2, 5px 5px 0 #cfd6e2, 5px 5px 0 1px #3a3a3c; font-family: var(--font-body); display: grid; gap: 12px; justify-items: start; }
 .clockpop .face { width: 46px; height: 46px; }
+.clockpop .t { margin: 0 0 -6px; font: 400 13px/1 var(--font-label); color: #6b6b6e; font-variant-numeric: tabular-nums; }
 .clockpop .q { margin: 0; padding-right: 24px; font: 400 21px/1.2 var(--font-display); text-wrap: balance; }
 .clockpop .go { display: inline-block; padding: 9px 16px; background: #ee6f6a; color: #fff; text-decoration: none; font: 400 14px/1 var(--font-label); border: 1px solid #3a3a3c; box-shadow: 1px 1px 0 #b9494a, 2px 2px 0 #b9494a, 3px 3px 0 #b9494a, 4px 4px 0 #b9494a, 4px 4px 0 1px #3a3a3c; transition: transform .08s, box-shadow .08s; }
 .clockpop .go:hover { background: #f27f7a; }
@@ -3527,7 +3532,7 @@ function openCal(i) {
 const tip = $("tip");
 // what is under a point on the office: its name, a hint, where the tip sits, and what a click does
 function whatAt(p) {
-  if (clockAt(p)) return { key: "clock", at: iso(0, CLOCK.y0 + CLOCK.r, CLOCK.z1 + 1), title: "Clock", hover: "When does corporate India log off?", hint: "find out when corporate India logs off", act: openClock };
+  if (clockAt(p)) return { key: "clock", at: iso(0, CLOCK.y0 + CLOCK.r, CLOCK.z1 + 1), title: `It's ${timeNow()}`, hover: "When does corporate India log off?", hint: "find out when corporate India logs off", act: openClock };
   if (printAt(p)) return { key: "album", at: iso(0, 105, 50), title: "Humanise", hover: "Click to flip through the album", hint: "flip through the album", act: openAlbum };
   if (screenAt(p)) return { key: "screen", at: iso(83, 0, 55), title: "Click me", hover: "What is this place?", hint: "find out what this place is", act: openScreen };
   if (shelfAt(p)) return { key: "shelf", at: iso(234, 104, 18), title: "Bookshelf", hover: "Click for Plum's reports and guides", hint: "open Plum's reports and guides", act: openShelf };
