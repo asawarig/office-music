@@ -82,8 +82,8 @@ body {
   line-height: 1.5;
 }
 /* the office fills the page; a small heads-up bar holds the menu and play */
-.stage { position: fixed; inset: 0; display: grid; place-items: center; background: #ffffff; overflow: hidden; padding-block: 56px calc(96px + env(safe-area-inset-bottom, 0px)); }
-.board { position: relative; width: min(100vw, calc((100dvh - 152px) * 440 / 310)); }
+.stage { position: fixed; inset: 0; display: grid; place-items: center; background: #ffffff; overflow: hidden; }
+.board { position: relative; width: min(100vw, calc(100dvh * 440 / 310)); }
 .hud { position: fixed; top: max(12px, env(safe-area-inset-top, 0px)); left: max(12px, env(safe-area-inset-left, 0px)); display: flex; align-items: center; gap: 14px; z-index: 5; }
 /* at night the page around the office darkens to match it */
 .stage { transition: background-color .8s ease; }
@@ -185,29 +185,7 @@ button { font: inherit; color: inherit; }
 .panel .tempo input { width: 84px; accent-color: #ee6f6a; }
 .panel .tempo output { color: #2b2b2d; }
 /* Explore: bottom left, marks what you can click */
-.explore { flex: none; display: inline-flex; align-items: center; gap: 8px; }
-/* the sound drawer: always along the bottom, cards grouped by family, the selected person on the right */
-.drawer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 14px; padding: 12px max(14px, env(safe-area-inset-right, 0px)) calc(14px + env(safe-area-inset-bottom, 0px)) max(14px, env(safe-area-inset-left, 0px)); background: #ffffff; border-top: 1px solid #3a3a3c; color: #2b2b2d; overflow-x: auto; }
-.decks { display: flex; gap: 12px; flex: none; }
-.fam { display: grid; gap: 5px; }
-.fam > span { font: 400 11px/1 var(--font-label); letter-spacing: .08em; text-transform: uppercase; color: var(--fc); }
-.fam > div { display: flex; gap: 6px; }
-.card { --top: var(--soft); --side: var(--fside); width: 57px; height: 52px; padding: 5px 2px 4px; display: grid; justify-items: center; align-content: center; gap: 3px; border: 1px solid #3a3a3c; background: var(--top); color: #2b2b2d; cursor: pointer; touch-action: none; font: 400 10.5px/1.05 var(--font-label); text-align: center;
-  box-shadow: 1px 1px 0 var(--side), 2px 2px 0 var(--side), 3px 3px 0 var(--side), 3px 3px 0 1px #3a3a3c; transition: transform .08s, box-shadow .08s, opacity .15s; }
-.card svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
-.card:hover { --top: #ffffff; }
-.card.on, .card:active { --top: var(--fc); color: #fff; transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--side), 1px 1px 0 1px #3a3a3c; }
-.card.held { outline: 3px solid var(--fc); outline-offset: 3px; }
-.card.off { opacity: .32; }
-.card:focus-visible { outline: 3px solid #5b6ee1; outline-offset: 3px; }
-.who { margin-left: auto; flex: 1 0 190px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; justify-content: flex-end; }
-.who p { margin: 0; font: 400 12.5px/1.25 var(--font-body); color: #6b6b6e; flex: 1 1 150px; min-width: 0; }
-.who p b { display: block; font: 400 16px/1.2 var(--font-display); color: #2b2b2d; }
-.who .btn { padding: 7px 11px; font-size: 13px; }
-.who .btn[aria-pressed="true"] { --top: #fbe4e2; --side: #e0a6a3; }
-.ghost { position: fixed; z-index: 30; pointer-events: none; transform: translate(-50%, -60%) rotate(-4deg); opacity: .92; }
-@media (max-width: 1600px) { .drawer .explore small { display: none; } }
-@media (max-width: 900px) { .who { flex-basis: 170px; } }
+.explore { position: fixed; left: max(14px, env(safe-area-inset-left, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); z-index: 5; display: inline-flex; align-items: center; gap: 8px; }
 .explore svg { width: 15px; height: 15px; fill: currentColor; }
 .explore small { font: 400 12px/1 var(--font-body); color: #6b6b6e; padding-left: 8px; border-left: 1px solid #c9c6bf; }
 .explore[aria-pressed="true"] { --top: #fdeaa0; --side: #d6b85a; }
@@ -218,7 +196,7 @@ body.exploring .mark { opacity: 1; animation: markBob 1.6s ease-in-out infinite;
 .foot .keys { display: block; margin-top: 10px; }
 .foot kbd { font: 400 12px/1 var(--font-label); padding: 2px 5px; border: 1px solid var(--edge); box-shadow: 1px 1px 0 var(--edge); background: var(--surface); }
 @media (prefers-reduced-motion: reduce) { .btn, .sw, .sw i { transition: none; } body.exploring .mark { animation: none; } }
-@media (max-width: 640px) { .panel .tempo { display: none; } .explore small { display: none; } .stage { padding-block: 96px calc(96px + env(safe-area-inset-bottom, 0px)); } }
+@media (max-width: 640px) { .panel .tempo { display: none; } .explore small { display: none; } }
 @media (max-width: 520px) { .hud { right: max(12px, env(safe-area-inset-right, 0px)); flex-wrap: wrap; } }
 .btn.play {
   --top: #ee6f6a; --side: #b9494a;
@@ -399,7 +377,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
 .toasts {
   position: fixed;
   left: 50%;
-  bottom: calc(112px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   display: grid;
   gap: 8px;
@@ -465,11 +443,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
   </div>
 </div>
 </div>
-<section class="drawer" id="drawer" aria-label="Sound cards">
-  <button class="btn explore" id="exploreBtn" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3C4 3 1.5 6 1 8c.5 2 3 5 7 5s6.5-3 7-5c-.5-2-3-5-7-5zm0 8a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg><span>Explore</span><small id="exploreCount"></small></button>
-  <div class="decks" id="decks"></div>
-  <div class="who" id="who" aria-live="polite"></div>
-</section>
+<button class="btn explore" id="exploreBtn" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3C4 3 1.5 6 1 8c.5 2 3 5 7 5s6.5-3 7-5c-.5-2-3-5-7-5zm0 8a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg><span>Explore</span><small id="exploreCount"></small></button>
 <aside class="menu" id="menu" hidden>
   <button class="close" id="menuClose" aria-label="Close menu">×</button>
   <header class="top">
@@ -484,7 +458,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
     </div>
   </header>
   <footer class="foot">
-    <span>Click someone to pick them, then choose one of their sounds in the drawer at the bottom, or drag a card onto them. Each person has two or three sounds; in Ambient they wander between them. Click an empty seat to call its person back. On a phone, tap once to see what something is and tap again to use it.</span>
+    <span>Hover over someone to see who they are. Click them to send them home, or click an empty seat to call its person back. On a phone, tap once to see what something is and tap again to use it.</span>
     <span class="keys"><kbd>Space</kbd> play or pause · <kbd>M</kbd> Musical or Ambient · <kbd>E</kbd> everyone in · <kbd>N</kbd> day or night · <kbd>Esc</kbd> close</span>
   </footer>
 </aside>
@@ -563,16 +537,16 @@ function setDelayTime() { if (A.dly && A.mode !== "ambient") A.dly.delayTime.set
 
 function ensureNodes(m) {
   if (!A.ctx || m.out) return;
-  const ctx = A.ctx, role = cardOf(m);
+  const ctx = A.ctx, role = ROLES[m.role];
+  const same = members.filter(o => o.role === m.role).indexOf(m);
   m.out = ctx.createGain();
-  m.out.gain.value = 0;
+  m.out.gain.value = role.gain * Math.pow(0.8, same);
   const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
   if (pan.pan) pan.pan.value = Math.max(-1, Math.min(1, ((A.night && nightSpot(m) ? iso(nightSpot(m).x, nightSpot(m).y)[0] : SEATS[m.desk].sx) - LW / 2) / (LW / 2) * (A.mode === "ambient" ? .95 : .7)));
   const rs = ctx.createGain(); rs.gain.value = role.rev;
   const ds = ctx.createGain(); ds.gain.value = role.dly;
   m.out.connect(pan); pan.connect(A.master); pan.connect(rs); rs.connect(A.rev); pan.connect(ds); ds.connect(A.dly);
   m.nodes = [pan, rs, ds];
-  remixAll();
 }
 function releaseNodes(m) {
   if (!m.out) return;
@@ -580,7 +554,6 @@ function releaseNodes(m) {
   out.gain.setTargetAtTime(0, t, 0.08);
   setTimeout(() => { out.disconnect(); nodes.forEach(n => n.disconnect()); }, 800);
   m.out = null; m.amb = null;
-  remixAll();
 }
 
 // --- voices ---
@@ -979,204 +952,6 @@ const ROLES = {
 
 const ROLE_IDS = Object.keys(ROLES);
 
-/* ---------- Sound cards ----------
-   Fifteen office sounds in five families. Each person can play two or three cards that suit them;
-   in Musical mode you choose which, in Ambient they wander between them on their own.
-   Every card follows the same rules, so any mix of thirteen works together:
-   - one grid: patterns sit on the sixteenth grid and repeat every two or four bars
-   - one key: anything pitched takes its notes from the chord of the bar
-   - its own range: bass low, chords in the middle, melody high, voices in the middle of a voice
-   - its own gaps: beats split the bar (knocks on 2 and 4, stamps on 1, keys on the offbeats),
-     melodies take turns across the four bars
-   - two versions: the A pattern plays for four bars, then the B pattern (c.phrase) for four
-   - fair volume: the more people in a family, the quieter each of them */
-const FAMILIES = {
-  beat:   { name: "Beat",   col: "#ee6f6a", soft: "#fbe0de", side: "#c9605c" },
-  bass:   { name: "Bass",   col: "#5b6ee1", soft: "#e2e6fb", side: "#4a5bc0" },
-  chords: { name: "Chords", col: "#2f9d78", soft: "#dcefe7", side: "#2a8065" },
-  melody: { name: "Melody", col: "#e2a23b", soft: "#fbedd2", side: "#bd8428" },
-  voices: { name: "Voices", col: "#d4589a", soft: "#f8dcea", side: "#ad4780" },
-};
-const chordTone = (c, i, lo, hi) => { const pcs = c.chord.map(n => n % 12), notes = inRange(lo, hi, pcs); return notes[((i % notes.length) + notes.length) % notes.length]; };
-// a hum or a laugh sung on a note, through the person's own voice
-function sing(m, t, midi, dur, vowel, cons, amp) {
-  const V = voiceOf(m), f = mtof(midi), n = A.ctx ? syllable(t, V, vowel, vowel, cons, dur, amp, f, f * .995, m.out) : t;
-  m.talkUntil = Math.max(m.talkUntil || 0, n);
-}
-const CARDS = {
-  keyboard: { family: "beat", name: "Keyboard", role: "typing", variant: 0, gain: 1.2, rev: .05, dly: 0,
-    icon: '<rect x="1.5" y="4.5" width="13" height="7" rx="1"/><path d="M4 7h1M7 7h1M10 7h1M5 9.4h6"/>',
-    play(m, s, t, c) {
-      const jitter = (Math.random() - .5) * .012;
-      if (c.phrase && c.bar % 2 && s >= 8) {   // B: a fast burst into Enter on bars 2 and 4
-        if (s === 12) { SND.enter(m.out, t, .55); return true; }
-        if (s < 12) { SND.key(m.out, t, .3); SND.key(m.out, t + c.sixteenth / 2 + jitter, .22); return true; }
-        return false;
-      }
-      if (s === 6 || s === 14) { SND.spacebar(m.out, t, .45); return true; }
-      if (Math.random() > .85) return false;
-      SND.key(m.out, t + jitter, (s % 4 === 0 ? .5 : .28) + Math.random() * .12);
-      return s % 2 === 0;
-    } },
-  mouse: { family: "beat", name: "Mouse click", role: "clicking", variant: 0, gain: .9, rev: .08, dly: .12,
-    icon: '<rect x="4.5" y="1.5" width="7" height="13" rx="3.5"/><path d="M8 1.5v4"/>',
-    play(m, s, t, c) {
-      if (c.phrase && c.bar === 3 && s === 14) { for (let k = 0; k < 4; k++) SND.wheel(m.out, t + k * c.sixteenth / 4, .4); return true; }
-      const v = { 2: 1, 5: .6, 7: 2, 10: 1, 13: .6, 15: 2 }[s];
-      if (!v) return false;
-      SND.mouse(m.out, t, v === .6 ? .35 : .55);
-      if (v === 2) SND.mouse(m.out, t + c.sixteenth * .5, .45);
-      return true;
-    } },
-  stamp: { family: "beat", name: "Stamp", role: "stamp", variant: 0, gain: .7, rev: .12, dly: 0,
-    icon: '<path d="M6 1.5h4v5H6zM2.5 7.5h11v3h-11zM2.5 13h11"/>',
-    play(m, s, t, c) {
-      if (s === 0 && (c.bar % 2 === 0 || c.phrase)) { SND.stamp(m.out, t, .55); return true; }
-      if (s === 10 || (s === 15 && c.bar === 3)) { SND.stamp(m.out, t, s === 10 ? .6 : .4); return true; }
-      return false;
-    } },
-  stapler: { family: "beat", name: "Stapler", role: "stamp", variant: 1, gain: .7, rev: .12, dly: 0,
-    icon: '<path d="M2 10.5 12 5.5l2 2-10 5zM2 13.5h12"/>',
-    play(m, s, t, c) {
-      const v = { 7: .7, 13: .45, 15: .55, ...(c.phrase && c.bar % 2 ? { 3: .5 } : {}) }[s];
-      if (!v) return false;
-      SND.stapler(m.out, t, v); return true;
-    } },
-  knock: { family: "beat", name: "Paper stack", role: "cough", variant: 0, gain: .6, rev: .15, dly: 0,
-    icon: '<path d="M3 4h10M3 7.5h10M3 11h10M4 14h8"/>',
-    play(m, s, t, c) {
-      if (s === 4 || s === 12) { SND.cough(m.out, t, .8); return true; }   // the backbeat
-      if (c.bar === 3 && (s === 14 || (c.phrase && s === 15))) { SND.cough(m.out, t, .45, 175); return true; }
-      return false;
-    } },
-  copier: { family: "bass", name: "Photocopier", role: "copier", variant: 0, gain: .3, rev: .2, dly: 0,
-    icon: '<rect x="2" y="6.5" width="12" height="7"/><path d="M4 6.5V4h8v2.5M5 10h6"/>',
-    play(m, s, t, c) {
-      if (s !== 0) return false;
-      SND.copier(m.out, t, c.barLen, mtof(chordTone(c, c.phrase && c.bar === 3 ? 1 : 0, 28, 40)), .45);
-      return true;
-    } },
-  printer: { family: "bass", name: "Printer", role: "copier", variant: 1, gain: .3, rev: .2, dly: 0,
-    icon: '<path d="M4.5 6V2h7v4M2 6h12v5H2zM4.5 11v3h7v-3"/>',
-    play(m, s, t, c) {
-      const steps = c.phrase ? [2, 6, 10, 14] : [2, 6, 10];
-      if (!steps.includes(s)) return false;
-      SND.printer(m.out, t, mtof(chordTone(c, s === 10 ? 2 : 0, 40, 52)), c.sixteenth * .8, .14);
-      return true;
-    } },
-  flush: { family: "bass", name: "Flush", role: "flush", variant: 0, gain: .5, rev: .3, dly: .1,
-    icon: '<path d="M8 1.8C5.3 5.6 4.2 7.8 4.2 9.8a3.8 3.8 0 0 0 7.6 0c0-2-1.1-4.2-3.8-8z"/>',
-    play(m, s, t, c) {
-      if (c.bar % 2 === 1 && s === 8) { SND.flush(m.out, t, c.barLen * .75, .5); return true; }
-      if (c.bar % 2 === 0 && s === 2) { SND.refill(m.out, t, mtof(chordTone(c, 2, 64, 76)), c.sixteenth * 6, .05); return false; }
-      if (c.phrase && c.bar % 2 === 0 && (s === 11 || s === 14)) { SND.drip(m.out, t, mtof(chordTone(c, s === 11 ? 1 : 3, 52, 64)), .3); return true; }
-      return false;
-    } },
-  coffee: { family: "chords", name: "Coffee machine", role: "coffee", variant: 1, gain: .5, rev: .1, dly: .1,
-    icon: '<path d="M3 6h8v4a4 4 0 0 1-8 0zM11 7h1.5a1.5 1.5 0 0 1 0 3H11M5.5 1.5v2.5M8.5 1.5v2.5"/>',
-    play(m, s, t, c) {
-      if (s === 0 && c.bar % 2) { SND.steam(m.out, t, c.barLen, .12); return true; }
-      if (c.phrase && s === 12 && c.bar === 0) { SND.grinder(m.out, t, c.sixteenth * 4, .35); return true; }
-      const i = [2, 7, 13].indexOf(s);
-      if (i >= 0) { SND.drip(m.out, t, mtof(chordTone(c, i + 1 + c.bar, 64, 76)), .3); return true; }
-      return false;
-    } },
-  glass: { family: "chords", name: "Glass and pen", role: "glass", variant: 0, gain: .45, rev: .4, dly: .25,
-    icon: '<path d="M4 3h8l-1 11H5zM5 7h6M12 1 9 8"/>',
-    play(m, s, t, c) {
-      const steps = c.phrase ? [2, 8, 14] : [0, 3, 6, 10, 12], i = steps.indexOf(s);
-      if (i < 0) return false;
-      SND.glass(m.out, t, mtof(chordTone(c, c.phrase ? i + 2 : i, 72, 86)), c.phrase ? .2 : .28);
-      return true;
-    } },
-  phone: { family: "melody", name: "Phone ring", role: "phone", variant: 0, gain: .28, rev: .25, dly: .25,
-    icon: '<path d="M4.2 2h2l1 3-1.8 1.2a7.5 7.5 0 0 0 4.4 4.4L11 8.8l3 1v2.2a2 2 0 0 1-2 2A11.5 11.5 0 0 1 2.2 4a2 2 0 0 1 2-2z"/>',
-    play(m, s, t, c) {
-      // ring-ring phrases in bars 1 and 3, leaving 2 and 4 for other melodies; B rings on 2 and 4 instead
-      if ((c.bar % 2 === 0) === !!c.phrase) return false;
-      const p = phrase(m, "phone", c.phrase)[c.g];
-      if (!p) return false;
-      SND.ring(m.out, t, mtof(chordTone(c, p.i, 72, 86)), c.sixteenth * p.len * .85, .5);
-      return true;
-    } },
-  microwave: { family: "melody", name: "Microwave", role: "coffee", variant: 0, gain: .3, rev: .2, dly: .2,
-    icon: '<rect x="1.5" y="3.5" width="13" height="9" rx="1"/><rect x="3" y="5.2" width="6.5" height="5.6"/><path d="M12 6v1M12 9v1"/>',
-    play(m, s, t, c) {
-      // three beeps to end bars 2 and 4; B adds a little climb in bar 3
-      if (c.bar % 2 === 1 && [12, 13, 14].includes(s)) { SND.beep(m.out, t, mtof(chordTone(c, 3, 79, 91)), c.sixteenth * .6, .22); return true; }
-      if (c.phrase && c.bar === 2 && [0, 2, 4, 6].includes(s)) { SND.beep(m.out, t, mtof(chordTone(c, s / 2, 76, 91)), c.sixteenth * .9, .18); return true; }
-      return false;
-    } },
-  vending: { family: "melody", name: "Vending machine", role: "clicking", variant: 1, gain: .3, rev: .2, dly: .15,
-    icon: '<rect x="3.5" y="1.5" width="9" height="13"/><rect x="5" y="3" width="4" height="7"/><path d="M11 4v1M11 6.5v1M5 12.5h6"/>',
-    play(m, s, t, c) {
-      // tapping in a code on the keypad, then the can drops
-      const code = c.phrase ? { 1: 0, 2: 2, 3: 1, 5: 3 } : { 1: 2, 3: 1, 4: 0 };
-      if (c.bar % 2 === 0 && code[s] != null) { SND.beep(m.out, t, mtof(chordTone(c, code[s] + 1, 74, 88)), c.sixteenth * .35, .2); return true; }
-      if (c.bar % 2 === 1 && s === 8) { SND.knockBox(m.out, t, .9); return true; }
-      return false;
-    } },
-  hum: { family: "voices", name: "Hum", role: "typing", variant: 1, gain: 1.6, rev: .35, dly: .15,
-    icon: '<path d="M1.5 11c1.4-4.5 2.9-4.5 4.3 0 1.4-4.5 2.9-4.5 4.3 0 1.4-4.5 2.9-4.5 4.3 0"/>',
-    play(m, s, t, c) {
-      // long humming notes on the chord; B answers in the gaps
-      const at = c.phrase ? { 4: [1, 3], 12: [2, 3] } : { 0: [0, 6], 8: [2, 6] };
-      const n = at[s];
-      if (!n) return false;
-      sing(m, t, chordTone(c, n[0] + c.bar, 55, 67), c.sixteenth * n[1], "u", "hum", .07);
-      return true;
-    } },
-  laugh: { family: "voices", name: "Laugh", role: "flush", variant: 0, gain: 1.6, rev: .25, dly: .1,
-    icon: '<circle cx="8" cy="8" r="6.2"/><path d="M5.2 9.2a3.2 3.2 0 0 0 5.6 0M6 6.2v.6M10 6.2v.6"/>',
-    play(m, s, t, c) {
-      // "ha-ha-ha" on falling chord tones at the end of bars 2 and 4; B is a short chuckle in bar 3
-      if (c.bar % 2 === 1 && [8, 10, 12].includes(s)) { sing(m, t, chordTone(c, 4 - (s - 8) / 2, 57, 69), c.sixteenth * .9, "a", "hiss", .08); return true; }
-      if (c.phrase && c.bar === 2 && (s === 6 || s === 7)) { sing(m, t, chordTone(c, 2, 57, 69), c.sixteenth * .7, "ə", "hum", .06); return true; }
-      return false;
-    } },
-};
-const CARD_IDS = Object.keys(CARDS);
-// each person's own cards, the first is what they play when they walk in
-const PERSON_CARDS = {
-  Ganapathi: ["keyboard", "mouse", "hum"], Asawari: ["mouse", "printer", "laugh"], Rhea: ["knock", "stapler", "phone"],
-  Sathvik: ["knock", "stamp", "laugh"], Ashmita: ["stamp", "stapler", "hum"], Shriram: ["stamp", "vending"],
-  Tavish: ["phone", "laugh", "hum"], Trayi: ["copier", "printer", "stapler"], Ruhani: ["glass", "microwave", "laugh"],
-  Krtin: ["coffee", "microwave"], Avani: ["flush", "hum"], Akanksha: ["keyboard", "hum"], Shreyas: ["mouse", "phone", "laugh"],
-};
-// a phone's ring phrases, made once per person from their seed: which chord tone and how long
-function phrase(m, key, b) {
-  const memo = m.phrases || (m.phrases = {}), id = key + b;
-  if (memo[id]) return memo[id];
-  const r = rng(m.seed + (b ? 77 : 0)), pat = new Array(64).fill(null);
-  for (let bar = 0; bar < 4; bar++) {
-    const rhythm = pick([[[0, 2], [3, 2], [8, 3]], [[0, 3], [4, 2], [10, 2], [12, 3]], [[2, 2], [5, 2], [8, 4]]], r);
-    rhythm.forEach(([st, len], k) => { pat[bar * 16 + st] = { i: Math.floor(r() * 4) + k, len }; });
-  }
-  return memo[id] = pat;
-}
-const cardOf = m => CARDS[m.card];
-// the more people in one family, the quieter each one, so a room of drummers doesn't drown the tune
-function familyGain(m) {
-  const fam = cardOf(m).family, same = members.filter(o => o.out && !o.muted && CARDS[o.card].family === fam);
-  return Math.pow(.82, Math.max(0, same.indexOf(m)));
-}
-function mixPerson(m, t) {
-  if (!m.out || !A.ctx) return;
-  const card = cardOf(m), at = t == null ? A.ctx.currentTime : t;
-  m.out.gain.setTargetAtTime(m.muted ? 0 : card.gain * familyGain(m), at, .05);
-  if (m.nodes) { m.nodes[1].gain.setTargetAtTime(card.rev, at, .05); m.nodes[2].gain.setTargetAtTime(card.dly, at, .05); }
-}
-const remixAll = () => members.forEach(o => mixPerson(o));
-// switch someone to one of their cards: the sound, and what you see them doing
-function setCard(m, id, t) {
-  const card = CARDS[id];
-  if (!card || !m.cards.includes(id)) return false;
-  m.card = id; m.role = card.role; m.variant = card.variant; m.amb = m.amb && t != null ? m.amb : null;
-  if (t == null) { remixAll(); syncDrawer(); } else mixPerson(m, t);
-  return true;
-}
-
-
 /* ---------- Scheduler ---------- */
 function sixteenth() { return 60 / A.bpm / 4; }
 function scheduler() {
@@ -1186,12 +961,11 @@ function scheduler() {
     const g = A.step % 64, s = g % 16, bar = g >> 4;
     const swing = s % 2 ? sixteenth() * 0.12 : 0;
     const t = A.next + swing;
-    const c = { g, bar, chord: CHORDS[bar], sixteenth: sixteenth(), barLen: sixteenth() * 16, phrase: Math.floor(A.step / 64) % 2 };
+    const c = { g, bar, chord: CHORDS[bar], sixteenth: sixteenth(), barLen: sixteenth() * 16 };
     for (const m of members) {
-      if (!m.out || m.muted) continue;
+      if (!m.out) continue;
       if (A.night) { const n = nightFor(m); if (n.step(m, s, c)) { n.one(m, t, c, s); visualQueue.push({ id: m.id, t }); } continue; }
-      const card = cardOf(m);
-      if (card.play(m, s, t, c)) visualQueue.push({ id: m.id, t, beat: card.family === "beat" && s === 0 });
+      if (ROLES[m.role].play(m, s, t, c)) visualQueue.push({ id: m.id, t, beat: m.role === "coffee" });
     }
     if (s % 4 === 0) visualQueue.push({ id: "beat", t });
     A.next += sixteenth();
@@ -1291,28 +1065,6 @@ const AMBIENT = {
     return { steps: [[0, t => (SND.flush(m.out, t, 2.4, .42), true)], [3, t => (SND.refill(m.out, t, mtof(c.chord[2] + 24), 3, .035), false)]], gap: [60, 90] };
   },
 };
-// the newer cards' ambient versions; the rest use their role's
-const AMBIENT_CARDS = {
-  microwave(m, c) {
-    const f = mtof(chordTone(c, 3, 79, 91));
-    return { steps: [0, .32, .64].map(at => [at + 2.5, t => (SND.beep(m.out, t, f, .18, .16), true)]).concat([[0, t => (SND.knockBox(m.out, t, .5), true)]]), gap: [25, 45] };
-  },
-  vending(m, c) {
-    const steps = [0, 1, 2].map(k => [k * rand(.25, .4), t => (SND.beep(m.out, t, mtof(chordTone(c, k + 1, 74, 88)), .08, .16), true)]);
-    steps.push([rand(1.6, 2.4), t => (SND.knockBox(m.out, t, .8), true)]);
-    return { steps, gap: [25, 50] };
-  },
-  hum(m, c) {
-    const steps = [], n = Math.floor(rand(2, 5)); let at = 0;
-    for (let k = 0; k < n; k++) { const d = rand(.5, 1.1), i = Math.floor(rand(0, 4)); steps.push([at, t => (sing(m, t, chordTone(c, i, 55, 67), d, "u", "hum", .06), true)]); at += d + rand(.05, .3); }
-    return { steps, gap: [10, 22] };
-  },
-  laugh(m, c) {
-    const steps = [], n = Math.floor(rand(3, 6));
-    for (let k = 0; k < n; k++) steps.push([k * .15, t => (sing(m, t, chordTone(c, 4 - k, 57, 69), .09, "a", "hiss", .07 * (1 - k * .1)), true)]);
-    return { steps, gap: [14, 30] };
-  },
-};
 // busyness 0..1 shortens the gaps between sounds
 const busyScale = () => 1.8 - A.busy * 1.25;
 function ambientTick() {
@@ -1320,14 +1072,11 @@ function ambientTick() {
   if (ct >= A.chordAt) { A.chordIdx = (A.chordIdx + (chance(.5) ? 1 : 3)) % CHORDS.length; A.chordAt = ct + rand(15, 25); }
   const c = { chord: CHORDS[A.chordIdx] };
   for (const m of members) {
-    if (!m.out || m.muted) continue;
+    if (!m.out) continue;
     if (!m.amb) m.amb = { q: [], next: ct + rand(.3, 6) };
     const a = m.amb;
     if (!a.q.length && a.next < ct + 0.12) {
-      // each time, they pick one of their tasks at random; at night it's that task's night version
-      const t0 = Math.max(a.next, ct + 0.03), id = pick(m.cards, Math.random);
-      setCard(m, id, t0);
-      const nn = nightFor(m), ev = A.night ? { steps: [[0, t => (nn.one(m, t, c), true)]], gap: nn.gap } : (AMBIENT_CARDS[id] || AMBIENT[CARDS[id].role])(m, c);
+      const nn = nightFor(m), ev = A.night ? { steps: [[0, t => (nn.one(m, t, c), true)]], gap: nn.gap } : AMBIENT[m.role](m, c), t0 = Math.max(a.next, ct + 0.03);
       a.q = ev.steps.map(([dt, fn]) => ({ t: t0 + dt, fn }));
       const last = a.q[a.q.length - 1].t;
       a.next = last + rand(ev.gap[0], ev.gap[1]) * busyScale();
@@ -1351,8 +1100,8 @@ function voiceOf(m) {
   return m.voice = { f0: high ? 185 + r() * 45 : 98 + r() * 30, fs: high ? 1.17 : 1, rate: .9 + r() * .25 };
 }
 // one syllable: an optional consonant, then a vowel gliding from the last one
-function syllable(t, V, vowel, prev, cons, dur, amp, fA, fB, out = A.chat) {
-  const ctx = A.ctx;
+function syllable(t, V, vowel, prev, cons, dur, amp, fA, fB) {
+  const ctx = A.ctx, out = A.chat;
   let vt = t;
   if (cons === "stop") { burstN(out, t + .025, amp * .35, "bandpass", 2600 * V.fs, 1.2, .018); vt = t + .045; }
   else if (cons === "hiss") { burstN(out, t, amp * .22, "bandpass", 5200, 1.6, .055, .015); vt = t + .06; }
@@ -1458,7 +1207,7 @@ function setMode(mode) {
   if (mode === A.mode) return;
   const go = () => {
     A.mode = mode;
-    members.forEach(m => { m.amb = null; setCard(m, m.chosen, mode === "ambient" ? A.ctx && A.ctx.currentTime : null); });
+    members.forEach(m => { m.amb = null; });
     visualQueue.length = 0;
     if (A.ctx) { A.step = 0; A.next = A.ctx.currentTime + 0.06; A.chordAt = A.ctx.currentTime + rand(15, 25); }
     applyMix(1);
@@ -1861,14 +1610,13 @@ function awayItems(now) {
     const lower = () => crayon(anchor, c => drawLower(c, F)), upper = () => { crayon(anchor, c => drawUpper(c, F)); drawHeld(F); };
     const shadow = () => !spot.seated && shadowAt(spot.x, spot.y, 5);
     const depth = spot.depth || spot.x + spot.y;
-    if (plan.act === "stir") { out.push({ depth: 185, draw: () => lower() }, { depth: 191, draw: () => { upper(); personMarks(m, F, now); } }); continue; }
+    if (plan.act === "stir") { out.push({ depth: 185, draw: () => lower() }, { depth: 191, draw: upper }); continue; }
     out.push({ depth, draw: () => {
-      shadow(); if (!spot.seated) pickRing(m, spot.x, spot.y, now); lower();
+      shadow(); lower();
       if (plan.act === "pen") meetingTableTop();
       upper();
       if (plan.act === "pen") plant(g, 32, 44, 16, .5, "succulent", "white");
       if (plan.act === "magazine") armchairFront(g, 44, 160);
-      personMarks(m, F, now);
     } });
   }
   return out;
@@ -2082,8 +1830,6 @@ function makeMember(roleId, desk, name, seed, variant = 0) {
     pulse: 0, born: performance.now(), blink: r() * 4000,
   };
   if (ROLES[roleId].setup) ROLES[roleId].setup(m);
-  m.cards = PERSON_CARDS[name] || [CARD_IDS[0]]; m.chosen = m.cards[0];
-  const first = CARDS[m.chosen]; m.card = m.chosen; m.role = first.role; m.variant = first.variant;
   return m;
 }
 
@@ -2109,7 +1855,6 @@ function callIn(seat) {
 }
 function fire(m) {
   members = members.filter(o => o !== m);
-  if (pickedId === m.id) { pickedId = null; if (typeof syncDrawer === "function") syncDrawer(); }
   releaseNodes(m);
   const [bx, by] = posOf(m); burst(bx, by - 20, ROLES[m.role].color, 12);
   render();
@@ -2983,17 +2728,15 @@ function drawSeat(i, now) {
       lbox(g, L, -4, -19, 9, 4, -11, 10.6, { top: seatCol, left: side, right: side });
     };
     const backrest = () => lbox(g, L, -4, -20.5, 10, 4, -19.5, here ? 19 : 21, { top: seatCol, left: seatCol, right: side });
-    if (here) { shadowAt(cx, cy, 6); pickRing(m, cx, cy, now); }
+    if (here) shadowAt(cx, cy, 6);
     if (chairBehind) { backrest(); base(); lower(); drawDeskTop(i, s, m, col, lit, F); upper(); }
     else { drawDeskTop(i, s, m, col, lit, F); lower(); base(); upper(); backrest(); }   // the seat hides the legs running away under the desk
-    if (here) personMarks(m, F, now);
     if (!m && LAYOUT.hot.includes(i)) hotDesk(s, i);
     if (!m) hoverHint(i, cx, cy, now);
   } else {
     if (s.place === "beanbag") beanbag(s.x - 1, s.y - 1, "#e0483e", !!here);
     if (here) {
       if (s.place !== "beanbag" && s.place !== "couch") shadowAt(s.x, s.y, 5);
-      pickRing(m, s.x, s.y, now);
       lower();
       if (s.place === "meeting") meetingTableTop();
       const plantAfter = s.place === "meeting";   // the table plant stands in front of whoever sits there
@@ -3003,7 +2746,7 @@ function drawSeat(i, now) {
       if (lap) lapLaptop(F, lap, col, "lid");
       if (plantAfter) plant(g, 32, 44, 16, .5, "succulent", "pink");
       roomFx(s, m, F);
-      personMarks(m, F, now);
+      if (clockFor(m, now).talk) speechBubble(F.S.head, now);
     } else if (!m) hoverHint(i, s.x, s.y, now);
   }
 }
@@ -3305,27 +3048,6 @@ function meetingTableTop() {
   box(g, 14, 36, 14.5, 50, 52, 16, { top: "#ffffff", left: PAL.wallShade, right: PAL.wallShade });
 }
 // a small speech bubble with three dots, bobbing while someone talks
-// a coral ring on the floor under the selected person
-function pickRing(m, x, y, now) {
-  if (m.id !== pickedId) return;
-  const pts = []; for (let k = 0; k < 32; k++) { const a = k / 32 * Math.PI * 2; pts.push(iso(x + Math.cos(a) * 7.5, y + Math.sin(a) * 7.5, .1)); }
-  poly(g, pts, "rgba(238,111,106,.18)", PAL.coral, .9);
-}
-// over someone's head: talking, muted, or a bobbing marker when the card in hand is one of theirs
-function personMarks(m, F, now) {
-  const [hx, hy] = F.S.head;
-  if (clockFor(m, now).talk) speechBubble(F.S.head, now);
-  if (m.muted) {
-    const x = hx - 3, y = hy - 12;
-    g.beginPath(); g.arc(x + 3, y + 3, 3.6, 0, 7); g.fillStyle = "#ffffff"; g.fill(); g.strokeStyle = INK_LINE; g.lineWidth = .4; g.stroke();
-    poly(g, [[x + 1, y + 2], [x + 2.2, y + 2], [x + 3.6, y + .8], [x + 3.6, y + 5.2], [x + 2.2, y + 4], [x + 1, y + 4]], INK_LINE, null);
-    seg(g, [x + 4.4, y + 2], [x + 5.8, y + 4], PAL.coral, .5); seg(g, [x + 5.8, y + 2], [x + 4.4, y + 4], PAL.coral, .5);
-  }
-  if (heldCard && m.cards.includes(heldCard) && m.card !== heldCard) {
-    const fam = FAMILIES[CARDS[heldCard].family], y = hy - 13 + Math.sin(now / 180) * 1.2;
-    poly(g, [[hx - 2.6, y - 2.4], [hx + 2.6, y - 2.4], [hx, y + 1]], fam.col, INK_LINE, .4);
-  }
-}
 function speechBubble([hx, hy], now) {
   const x = hx + 4, y = hy - 9 + Math.sin(now / 160) * .4, w = 11, h = 6.5;
   g.beginPath(); g.roundRect ? g.roundRect(x, y - h, w, h, 3) : g.rect(x, y - h, w, h);
@@ -4227,22 +3949,21 @@ const tip = $("tip");
 function whatAt(p) {
   if (clockAt(p)) return { key: "clock", at: iso(0, CLOCK.y0 + CLOCK.r, CLOCK.z1 + 1), title: `It's ${timeNow()}`, hover: "When does corporate India log off?", hint: "find out when corporate India logs off", act: openClock };
   const w = windowAt(p);
+  if (w) return { key: "window", at: iso(0, (w[1] + w[2]) / 2, w[4]), title: "Window", hover: A.night ? "Click to bring the morning back" : "Click to fast-forward to night", hint: A.night ? "bring the morning back" : "fast-forward to night", act: () => { start(); setNight(!A.night); } };
   const mv = movedAt(p);
-  if (mv) { const [sx, sy] = posOf(mv); return { key: "moved" + mv.id, at: [sx, sy - 48], title: mv.name, hover: `${cardOf(mv).name} · click to change`, hint: "pick their sound", now: true, act: () => tapPerson(mv) }; }
+  if (mv) { const [sx, sy] = posOf(mv); return { key: "moved" + mv.id, at: [sx, sy - 48], title: mv.name, hint: "send them home", act: () => fire(mv) }; }
   if (printAt(p)) return { key: "album", at: iso(0, 105, 50), title: "Humanise", hover: "Click to flip through the album", hint: "flip through the album", act: openAlbum };
   if (screenAt(p)) return { key: "screen", at: iso(83, 0, 55), title: "Click me", hover: "What is this place?", hint: "find out what this place is", act: openScreen };
   if (shelfAt(p)) return { key: "shelf", at: iso(234, 104, 18), title: "Bookshelf", hover: "Click for Plum's reports and guides", hint: "open Plum's reports and guides", act: openShelf };
   if (whiteboardAt(p)) return { key: "wb", at: iso(31, 0, 51), title: "Whiteboard", hover: "Click for the Standard of Employee Benefits 2026–27", hint: "see the benefits stats", act: openWB };
   const sb = snackBoxAt(p);
   if (sb >= 0) { const [x, z] = SNACK_BOXES[sb]; return { key: "snack" + sb, at: iso(x + 2.5, 2.8, z + 6), title: "Snack box", hover: "Click for an employee snack fact", hint: "read a snack fact", act: () => openSnack(sb) }; }
-  // someone sitting in front of a window gets the click, not the window
-  const i = deskAt(p), win = () => ({ key: "window", at: iso(0, (w[1] + w[2]) / 2, w[4]), title: "Window", hover: A.night ? "Click to bring the morning back" : "Click to fast-forward to night", hint: A.night ? "bring the morning back" : "fast-forward to night", act: () => { start(); setNight(!A.night); } });
-  if (w && !members.some(o => o.desk === i && !o.away)) return win();
+  const i = deskAt(p);
   if (i < 0 || !(CAST[i] || LAYOUT.hot.includes(i))) return { desk: i };
   const d = SEATS[i], at = [d.sx, d.sy - 48], m = members.find(o => o.desk === i);
   if (!CAST[i]) return { key: "desk" + i, desk: i, at, title: BITS[LAYOUT.hot.indexOf(i) % BITS.length].who, hover: "Out of office · click to see when they're back", hint: "see when they're back", act: () => openCal(i) };
-  if (m) return { key: "desk" + i, desk: i, at, title: m.name, hover: `${cardOf(m).name} · click to change`, hint: "pick their sound", now: true, act: () => tapPerson(m) };
-  return { key: "desk" + i, desk: i, at, title: CAST[i].name, hover: "Click to call in", hint: "call them in", act: () => { start(); const m = callIn(i); if (m) { pick1(m); if (heldCard) tapPerson(m); } } };
+  if (m) return { key: "desk" + i, desk: i, at, title: m.name, hint: "send them home", act: () => fire(m) };
+  return { key: "desk" + i, desk: i, at, title: CAST[i].name, hover: "Click to call in", hint: "call them in", act: () => { start(); callIn(i); } };
 }
 function showTip(h, touch) {
   const sub = touch ? `Tap again to ${h.hint}` : h.hover;
@@ -4263,97 +3984,18 @@ cv.addEventListener("pointerleave", () => { hoverDesk = -1; if (pointerKind !== 
 cv.addEventListener("click", e => {
   const h = whatAt(toLogical(e));
   closePopups();
-  if (!h.act) { armed = null; tip.hidden = true; if (!heldCard) pick1(null); return; }
-  if (pointerKind === "touch" && !h.now && armed !== h.key) { armed = h.key; showTip(h, true); return; }
+  if (!h.act) { armed = null; tip.hidden = true; return; }
+  if (pointerKind === "touch" && armed !== h.key) { armed = h.key; showTip(h, true); return; }
   armed = null; tip.hidden = true; h.act();
 });
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") { if (closePopups()) return; if (!menu.hidden) { setMenu(false); menuBtn.focus(); return; } if (heldCard || pickedId != null) { heldCard = null; pick1(null); } return; }
+  if (e.key === "Escape") { if (closePopups()) return; if (!menu.hidden) { setMenu(false); menuBtn.focus(); } return; }
   if (e.metaKey || e.ctrlKey || e.altKey || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
   if (e.code === "Space" && (e.target === document.body || e.target === cv)) { e.preventDefault(); A.playing ? stop() : start(); }
   else if (e.key === "m" || e.key === "M") pickMode(A.mode === "musical" ? "ambient" : "musical");
   else if (e.key === "e" || e.key === "E") $("fillBtn").click();
   else if (e.key === "n" || e.key === "N") { start(); setNight(!A.night); }
 });
-
-/* ---------- The sound drawer ----------
-   Pick a person, then one of their cards; or pick a card first and the people who can play it light up;
-   or drag a card onto someone. Shuffle gives everyone a random card of their own. */
-let pickedId = null, heldCard = null;
-const picked = () => members.find(m => m.id === pickedId) || null;
-const deckEl = $("decks"), whoEl = $("who");
-deckEl.innerHTML = Object.entries(FAMILIES).map(([fam, f]) => `<div class="fam" style="--fc:${f.col};--soft:${f.soft};--fside:${f.side}"><span>${f.name}</span><div>` +
-  CARD_IDS.filter(id => CARDS[id].family === fam).map(id => `<button class="card" type="button" data-card="${id}" aria-pressed="false" title="${CARDS[id].name}"><svg viewBox="0 0 16 16" aria-hidden="true">${CARDS[id].icon}</svg>${CARDS[id].name}</button>`).join("") + `</div></div>`).join("");
-function syncDrawer() {
-  const m = picked();
-  deckEl.querySelectorAll(".card").forEach(b => {
-    const id = b.dataset.card, mine = m && m.cards.includes(id);
-    b.classList.toggle("on", !!(m && m.card === id));
-    b.classList.toggle("off", !!(m && !mine));
-    b.classList.toggle("held", heldCard === id);
-    b.setAttribute("aria-pressed", String(!!(m && m.card === id) || heldCard === id));
-  });
-  if (m) {
-    whoEl.innerHTML = `<p><b>${m.name}</b>${m.cards.map(id => CARDS[id].name).join(" · ")}</p>
-      <button class="btn" type="button" data-do="mute" aria-pressed="${!!m.muted}">${m.muted ? "Unmute" : "Mute"}</button>
-      <button class="btn" type="button" data-do="home">Send home</button>`;
-  } else {
-    const held = heldCard && members.filter(o => o.cards.includes(heldCard)).map(o => o.name);
-    whoEl.innerHTML = `<p>${heldCard ? `<b>${CARDS[heldCard].name}</b>${held.length ? "Click " + held.join(", ") + " to give it to them" : "Nobody in the office can play this yet"}` : "Click someone in the office to change their sound"}</p>
-      <button class="btn" type="button" data-do="shuffle">Shuffle</button>`;
-  }
-}
-function pick1(m) { pickedId = m ? m.id : null; syncDrawer(); }
-// in Musical mode the card you choose sticks; in Ambient they still wander, starting from it
-function giveCard(m, id) {
-  if (!m.cards.includes(id)) { toast(`${m.name} doesn't play the ${CARDS[id].name.toLowerCase()}`); return false; }
-  m.chosen = id; setCard(m, id); start();
-  m.pulse = 1; const [bx, by] = posOf(m); burst(bx, by - 20, FAMILIES[CARDS[id].family].col, 8);
-  return true;
-}
-function tapPerson(m) {
-  if (heldCard) { if (giveCard(m, heldCard)) { heldCard = null; pick1(m); } return; }
-  pick1(pickedId === m.id ? null : m);
-}
-whoEl.addEventListener("click", e => {
-  const b = e.target.closest("[data-do]"); if (!b) return;
-  const m = picked();
-  if (b.dataset.do === "mute" && m) { m.muted = !m.muted; m.amb = null; remixAll(); syncDrawer(); }
-  if (b.dataset.do === "home" && m) { pick1(null); fire(m); }
-  if (b.dataset.do === "shuffle") { start(); members.forEach(o => { o.chosen = pick(o.cards, Math.random); setCard(o, o.chosen); }); toast("Shuffled: everyone picked one of their sounds"); }
-});
-// cards: click to give to the selected person, or hold one; drag onto someone in the office
-let drag = null;
-deckEl.addEventListener("pointerdown", e => {
-  const b = e.target.closest(".card"); if (!b) return;
-  drag = { id: b.dataset.card, x: e.clientX, y: e.clientY, el: null, btn: b };
-  b.setPointerCapture(e.pointerId);
-});
-deckEl.addEventListener("pointermove", e => {
-  if (!drag) return;
-  if (!drag.el && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 6) {
-    drag.el = drag.btn.cloneNode(true); drag.el.classList.add("ghost"); document.body.appendChild(drag.el);
-    heldCard = drag.id; syncDrawer();
-  }
-  if (drag.el) { drag.el.style.left = e.clientX + "px"; drag.el.style.top = e.clientY + "px"; }
-});
-deckEl.addEventListener("pointerup", e => {
-  if (!drag) return;
-  const d = drag; drag = null;
-  if (d.el) {
-    d.el.remove();
-    const r = cv.getBoundingClientRect(), h = whatAt({ x: (e.clientX - r.left) / r.width * LW, y: (e.clientY - r.top) / r.height * LH });
-    const m = h.key && (h.key.startsWith("desk") ? members.find(o => o.desk === h.desk) : h.key.startsWith("moved") ? members.find(o => "moved" + o.id === h.key) : null);
-    heldCard = null;
-    if (m && giveCard(m, d.id)) pick1(m); else syncDrawer();
-    return;
-  }
-  const m = picked();
-  if (m) { if (m.cards.includes(d.id)) giveCard(m, d.id), syncDrawer(); else { pick1(null); heldCard = d.id; syncDrawer(); } return; }
-  heldCard = heldCard === d.id ? null : d.id; syncDrawer();
-});
-deckEl.addEventListener("pointercancel", () => { if (drag && drag.el) drag.el.remove(); drag = null; heldCard = null; syncDrawer(); });
-syncDrawer();
 
 /* ---------- Explore: small slabs float over everything you can click ---------- */
 const MARK_SVG = `<svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 15v8" stroke="#3a3a3c" stroke-width="1.2" stroke-linecap="round"/><path d="M10 1 19 5.5 10 10 1 5.5Z" fill="#f6a5a1"/><path d="M1 5.5 10 10v4L1 9.5Z" fill="#ee6f6a"/><path d="M10 10 19 5.5v4L10 14Z" fill="#c4534f"/><path d="M10 1 19 5.5v4L10 14 1 9.5v-4ZM1 5.5 10 10 19 5.5M10 10v4" fill="none" stroke="#3a3a3c" stroke-width=".8" stroke-linejoin="round"/></svg>`;
