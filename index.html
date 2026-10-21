@@ -687,17 +687,12 @@ const SND = {
     ping(d, t + 0.05, 3900, v * 0.18, 0.01, "triangle");
   },
   // old desk phone: bell partials chopped by a fast trill
+  // a modern ringtone note, like a soft marimba: a warm body, a bright bar tone that dies fast, a tiny mallet click
   ring(d, t, f, dur, v) {
-    const ctx = A.ctx, am = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
-    lfo.type = "square"; lfo.frequency.value = 18; lg.gain.value = 0.5; am.gain.value = 0.5;
-    lfo.connect(lg); lg.connect(am.gain);
-    const g = susGain(t, 0.008, v, dur, 0.06);
-    [[1, 1, "triangle"], [2.0, .3, "sine"], [2.76, .22, "sine"]].forEach(([r, a, type]) => {
-      const o = ctx.createOscillator(), og = ctx.createGain();
-      o.type = type; o.frequency.value = f * r; og.gain.value = a;
-      o.connect(og); og.connect(am); o.start(t); o.stop(t + dur + 0.15);
-    });
-    am.connect(g); g.connect(d); lfo.start(t); lfo.stop(t + dur + 0.15);
+    ping(d, t, f, v * .9, Math.min(.9, .3 + dur), "sine", .003);
+    ping(d, t, f * 2, v * .16, .2, "triangle", .002);
+    ping(d, t, f * 4, v * .26, .055, "sine", .001);
+    burstN(d, t, v * .07, "bandpass", Math.min(9000, f * 6), 2, .012);
   },
   // modern desk phone beep
   beep(d, t, f, dur, v) {
@@ -735,18 +730,23 @@ const SND = {
     burstN(d, t, v * 0.7, "bandpass", 220, 1.5, 0.06);
     burstN(d, t, v * 0.15, "bandpass", 1900, 9, 0.03);
   },
-  // vibratory espresso pump buzzing at a bass pitch, spinning up into the note
+  // the espresso pump as a round, plucky bass: a sine sub under a saw whose filter closes as the note goes,
+  // a little rattle of the pump on top, and a soft hiss of water
   pump(d, t, f, dur, v) {
     const ctx = A.ctx, o = ctx.createOscillator(), sub = ctx.createOscillator();
-    o.type = "sawtooth"; sub.type = "square";
-    o.frequency.setValueAtTime(f * 0.9, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.04);
-    sub.frequency.value = f / 2;
-    const ws = ctx.createWaveShaper(); ws.curve = A.clip;
-    const sg = ctx.createGain(); sg.gain.value = 0.5;
-    const lp = filt("lowpass", 800, 5), g = susGain(t, 0.008, v, dur, 0.04);
-    o.connect(ws); sub.connect(sg); sg.connect(ws); ws.connect(lp); lp.connect(g); g.connect(d);
-    o.start(t); sub.start(t); o.stop(t + dur + 0.1); sub.stop(t + dur + 0.1);
-    const n = noiseSrc(t, dur + 0.1), bp = filt("bandpass", 1300, 1), ng = susGain(t, 0.01, v * 0.08, dur, 0.04);
+    o.type = "sawtooth"; sub.type = "sine";
+    o.frequency.setValueAtTime(f * 0.97, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.03);
+    sub.frequency.value = f;
+    const lp = filt("lowpass", 1500, 2.5);
+    lp.frequency.setValueAtTime(1500, t); lp.frequency.exponentialRampToValueAtTime(260, t + Math.max(.08, dur * .9));
+    const og = ctx.createGain(); og.gain.value = .45;
+    const g = susGain(t, 0.006, v, dur, 0.05);
+    o.connect(og); og.connect(lp); sub.connect(lp); lp.connect(g); g.connect(d);
+    const am = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();   // the pump's rattle
+    am.gain.value = .85; lfo.frequency.value = 50; lg.gain.value = .15; lfo.connect(lg); lg.connect(am.gain);
+    g.disconnect(); g.connect(am); am.connect(d);
+    o.start(t); sub.start(t); lfo.start(t); o.stop(t + dur + 0.1); sub.stop(t + dur + 0.1); lfo.stop(t + dur + 0.1);
+    const n = noiseSrc(t, dur + 0.1), bp = filt("bandpass", 1800, 1.2), ng = susGain(t, 0.02, v * 0.04, dur, 0.04);
     n.connect(bp); bp.connect(ng); ng.connect(d);
   },
   // steam wand frothing milk: hiss with a gurgling, wobbling band
@@ -803,21 +803,24 @@ const ROLES = {
   phone: {
     title: "Teleconsult Caller", sound: "Phone rings", covers: "Online doctor consults", color: "#19b38a",
     gain: 0.28, rev: 0.25, dly: 0.25,
+    // a ringtone you'd hum: up the chord, a turn at the top, an answer coming down, then a pickup back in.
+    // Each note is [step: chord-tone index, length in sixteenths]; indices count up the chord from the phone's range
     setup(m) {
-      const r = rng(m.seed), shift = (m.variant % 2) * 5;
+      const MOTIF = [
+        { 0: [0, 2], 2: [1, 2], 4: [2, 2], 6: [3, 2], 8: [4, 1], 9: [3, 1], 10: [4, 3] },
+        { 0: [2, 2], 3: [1, 1], 4: [2, 2], 8: [0, 4] },
+        { 0: [0, 2], 2: [1, 2], 4: [2, 2], 6: [3, 2], 8: [4, 1], 9: [3, 1], 10: [5, 3] },
+        { 0: [4, 3], 4: [2, 2], 8: [1, 1], 10: [2, 1], 12: [3, 2] },
+      ];
+      const lift = (m.variant % 2) * 2;   // a second phone plays the same tune a little higher
       m.pattern = new Array(64).fill(null);
-      // ring-ring phrases: two rings, a pause, an answer
-      for (let bar = 0; bar < 4; bar++) {
-        const tones = CHORDS[bar].map(n => n % 12);
-        const rhythm = pick([[[0, 2], [3, 2], [8, 3]], [[0, 3], [4, 2], [10, 2], [12, 3]], [[2, 2], [5, 2], [8, 4]]], r);
-        rhythm.forEach(([st, len]) => { m.pattern[bar * 16 + st] = { n: pick(inRange(72 + shift, 84 + shift, st % 4 === 0 ? tones : PENTA), r), len }; });
-      }
+      MOTIF.forEach((bar, b) => Object.entries(bar).forEach(([st, [i, len]]) => { m.pattern[b * 16 + +st] = { i: i + lift, len, bar: b }; }));
     },
     play(m, s, t, c) {
       const p = m.pattern[c.g];
       if (!p) return false;
-      const dur = c.sixteenth * p.len * 0.85;
-      m.variant % 2 ? SND.beep(m.out, t, mtof(p.n), dur, 0.25) : SND.ring(m.out, t, mtof(p.n), dur, 0.5);
+      const notes = inRange(74, 93, c.chord.map(n => n % 12)), dur = c.sixteenth * p.len * 0.85;
+      SND.ring(m.out, t, mtof(notes[Math.min(notes.length - 1, p.i)]), dur, m.variant % 2 ? 0.26 : 0.34);
       return true;
     },
   },
@@ -841,11 +844,18 @@ const ROLES = {
     play(m, s, t, c) {
       const root = c.chord[0] - 12;
       if (m.variant % 2 === 0) {
+        // a bouncing bassline on the chord (root, fifth, octave, and the chord's third and seventh),
+        // the knock box as the kick, and on the last bar a run up into the next chord
         let hit = false;
-        const k = { 0: 1, 8: 0.9, 10: 0.45 }[s];
+        const k = { 0: 1, 7: 0.5, 10: 0.8 }[s];
         if (k) { SND.knockBox(m.out, t, k); hit = true; }
-        const b = { 0: [0, 3], 3: [0, 1], 6: [7, 2], 11: [12, 1], 14: [7, 2] }[s];
-        if (b) { SND.pump(m.out, t, mtof(root + b[0]), c.sixteenth * b[1] * 0.9, 0.3); hit = true; }
+        const third = c.chord[1] - 12, seventh = c.chord[3] - 12;
+        const line = c.bar === 3
+          ? { 0: [root, 3], 3: [root + 12, 1], 6: [root + 7, 2], 8: [root, 2], 12: [third, 1], 13: [root + 7, 1], 14: [seventh, 1], 15: [root + 12, 1] }
+          : { 0: [root, 3], 3: [root + 12, 1], 6: [root + 7, 2], 8: [root, 2], 10: [c.bar % 2 ? seventh : third, 1], 11: [root + 7, 1], 14: [root + 12, 2] };
+        const b = line[s];
+        if (b) { SND.pump(m.out, t, mtof(b[0]), c.sixteenth * b[1] * 0.92, 0.34); hit = true; }
+        if (s === 12 && c.bar % 2 === 1) { ping(m.out, t, mtof(c.chord[3] + 24), .06, .25); ping(m.out, t, mtof(c.chord[3] + 24) * 2.7, .02, .08); }   // a cup set down on the saucer
         return hit;
       }
       if (s === 0 && c.bar % 2) { SND.steam(m.out, t, c.barLen, 0.12); return true; }
@@ -1030,9 +1040,10 @@ const AMBIENT = {
     return { steps: chance(.25) ? [[0, one], [rand(.35, .5), one]] : [[0, one]], gap: [5, 12] };
   },
   phone(m, c) {
-    // two or three rings, then the call is picked up
-    const steps = [], n = chance(.5) ? 2 : 3, f = mtof(ambNote(c, 24));
-    for (let i = 0; i < n; i++) steps.push([i * 1.9, t => (m.variant % 2 ? SND.beep(m.out, t, f, .45, .12) : SND.ring(m.out, t, f, 1, .26), true)]);
+    // the ringtone plays two or three times, then the call is picked up
+    const steps = [], n = chance(.5) ? 2 : 3;
+    const notes = inRange(74, 93, c.chord.map(n => n % 12)), q = .17;
+    for (let i = 0; i < n; i++) [[0, 0], [2, 1], [4, 2], [6, 3], [8, 4], [9, 3], [10, 4]].forEach(([st, k]) => steps.push([i * 2.4 + st * q, t => (SND.ring(m.out, t, mtof(notes[k]), q * 1.6, .2), true)]));
     return { steps, gap: [30, 60] };
   },
   copier(m, c) {
