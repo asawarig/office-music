@@ -192,19 +192,6 @@ button { font: inherit; color: inherit; }
 .panel .tempo { border-left: 1px solid #d9d7d1; padding-left: 12px; color: #6b6b6e; font-size: 12px; }
 .panel .tempo input { width: 84px; accent-color: #ee6f6a; }
 .panel .tempo output { color: #2b2b2d; }
-/* the vibe picker: a button on the bar that drops a short list of styles */
-.vibe { position: relative; }
-.vibe[hidden] { display: none; }
-.vibe .btn { display: inline-flex; align-items: center; gap: 8px; }
-.vibe .btn svg { width: 13px; height: 13px; fill: currentColor; }
-.vibe .btn .caret { width: 9px; height: 9px; }
-.vibemenu { position: absolute; top: calc(100% + 12px); left: 0; z-index: 6; width: 250px; background: #fff; color: #2b2b2d; border: 1px solid #3a3a3c; box-shadow: 1px 1px 0 #cfd6e2, 2px 2px 0 #cfd6e2, 3px 3px 0 #cfd6e2, 4px 4px 0 #cfd6e2, 4px 4px 0 1px #3a3a3c; padding: 6px; display: grid; gap: 2px; }
-.vibemenu[hidden] { display: none; }
-.vibemenu button { display: grid; grid-template-columns: 16px 1fr; column-gap: 8px; align-items: baseline; text-align: left; padding: 8px 10px; border: 0; background: none; color: inherit; cursor: pointer; font: 400 14px/1.2 var(--font-label); }
-.vibemenu button:hover, .vibemenu button:focus-visible { background: #f3f7fb; outline: none; }
-.vibemenu button i { font-style: normal; color: #ee6f6a; visibility: hidden; }
-.vibemenu button[aria-checked="true"] i { visibility: visible; }
-.vibemenu button small { grid-column: 2; font: 400 12px/1.3 var(--font-body); color: #6b6b6e; }
 /* Explore: bottom left, marks what you can click */
 .explore { position: fixed; left: max(14px, env(safe-area-inset-left, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); z-index: 5; display: inline-flex; align-items: center; gap: 8px; }
 .explore svg { width: 15px; height: 15px; fill: currentColor; }
@@ -511,10 +498,6 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
       <output id="tempoOut">88 bpm</output>
     </label>
   </div>
-  <div class="vibe">
-    <button class="btn" id="vibeBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="vibeMenu"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M7 0 8.4 5.6 14 7 8.4 8.4 7 14 5.6 8.4 0 7 5.6 5.6z"/></svg><span>Vibe: <span id="vibeName">Lo-fi</span></span><svg class="caret" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 3h8L5 8z"/></svg></button>
-    <div class="vibemenu" id="vibeMenu" role="menu" aria-label="Music vibe" hidden></div>
-  </div>
 </div>
 </div>
 <button class="btn explore" id="exploreBtn" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3C4 3 1.5 6 1 8c.5 2 3 5 7 5s6.5-3 7-5c-.5-2-3-5-7-5zm0 8a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg><span>Explore</span><small id="exploreCount"></small></button>
@@ -564,7 +547,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
   </header>
   <footer class="foot">
     <span>Hover over someone to see who they are. Click them to send them home, or click an empty seat to call its person back. On a phone, tap once to see what something is and tap again to use it.</span>
-    <span class="keys"><kbd>Space</kbd> play or pause · <kbd>M</kbd> Music or Ambiance · <kbd>E</kbd> everyone in · <kbd>V</kbd> next vibe · <kbd>N</kbd> day or night · <kbd>+</kbd> <kbd>−</kbd> zoom · drag to move around · <kbd>0</kbd> whole office · <kbd>Esc</kbd> close</span>
+    <span class="keys"><kbd>Space</kbd> play or pause · <kbd>M</kbd> Music or Ambiance · <kbd>E</kbd> everyone in · <kbd>N</kbd> day or night · <kbd>+</kbd> <kbd>−</kbd> zoom · drag to move around · <kbd>0</kbd> whole office · <kbd>Esc</kbd> close</span>
   </footer>
 </aside>
 <div class="poplayer" id="poplayer"></div>
@@ -581,20 +564,9 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
 "use strict";
 
 /* ---------- Music theory ---------- */
-// Four-bar loop; the vibe picker swaps it (and tempo, swing, room, echo and brightness) for another style.
-// Each chord lists its root first, so the bass and the copier can find it.
-const VIBES = [
-  { name: "Lo-fi", note: "Slow, swung and dusty. The original.", bpm: 88, swing: .12, rev: .55, fb: .33, tone: 20000,
-    chords: [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]] },          // Fmaj7 Em7 Dm7 Cmaj7
-  { name: "Bossa nova", note: "A clave, a two-step bass and a shaker.", groove: "bossa", bpm: 116, swing: 0, rev: .4, fb: .22, tone: 11000,
-    chords: [[48, 52, 55, 59], [57, 61, 64, 67], [50, 53, 57, 60], [55, 59, 62, 65]] },          // Cmaj7 A7 Dm7 G7
-  { name: "Jazz", note: "Walking bass, ride cymbal, swung.", groove: "jazz", bpm: 100, swing: .3, rev: .5, fb: .25, tone: 9000,
-    chords: [[55, 58, 62, 65], [48, 52, 55, 58], [53, 57, 60, 64], [50, 54, 57, 60]] },          // Gm7 C7 Fmaj7 D7
-  { name: "Synth pop", note: "Four on the floor and a riff.", groove: "synth", bpm: 118, swing: 0, rev: .35, fb: .45, tone: 20000,
-    chords: [[57, 60, 64, 69], [53, 57, 60, 65], [48, 52, 55, 60], [55, 59, 62, 67]] },          // Am F C G
-];
-let VIBE = VIBES[0];
-const CHORDS = VIBE.chords.map(c => c.slice());
+// Four-bar loop, slow and swung: lo-fi. Each chord lists its root first, so the bass and the copier can find it.
+const VIBE = { bpm: 88, swing: .12, rev: .55, fb: .33, tone: 20000 };
+const CHORDS = [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]];   // Fmaj7 Em7 Dm7 Cmaj7
 const PENTA = [0, 2, 4, 7, 9];
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 function rng(seed) {
@@ -622,7 +594,7 @@ function initAudio() {
   comp.threshold.value = -16; comp.ratio.value = 4; comp.attack.value = 0.005; comp.release.value = 0.2;
   A.master = ctx.createGain(); A.master.gain.value = 0.85;
   A.analyser = ctx.createAnalyser(); A.analyser.fftSize = 2048;
-  A.tone = ctx.createBiquadFilter(); A.tone.type = "lowpass"; A.tone.frequency.value = VIBE.tone; A.tone.Q.value = .5;   // each vibe's brightness
+  A.tone = ctx.createBiquadFilter(); A.tone.type = "lowpass"; A.tone.frequency.value = VIBE.tone; A.tone.Q.value = .5;
   A.master.connect(A.tone); A.tone.connect(comp); comp.connect(A.analyser); A.analyser.connect(ctx.destination);
 
   // reverb from a generated impulse
@@ -1103,173 +1075,12 @@ const ROLES = {
 
 const ROLE_IDS = Object.keys(ROLES);
 
-/* ---------- Grooves: each vibe gives everyone a different part ----------
-   Lo-fi uses each role's own pattern. The other vibes replace them, role by role: the same office
-   sounds, playing that style's rhythm. A role's second person (variant 1) gets a second part. */
-const tonesIn = (c, lo, hi) => inRange(lo, hi, c.chord.map(n => n % 12));
-const toneAt = (c, i, lo, hi) => { const n = tonesIn(c, lo, hi); return n[((i % n.length) + n.length) % n.length]; };
-const nextRoot = c => CHORDS[(c.bar + 1) % CHORDS.length][0];
-// a melody: per bar, step -> [chord-tone index, length in sixteenths]
-function lead(m, s, t, c, bars, fn) { const n = bars[c.bar][s]; if (!n) return false; fn(mtof(toneAt(c, n[0], 74, 93)), c.sixteenth * n[1] * .85); return true; }
-// the sounds that say "coffee machine" in any style: beans grinding into bar 3, the steam wand hissing into the top
+
+// the sounds that say "coffee machine": beans grinding into bar 3, the steam wand hissing into the top
 function coffeeMoments(m, s, t, c) {
   if (c.bar === 2 && s === 12) SND.grinder(m.out, t, c.sixteenth * 4, .28);
   if (c.bar === 3 && s === 8) SND.steam(m.out, t, c.sixteenth * 8, .11);
 }
-const GROOVES = {
-  bossa: {
-    // the paper stack plays the bossa clave; a second knocker keeps soft off-beats
-    cough(m, s, t, c) {
-      const hits = m.variant % 2 ? [2, 6, 10, 14] : c.bar % 2 ? [3, 6, 10] : [0, 3, 6, 10, 13];
-      if (!hits.includes(s)) return false;
-      SND.cough(m.out, t, m.variant % 2 ? .22 : .5, m.variant % 2 ? 190 : 165); return true;
-    },
-    // stamps as the low surdo on beat three; the stapler is a rim tap
-    stamp(m, s, t, c) {
-      if (m.variant % 2) { if (![3, 7, 11, 14].includes(s)) return false; SND.stapler(m.out, t, .3); return true; }
-      if (s === 8) { SND.stamp(m.out, t, .55); return true; }
-      if (s === 0) { SND.stamp(m.out, t, .3); return true; }
-      return false;
-    },
-    // keys as a shaker: every eighth, leaning on the off-beats; the spacebar answers on 2 and 4
-    typing(m, s, t, c) {
-      if (m.variant % 2) { if (s !== 4 && s !== 12) return false; SND.spacebar(m.out, t, .3); return true; }
-      if (s % 2) return false;
-      SND.key(m.out, t, s % 4 === 2 ? .32 : .16); return s % 4 === 2;
-    },
-    clicking(m, s, t, c) {
-      if (m.variant % 2) { if (s !== 6 && s !== 14) return false; SND.pen(m.out, t, .4); return true; }
-      if (![2, 5, 8, 11, 14].includes(s)) return false;
-      SND.mouse(m.out, t, .3); return true;
-    },
-    // the classic bossa bass: root, a fifth to lean on, root again, the fifth leading on
-    coffee(m, s, t, c) {
-      const root = c.chord[0] - 12, line = { 0: [root, 6], 6: [root + 7, 2], 8: [root, 6], 14: [root + 7, 2] }[s];
-      if (s === 0) SND.knockBox(m.out, t, .45);
-      coffeeMoments(m, s, t, c);
-      if (!line) return false;
-      SND.pump(m.out, t, mtof(line[0]), c.sixteenth * line[1] * .9, .3); return true;
-    },
-    // pen-on-glass chords pushed ahead of the beat, two notes at a time
-    glass(m, s, t, c) {
-      const hits = c.bar % 2 ? [0, 5, 8, 13] : [2, 5, 10, 13], i = hits.indexOf(s);
-      if (i < 0) return false;
-      SND.glass(m.out, t, mtof(toneAt(c, i, 70, 84)), .15); SND.glass(m.out, t + .01, mtof(toneAt(c, i + 2, 70, 84)), .12); return true;
-    },
-    // a long, lazy tune that hangs on the chord
-    phone(m, s, t, c) {
-      return lead(m, s, t, c, [
-        { 0: [2, 4], 4: [3, 2], 6: [2, 2], 8: [1, 6] }, { 0: [0, 4], 6: [1, 2], 8: [2, 8] },
-        { 0: [3, 4], 4: [4, 2], 6: [3, 2], 8: [2, 6] }, { 2: [1, 2], 4: [0, 12] },
-      ], (f, d) => SND.ring(m.out, t, f, d, .3));
-    },
-    copier(m, s, t, c) {
-      if (s !== 0 || c.bar % 2) return false;
-      SND.copier(m.out, t, c.barLen * 2, mtof(c.chord[0] - 24), .35); return true;
-    },
-  },
-  jazz: {
-    // keys ride the cymbal: ding, ding-a, ding, ding-a (the swing pushes the "a" late)
-    typing(m, s, t, c) {
-      if (m.variant % 2) { if (s !== 4 && s !== 12) return false; SND.spacebar(m.out, t, .25); return true; }
-      const v = { 0: .38, 4: .45, 7: .22, 8: .38, 12: .45, 15: .22 }[s];
-      if (!v) return false;
-      SND.key(m.out, t, v); return true;
-    },
-    // paper knocks are the hi-hat on 2 and 4; a second knocker comps like a snare
-    cough(m, s, t, c) {
-      if (m.variant % 2) { if (![[7], [10], [3, 7], [14]][c.bar].includes(s)) return false; SND.cough(m.out, t, .4, 180); return true; }
-      if (s !== 4 && s !== 12) return false;
-      SND.cough(m.out, t, .35, 185); return true;
-    },
-    // a feathered kick on every beat, and a "bomb" at the end of the chorus
-    stamp(m, s, t, c) {
-      if (m.variant % 2) { if (!(c.bar % 2 && (s === 7 || s === 15))) return false; SND.stapler(m.out, t, .35); return true; }
-      if (c.bar === 3 && s === 14) { SND.stamp(m.out, t, .55); return true; }
-      if (s % 4) return false;
-      SND.stamp(m.out, t, .16); return s === 0;
-    },
-    clicking(m, s, t, c) {
-      if (m.variant % 2) { if (s !== 7 && s !== 15) return false; SND.pen(m.out, t, .35); return true; }
-      if (![2, 6, 10, 14].includes(s)) return false;
-      SND.mouse(m.out, t, .22); return true;
-    },
-    // walking bass: root, third, fifth, then a half step into the next chord
-    coffee(m, s, t, c) {
-      coffeeMoments(m, s, t, c);
-      if (s % 4) return false;
-      const root = c.chord[0] - 12, walk = [root, toneAt(c, 1, root, root + 11), toneAt(c, 2, root, root + 11), nextRoot(c) - 12 - 1];
-      SND.pump(m.out, t, mtof(walk[s / 4]), c.sixteenth * 3.6, .32); return true;
-    },
-    // Charleston comping on the glass
-    glass(m, s, t, c) {
-      const hits = c.bar % 2 ? [4, 10] : [0, 6];
-      if (!hits.includes(s)) return false;
-      SND.glass(m.out, t, mtof(toneAt(c, 1, 70, 84)), .16); SND.glass(m.out, t + .012, mtof(toneAt(c, 3, 70, 84)), .13); return true;
-    },
-    // a bebop line in eighths, then a held answer
-    phone(m, s, t, c) {
-      const run = [0, 1, 2, 3, 4, 3, 2, 1], bars = [{}, { 0: [2, 6], 8: [1, 4] }, {}, { 0: [4, 6], 8: [3, 6] }];
-      run.forEach((k, i) => { bars[0][i * 2] = [k + (i % 3 === 2 ? 1 : 0), 1.4]; bars[2][i * 2] = [run[7 - i] + 1, 1.4]; });
-      return lead(m, s, t, c, bars, (f, d) => SND.ring(m.out, t, f, d, .24));
-    },
-    flush(m, s, t, c) {
-      if (c.bar !== 3 || s !== 8) return false;
-      SND.flush(m.out, t, c.barLen * .7, .35); return true;
-    },
-  },
-  synth: {
-    // four on the floor from the stamp; the stapler claps on 2 and 4
-    stamp(m, s, t, c) {
-      if (m.variant % 2) { if (s !== 4 && s !== 12) return false; SND.stapler(m.out, t, .55); return true; }
-      if (s % 4) return false;
-      SND.stamp(m.out, t, .6); return true;
-    },
-    cough(m, s, t, c) {
-      if (m.variant % 2) { if (!(c.bar === 3 && s >= 12)) return false; SND.cough(m.out, t, .3 + (s - 12) * .08, 190); return true; }
-      if (s !== 4 && s !== 12) return false;
-      SND.cough(m.out, t, .7); return true;
-    },
-    // keys as the open hat on every off-beat, with soft sixteenths between
-    typing(m, s, t, c) {
-      if (m.variant % 2) { if (s % 4 !== 2) return false; SND.spacebar(m.out, t, .35); return true; }
-      if (s % 4 === 2) { SND.key(m.out, t, .5); return true; }
-      if (s % 2) SND.key(m.out, t, .14);
-      return false;
-    },
-    clicking(m, s, t, c) {
-      if (m.variant % 2) { if (!(c.bar === 3 && s === 12)) return false; for (let k = 0; k < 8; k++) SND.wheel(m.out, t + k * c.sixteenth / 2, .35); return true; }
-      if (!(s % 2)) return false;
-      SND.mouse(m.out, t, .2); return false;
-    },
-    // octave bass in eighths
-    coffee(m, s, t, c) {
-      coffeeMoments(m, s, t, c);
-      if (s % 2) return false;
-      const root = c.chord[0] - 12;
-      SND.pump(m.out, t, mtof(s % 4 ? root + 12 : root), c.sixteenth * 1.6, .28); return s % 4 === 0;
-    },
-    // the glass runs up the chord like an arpeggiator
-    glass(m, s, t, c) {
-      if (s % 2) return false;
-      SND.glass(m.out, t, mtof(toneAt(c, s / 2, 74, 93)), .14); return s % 4 === 0;
-    },
-    // a hooky riff on a bright beep, and a step down at the end of the loop
-    phone(m, s, t, c) {
-      const riff = { 0: [4, 2], 3: [3, 1], 4: [2, 2], 6: [3, 1], 8: [4, 2], 11: [5, 1], 12: [4, 3] };
-      return lead(m, s, t, c, [riff, riff, riff, { 0: [4, 2], 2: [3, 2], 4: [2, 2], 6: [1, 2], 8: [0, 8] }], (f, d) => SND.beep(m.out, t, f, d, .16));
-    },
-    copier(m, s, t, c) {
-      if (s !== 0 || c.bar % 2) return false;
-      SND.copier(m.out, t, c.barLen * 2, mtof(c.chord[0] - 24), .4); return true;
-    },
-    // the flush becomes a riser into the top of the loop
-    flush(m, s, t, c) {
-      if (c.bar !== 3 || s !== 0) return false;
-      SND.flush(m.out, t, c.barLen * .95, .35); return true;
-    },
-  },
-};
 
 /* ---------- Scheduler ---------- */
 function sixteenth() { return 60 / A.bpm / 4; }
@@ -1284,8 +1095,7 @@ function scheduler() {
     for (const m of members) {
       if (!m.out) continue;
       if (A.night) { const n = nightFor(m); if (n.step(m, s, c)) { n.one(m, t, c, s); visualQueue.push({ id: m.id, t }); } continue; }
-      const part = VIBE.groove && GROOVES[VIBE.groove][m.role];
-      if (part ? part(m, s, t, c) : ROLES[m.role].play(m, s, t, c)) visualQueue.push({ id: m.id, t, beat: m.role === "coffee" });
+      if (ROLES[m.role].play(m, s, t, c)) visualQueue.push({ id: m.id, t, beat: m.role === "coffee" });
     }
     if (s % 4 === 0) visualQueue.push({ id: "beat", t });
     A.next += sixteenth();
@@ -1579,9 +1389,6 @@ function syncMode() {
   $("modeSwitch").setAttribute("aria-checked", String(amb));
   document.querySelectorAll(".modeswitch .ml").forEach(b => b.classList.toggle("on", b.dataset.mode === A.mode));
   $("modeHint").textContent = (amb ? "Ambiance: the office hum" : "Music: everyone on the beat") + " · click to switch";
-  // the vibe only shapes the music, so it steps aside in Ambiance
-  document.querySelector(".vibe").hidden = amb;
-  if (amb && !$("vibeMenu").hidden) setVibeMenu(false);
   $("tempoName").textContent = amb ? "Busyness" : "Tempo";
   const el = $("tempo");
   el.value = amb ? 70 + A.busy * 50 : A.bpm;
@@ -2248,31 +2055,6 @@ function pickMode(mode) {
 $("modeSwitch").addEventListener("click", () => pickMode(A.mode === "musical" ? "ambient" : "musical"));
 document.querySelectorAll(".modeswitch .ml").forEach(b => b.addEventListener("click", () => pickMode(b.dataset.mode)));
 syncMode();
-function setVibe(k) {
-  VIBE = VIBES[k];
-  CHORDS.splice(0, CHORDS.length, ...VIBE.chords.map(c => c.slice()));
-  A.bpm = VIBE.bpm; A.swing = VIBE.swing;
-  if (A.ctx) { const t = A.ctx.currentTime; A.fb.gain.setTargetAtTime(VIBE.fb, t, .1); A.tone.frequency.setTargetAtTime(VIBE.tone, t, .2); setDelayTime(); applyMix(.6); }
-  $("vibeName").textContent = VIBE.name;
-  vibeMenu.querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-checked", String(i === k)));
-  syncMode();
-}
-const vibeBtn = $("vibeBtn"), vibeMenu = $("vibeMenu");
-vibeMenu.innerHTML = VIBES.map((v, i) => `<button type="button" role="menuitemradio" aria-checked="${i === 0}" data-k="${i}"><i>●</i><span>${v.name}</span><small>${v.note}</small></button>`).join("");
-function setVibeMenu(open) { vibeMenu.hidden = !open; vibeBtn.setAttribute("aria-expanded", String(open)); if (open) vibeMenu.querySelector('[aria-checked="true"]').focus(); }
-vibeBtn.addEventListener("click", e => { e.stopPropagation(); setVibeMenu(vibeMenu.hidden); });
-vibeMenu.addEventListener("click", e => {
-  e.stopPropagation();
-  const b = e.target.closest("button"); if (!b) return;
-  setVibe(+b.dataset.k); setVibeMenu(false); vibeBtn.focus(); start();
-  toast(`Vibe: ${VIBE.name}. ${VIBE.note}`);
-});
-vibeMenu.addEventListener("keydown", e => {
-  const items = [...vibeMenu.querySelectorAll("button")], i = items.indexOf(document.activeElement);
-  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); items[(i + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length].focus(); }
-  if (e.key === "Escape") { e.stopPropagation(); setVibeMenu(false); vibeBtn.focus(); }
-});
-document.addEventListener("click", () => { if (!vibeMenu.hidden) setVibeMenu(false); });
 const menu = $("menu"), menuBtn = $("menuBtn");
 function setMenu(open) { menu.hidden = !open; menuBtn.setAttribute("aria-expanded", String(open)); if (open) $("menuClose").focus(); }
 menuBtn.addEventListener("click", () => setMenu(menu.hidden));
@@ -4593,7 +4375,6 @@ document.addEventListener("keydown", e => {
   if (e.code === "Space" && (e.target === document.body || e.target === cv)) { e.preventDefault(); A.playing ? stop() : start(); }
   else if (e.key === "m" || e.key === "M") pickMode(A.mode === "musical" ? "ambient" : "musical");
   else if (e.key === "e" || e.key === "E") $("fillBtn").click();
-  else if (e.key === "v" || e.key === "V") { start(); setVibe((VIBES.indexOf(VIBE) + 1) % VIBES.length); toast(`Vibe: ${VIBE.name}. ${VIBE.note}`); }
   else if (e.key === "n" || e.key === "N") { start(); setNight(!A.night); }
 });
 
