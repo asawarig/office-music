@@ -232,23 +232,46 @@ body.exploring .mark { opacity: 1; animation: markBob 1.6s ease-in-out infinite;
   padding: 9px 18px 9px 14px;
 }
 .btn.play:hover { --top: #f27f7a; }
-/* the welcome: two short cards on a first visit, the why and then what to do */
-.intro { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); background: rgba(43, 43, 45, .38); }
+/* the welcome: two short cards on a first visit, in the menu's look: the logo, the bold name, iso blocks */
+.intro { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); background: rgba(28, 28, 30, .42); }
 .intro[hidden], .intro .card[hidden] { display: none; }
-.intro .card { width: min(460px, 100%); max-height: 100%; overflow-y: auto; background: var(--surface); color: var(--fg); border: 1px solid var(--edge); box-shadow: 2px 2px 0 #cfd6e2, 4px 4px 0 #cfd6e2, 6px 6px 0 #cfd6e2, 6px 6px 0 1px var(--edge); padding: 26px 26px 22px; display: grid; gap: 14px; }
-.intro .eyebrow { margin: 0; font: 400 12px/1 var(--font-label); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
-.intro h2 { margin: 0; font: 400 26px/1.15 var(--font-display); text-wrap: balance; }
-.intro p { margin: 0; font-size: 17px; line-height: 1.5; }
-.intro .big { color: var(--accent); }
+.intro .card { position: relative; width: min(480px, 100%); max-height: 100%; overflow-y: auto; background: var(--surface); color: var(--fg); border: 1px solid #3a3a3c; box-shadow: 2px 2px 0 #cfd6e2, 4px 4px 0 #cfd6e2, 6px 6px 0 #cfd6e2, 8px 8px 0 #cfd6e2, 8px 8px 0 1px #3a3a3c; padding: 24px 26px 22px; display: grid; gap: 16px; animation: introIn .35s cubic-bezier(.2, 1.3, .4, 1); }
+@keyframes introIn { from { transform: translateY(14px); opacity: 0; } }
+.intro .brand { display: grid; gap: 10px; padding-bottom: 16px; border-bottom: 1px dashed var(--edge); }
+.intro .brand img { height: 26px; width: auto; display: block; }
+.intro .brand h1 { font-size: 40px; line-height: .95; }
+.intro .ilabel { margin: 0; font: 400 12px/1 var(--font-label); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+.intro h2 { margin: -6px 0 0; font: 400 24px/1.15 var(--font-display); text-wrap: balance; }
+.intro p { margin: 0; font-size: 16.5px; line-height: 1.5; }
+.intro .stat { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; align-items: center; padding: 12px 14px; border: 1px solid var(--edge); background: var(--accent-soft); }
+.intro .stat b { font: 400 40px/1 var(--font-display); color: var(--accent); grid-row: span 2; }
+.intro .stat span { font: 400 12px/1.2 var(--font-label); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.intro .stat em { font-style: normal; font-size: 15px; line-height: 1.3; }
 .intro .src { font-size: 12.5px; color: var(--muted); }
 .intro .src a { color: inherit; }
-.intro .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 6px; }
+.intro .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; }
 .intro .dots { display: flex; gap: 6px; }
-.intro .dots i { width: 8px; height: 8px; border: 1px solid var(--edge); }
-.intro .dots i.on { background: var(--edge); }
-.intro .acts { display: flex; gap: 14px; align-items: center; }
-.intro .skip { border: 0; background: none; color: var(--muted); font: 400 14px/1 var(--font-label); cursor: pointer; padding: 6px 2px; text-decoration: underline; text-underline-offset: 3px; }
-.intro .btn.play { min-width: 0; }
+.intro .dots i { width: 9px; height: 9px; border: 1px solid var(--fg); }
+.intro .dots i.on { background: var(--fg); }
+.intro .acts { display: flex; gap: 12px; align-items: center; }
+.intro .btn.play { min-width: 0; padding: 9px 16px; }
+.intro .itip { display: flex; gap: 10px; align-items: center; font-size: 15px; line-height: 1.4; padding: 10px 12px; border: 1px dashed var(--edge); }
+.intro .itip svg { width: 18px; height: 18px; flex: none; fill: var(--accent); }
+/* the little scene on the second card: a click on an empty seat, and someone sits down and plays */
+.intro .iscene { border: 1px solid #3a3a3c; background: #fdeaa0; }
+.intro .iscene svg { width: 100%; height: auto; display: block; }
+.iscene .who { transform-box: fill-box; transform-origin: 50% 100%; animation: sitDown 5s infinite; }
+.iscene .cursor { animation: cursorIn 5s infinite; }
+.iscene .ripple { transform-box: fill-box; transform-origin: center; animation: ripple 5s infinite; }
+.iscene .note { animation: noteUp 5s infinite; }
+.iscene .note.n2 { animation-delay: .35s; }
+.iscene .hint { animation: hintBlink 5s infinite; }
+@keyframes cursorIn { 0% { transform: translate(70px, 40px); opacity: 0; } 8% { opacity: 1; } 30% { transform: translate(0, 0); } 33% { transform: translate(0, 0) scale(.86); } 36% { transform: translate(0, 0) scale(1); } 58% { transform: translate(18px, 14px); opacity: 1; } 66%, 100% { transform: translate(18px, 14px); opacity: 0; } }
+@keyframes ripple { 0%, 32% { transform: scale(.2); opacity: 0; } 33% { opacity: .9; } 52%, 100% { transform: scale(2.4); opacity: 0; } }
+@keyframes sitDown { 0%, 34% { transform: scale(0); opacity: 0; } 42% { transform: scale(1.14); opacity: 1; } 47% { transform: scale(.96); } 52%, 88% { transform: scale(1); opacity: 1; } 96%, 100% { transform: scale(0); opacity: 0; } }
+@keyframes noteUp { 0%, 50% { transform: translate(0, 0); opacity: 0; } 55% { opacity: 1; } 78%, 100% { transform: translate(8px, -34px); opacity: 0; } }
+@keyframes hintBlink { 0%, 30% { opacity: 1; } 34%, 92% { opacity: 0; } 100% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .intro .card { animation: none; } .iscene .who, .iscene .cursor, .iscene .ripple, .iscene .note, .iscene .hint { animation: none; } .iscene .ripple, .iscene .hint, .iscene .cursor { opacity: 0; } }
 .btn.play svg { width: 14px; height: 14px; fill: currentColor; shape-rendering: crispEdges; }
 .tempo {
   display: flex;
@@ -464,7 +487,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
 </style>
 </head>
 <body>
-<main class="stage" id="stage">
+<main class="iscene" id="stage">
   <div class="board">
     <canvas id="office" width="440" height="310" role="img" aria-label="An axonometric office plan with three pods of desks, a meeting room, kitchen, photocopier, water cooler, washroom and lounge. Thirteen people each have their own seat and act out their sound as it plays."></canvas>
     <div class="tags" id="tags"></div>
@@ -502,21 +525,47 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
 <button class="btn explore" id="exploreBtn" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3C4 3 1.5 6 1 8c.5 2 3 5 7 5s6.5-3 7-5c-.5-2-3-5-7-5zm0 8a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg><span>Explore</span><small id="exploreCount"></small></button>
 <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introTitle" hidden>
   <div class="card" data-step="1">
-    <p class="eyebrow">Why we built it</p>
-    <h2 id="introTitle">A little noise helps you think</h2>
-    <p>A study found that a moderate buzz of background sound, around <span class="big">70 dB</span>, like a busy café, made people more creative than working in a quiet room.</p>
+    <div class="brand"><img class="introLogo" alt="Plum"><h1 id="introTitle">Office <em>Harmony</em></h1></div>
+    <p class="ilabel">Why we built it</p>
+    <h2>A little noise helps you think</h2>
+    <div class="stat"><b>70 dB</b><span>The sweet spot</span><em>About the buzz of a busy café</em></div>
+    <p>A study found that this moderate buzz of background sound made people more creative than working in a quiet room.</p>
     <p>So if it gets too quiet where you work, you can always count on this office.</p>
     <p class="src">Source: <a href="https://academic.oup.com/jcr/article/39/4/784/1795620" target="_blank" rel="noopener">Mehta, Zhu &amp; Cheema, "Is Noise Always Bad?", Journal of Consumer Research, 2012</a></p>
     <div class="row"><div class="dots" aria-label="Step 1 of 2"><i class="on"></i><i></i></div>
-      <div class="acts"><button type="button" class="skip" data-intro="close">Skip</button><button type="button" class="btn play" data-intro="next">Next</button></div></div>
+      <div class="acts"><button type="button" class="btn" data-intro="close">Skip</button><button type="button" class="btn play" data-intro="next">Next</button></div></div>
   </div>
   <div class="card" data-step="2" hidden>
-    <p class="eyebrow">How it works</p>
+    <div class="brand"><img class="introLogo" alt="Plum"><h1>Office <em>Harmony</em></h1></div>
+    <p class="ilabel">How it works</p>
     <h2>13 sounds, 13 people</h2>
-    <p>There are 13 sounds in this office, and they all work together. Each one belongs to someone. Find all 13 employees to hear the whole office.</p>
-    <p>Want some fun? Flip the switch to Music and everyone plays on the beat.</p>
+    <div class="iscene" aria-hidden="true"><svg viewBox="0 0 320 140">
+      <g stroke="#3a3a3c" stroke-width="1.2" stroke-linejoin="round">
+        <path d="M40 120 160 60 280 120" fill="none" stroke="#f5d679" stroke-width="1"/>
+        <path d="M72 72v26M168 72v26M120 96v26M216 48v26" />
+        <path d="M72 72 168 24 216 48 120 96Z" fill="#fff"/><path d="M72 72 120 96v5L72 77Z" fill="#f3f3f1"/><path d="M120 96 216 48v5l-96 48Z" fill="#e4e4e2"/>
+        <path d="M128 66 154 53 168 60 142 73Z" fill="#cfe2f3"/><path d="M154 53 152 38 166 31 168 60Z" fill="#9fb3cc"/>
+        <path d="M110 64 124 57 130 60 116 67Z" fill="#ffd95c"/>
+        <path d="M196 98 220 86 238 95 214 107Z" fill="#ee6f6a"/><path d="M220 86 220 66 238 75 238 95Z" fill="#d95c58"/>
+        <path d="M216 107v18M216 125l-10 5M216 125l10 5" fill="none"/>
+      </g>
+      <g class="hint"><circle cx="217" cy="96" r="9" fill="#fff" stroke="#3a3a3c" stroke-width="1.2" stroke-dasharray="3 2"/><path d="M217 91v10M212 96h10" stroke="#3a3a3c" stroke-width="1.6"/></g>
+      <circle class="ripple" cx="217" cy="96" r="10" fill="none" stroke="#ee6f6a" stroke-width="2.4"/>
+      <g class="who">
+        <path d="M204 100c0-14 4-24 13-24s13 10 13 24Z" fill="#c9b8ef" stroke="#3a3a3c" stroke-width="1"/>
+        <path d="M207 86 194 84" stroke="#c9b8ef" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="217" cy="66" r="9" fill="#f6c795"/>
+        <path d="M208 66a9 9 0 0 1 18-2c-6-3-11-3-18 2Z" fill="#1f1b19"/><path d="M208 64c-2 6-1 14 2 18l4-1c-3-5-4-11-2-16Z" fill="#1f1b19"/>
+        <rect x="210" y="64" width="6" height="4.5" rx="1" fill="none" stroke="#1f1b19" stroke-width="1.2"/><rect x="218" y="64.5" width="5" height="4.5" rx="1" fill="none" stroke="#1f1b19" stroke-width="1.2"/>
+      </g>
+      <g class="note" fill="#ee6f6a"><path d="M240 58v-14l8-2v12a3 3 0 1 1-2-2.6V46l-4 1v11.4a3 3 0 1 1-2-2.6Z"/></g>
+      <g class="note n2" fill="#5b6ee1"><path d="M196 52v-12l7-2v10a2.6 2.6 0 1 1-1.8-2.3V42l-3.4 1v10a2.6 2.6 0 1 1-1.8-2.3Z"/></g>
+      <g class="cursor"><path d="M222 100v20l5-5 4 9 4-2-4-8.5 7-.5Z" fill="#fff" stroke="#2b2b2d" stroke-width="1.4" stroke-linejoin="round"/></g>
+    </svg></div>
+    <p>There are 13 sounds in this office, and they all work together. Each one belongs to someone. Click the empty seats to find all 13 employees and hear the whole office.</p>
+    <div class="itip"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5 13 1v9.2a2.2 2.2 0 1 1-1.4-2V4.1L7.4 5v6.7a2.2 2.2 0 1 1-1.4-2z"/></svg><span>Want some fun? Flip the switch to Music and everyone plays on the beat.</span></div>
     <div class="row"><div class="dots" aria-label="Step 2 of 2"><i></i><i class="on"></i></div>
-      <div class="acts"><button type="button" class="skip" data-intro="back">Back</button><button type="button" class="btn play" data-intro="go">Start listening</button></div></div>
+      <div class="acts"><button type="button" class="btn" data-intro="back">Back</button><button type="button" class="btn play" data-intro="go">Start listening</button></div></div>
   </div>
 </div>
 <aside class="menu" id="menu" hidden>
@@ -4491,7 +4540,7 @@ document.body.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOA
 .snack .lt, .wbpop .wh { padding-right: 36px; }
 /* nothing on the page is bold */
 *, *::before, *::after { font-weight: 400 !important; }
-.menu .brand h1, .menu .brand h1 em { font-weight: 700 !important; }</style>`);
+.menu .brand h1, .menu .brand h1 em, .intro .brand h1, .intro .brand h1 em { font-weight: 700 !important; }</style>`);
 // each free desk has its own board; ?cal=1..20 shows one look on every desk instead
 const CAL_ASK = +new URLSearchParams(location.search).get("cal") || 0;
 const CAL_PICK = Math.max(0, Math.min(CAL_VARIANTS.length - 1, CAL_ASK - 1));
@@ -4673,7 +4722,8 @@ const showMarks = () => { setTimeout(() => { if (!exploreTouched) setExplore(tru
 
 /* ---------- Welcome: on a first visit, why the office hums and what to do in it ---------- */
 const intro = $("intro"), introCards = intro.querySelectorAll(".card");
-function introStep(n) { introCards.forEach(c => { c.hidden = c.dataset.step !== String(n); }); introCards[n - 1].querySelector(".btn").focus(); }
+intro.querySelectorAll(".introLogo").forEach(i => { i.src = document.querySelector(".menu-logo").src; });
+function introStep(n) { introCards.forEach(c => { c.hidden = c.dataset.step !== String(n); }); introCards[n - 1].querySelector(".btn.play").focus(); }
 function closeIntro(play) {
   intro.hidden = true;
   try { localStorage.setItem("office-harmony-intro", "1"); } catch (e) {}
