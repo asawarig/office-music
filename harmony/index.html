@@ -85,6 +85,10 @@ body {
 .stage { position: fixed; inset: 0; display: grid; place-items: center; background: #ffffff; overflow: hidden; }
 .board { position: relative; width: min(100vw, calc(100dvh * 440 / 310)); }
 .hud { position: fixed; top: max(12px, env(safe-area-inset-top, 0px)); left: max(12px, env(safe-area-inset-left, 0px)); display: flex; align-items: center; gap: 14px; z-index: 5; }
+/* at night the page around the office darkens to match it */
+.stage { transition: background-color .8s ease; }
+body.night .stage { background: var(--night-page, #3b4775); }
+body.night .byline span { color: #c9d1ee; }
 .byline { position: fixed; top: max(12px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); z-index: 5; display: flex; align-items: center; gap: 8px; height: 40px; color: var(--muted); text-decoration: none; font: 400 15px/1 var(--font-body); }
 .byline img { height: 22px; width: auto; display: block; }
 .byline:hover span { color: var(--fg); }
@@ -217,6 +221,7 @@ body.exploring .mark { opacity: 1; animation: markBob 1.6s ease-in-out infinite;
   color: var(--muted);
   padding: 0 4px;
 }
+.tempo select { font: inherit; font-size: 13px; padding: 4px 6px; border: 1px solid var(--edge); border-radius: 4px; background: var(--surface); color: var(--fg); }
 .tempo input { width: 96px; accent-color: var(--accent); }
 .tempo output { color: var(--fg); min-width: 7ch; font-variant-numeric: tabular-nums; }
 
@@ -454,7 +459,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
   </header>
   <footer class="foot">
     <span>Hover over someone to see who they are. Click them to send them home, or click an empty seat to call its person back. On a phone, tap once to see what something is and tap again to use it.</span>
-    <span class="keys"><kbd>Space</kbd> play or pause · <kbd>M</kbd> Musical or Ambient · <kbd>E</kbd> everyone in · <kbd>Esc</kbd> close</span>
+    <span class="keys"><kbd>Space</kbd> play or pause · <kbd>M</kbd> Musical or Ambient · <kbd>E</kbd> everyone in · <kbd>N</kbd> day or night · <kbd>Esc</kbd> close</span>
   </footer>
 </aside>
 <div class="toasts" id="toasts" aria-live="polite"></div>
@@ -537,7 +542,7 @@ function ensureNodes(m) {
   m.out = ctx.createGain();
   m.out.gain.value = role.gain * Math.pow(0.8, same);
   const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
-  if (pan.pan) pan.pan.value = Math.max(-1, Math.min(1, (SEATS[m.desk].sx - LW / 2) / (LW / 2) * (A.mode === "ambient" ? .95 : .7)));
+  if (pan.pan) pan.pan.value = Math.max(-1, Math.min(1, ((A.night && nightSpot(m) ? iso(nightSpot(m).x, nightSpot(m).y)[0] : SEATS[m.desk].sx) - LW / 2) / (LW / 2) * (A.mode === "ambient" ? .95 : .7)));
   const rs = ctx.createGain(); rs.gain.value = role.rev;
   const ds = ctx.createGain(); ds.gain.value = role.dly;
   m.out.connect(pan); pan.connect(A.master); pan.connect(rs); rs.connect(A.rev); pan.connect(ds); ds.connect(A.dly);
@@ -682,17 +687,12 @@ const SND = {
     ping(d, t + 0.05, 3900, v * 0.18, 0.01, "triangle");
   },
   // old desk phone: bell partials chopped by a fast trill
+  // a modern ringtone note, like a soft marimba: a warm body, a bright bar tone that dies fast, a tiny mallet click
   ring(d, t, f, dur, v) {
-    const ctx = A.ctx, am = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
-    lfo.type = "square"; lfo.frequency.value = 18; lg.gain.value = 0.5; am.gain.value = 0.5;
-    lfo.connect(lg); lg.connect(am.gain);
-    const g = susGain(t, 0.008, v, dur, 0.06);
-    [[1, 1, "triangle"], [2.0, .3, "sine"], [2.76, .22, "sine"]].forEach(([r, a, type]) => {
-      const o = ctx.createOscillator(), og = ctx.createGain();
-      o.type = type; o.frequency.value = f * r; og.gain.value = a;
-      o.connect(og); og.connect(am); o.start(t); o.stop(t + dur + 0.15);
-    });
-    am.connect(g); g.connect(d); lfo.start(t); lfo.stop(t + dur + 0.15);
+    ping(d, t, f, v * .9, Math.min(.9, .3 + dur), "sine", .003);
+    ping(d, t, f * 2, v * .16, .2, "triangle", .002);
+    ping(d, t, f * 4, v * .26, .055, "sine", .001);
+    burstN(d, t, v * .07, "bandpass", Math.min(9000, f * 6), 2, .012);
   },
   // modern desk phone beep
   beep(d, t, f, dur, v) {
@@ -730,18 +730,23 @@ const SND = {
     burstN(d, t, v * 0.7, "bandpass", 220, 1.5, 0.06);
     burstN(d, t, v * 0.15, "bandpass", 1900, 9, 0.03);
   },
-  // vibratory espresso pump buzzing at a bass pitch, spinning up into the note
+  // the espresso pump as a round, plucky bass: a sine sub under a saw whose filter closes as the note goes,
+  // a little rattle of the pump on top, and a soft hiss of water
   pump(d, t, f, dur, v) {
     const ctx = A.ctx, o = ctx.createOscillator(), sub = ctx.createOscillator();
-    o.type = "sawtooth"; sub.type = "square";
-    o.frequency.setValueAtTime(f * 0.9, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.04);
-    sub.frequency.value = f / 2;
-    const ws = ctx.createWaveShaper(); ws.curve = A.clip;
-    const sg = ctx.createGain(); sg.gain.value = 0.5;
-    const lp = filt("lowpass", 800, 5), g = susGain(t, 0.008, v, dur, 0.04);
-    o.connect(ws); sub.connect(sg); sg.connect(ws); ws.connect(lp); lp.connect(g); g.connect(d);
-    o.start(t); sub.start(t); o.stop(t + dur + 0.1); sub.stop(t + dur + 0.1);
-    const n = noiseSrc(t, dur + 0.1), bp = filt("bandpass", 1300, 1), ng = susGain(t, 0.01, v * 0.08, dur, 0.04);
+    o.type = "sawtooth"; sub.type = "sine";
+    o.frequency.setValueAtTime(f * 0.97, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.03);
+    sub.frequency.value = f;
+    const lp = filt("lowpass", 1500, 2.5);
+    lp.frequency.setValueAtTime(1500, t); lp.frequency.exponentialRampToValueAtTime(260, t + Math.max(.08, dur * .9));
+    const og = ctx.createGain(); og.gain.value = .45;
+    const g = susGain(t, 0.006, v, dur, 0.05);
+    o.connect(og); og.connect(lp); sub.connect(lp); lp.connect(g); g.connect(d);
+    const am = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();   // the pump's rattle
+    am.gain.value = .85; lfo.frequency.value = 50; lg.gain.value = .15; lfo.connect(lg); lg.connect(am.gain);
+    g.disconnect(); g.connect(am); am.connect(d);
+    o.start(t); sub.start(t); lfo.start(t); o.stop(t + dur + 0.1); sub.stop(t + dur + 0.1); lfo.stop(t + dur + 0.1);
+    const n = noiseSrc(t, dur + 0.1), bp = filt("bandpass", 1800, 1.2), ng = susGain(t, 0.02, v * 0.04, dur, 0.04);
     n.connect(bp); bp.connect(ng); ng.connect(d);
   },
   // steam wand frothing milk: hiss with a gurgling, wobbling band
@@ -798,21 +803,24 @@ const ROLES = {
   phone: {
     title: "Teleconsult Caller", sound: "Phone rings", covers: "Online doctor consults", color: "#19b38a",
     gain: 0.28, rev: 0.25, dly: 0.25,
+    // a ringtone you'd hum: up the chord, a turn at the top, an answer coming down, then a pickup back in.
+    // Each note is [step: chord-tone index, length in sixteenths]; indices count up the chord from the phone's range
     setup(m) {
-      const r = rng(m.seed), shift = (m.variant % 2) * 5;
+      const MOTIF = [
+        { 0: [0, 2], 2: [1, 2], 4: [2, 2], 6: [3, 2], 8: [4, 1], 9: [3, 1], 10: [4, 3] },
+        { 0: [2, 2], 3: [1, 1], 4: [2, 2], 8: [0, 4] },
+        { 0: [0, 2], 2: [1, 2], 4: [2, 2], 6: [3, 2], 8: [4, 1], 9: [3, 1], 10: [5, 3] },
+        { 0: [4, 3], 4: [2, 2], 8: [1, 1], 10: [2, 1], 12: [3, 2] },
+      ];
+      const lift = (m.variant % 2) * 2;   // a second phone plays the same tune a little higher
       m.pattern = new Array(64).fill(null);
-      // ring-ring phrases: two rings, a pause, an answer
-      for (let bar = 0; bar < 4; bar++) {
-        const tones = CHORDS[bar].map(n => n % 12);
-        const rhythm = pick([[[0, 2], [3, 2], [8, 3]], [[0, 3], [4, 2], [10, 2], [12, 3]], [[2, 2], [5, 2], [8, 4]]], r);
-        rhythm.forEach(([st, len]) => { m.pattern[bar * 16 + st] = { n: pick(inRange(72 + shift, 84 + shift, st % 4 === 0 ? tones : PENTA), r), len }; });
-      }
+      MOTIF.forEach((bar, b) => Object.entries(bar).forEach(([st, [i, len]]) => { m.pattern[b * 16 + +st] = { i: i + lift, len, bar: b }; }));
     },
     play(m, s, t, c) {
       const p = m.pattern[c.g];
       if (!p) return false;
-      const dur = c.sixteenth * p.len * 0.85;
-      m.variant % 2 ? SND.beep(m.out, t, mtof(p.n), dur, 0.25) : SND.ring(m.out, t, mtof(p.n), dur, 0.5);
+      const notes = inRange(74, 93, c.chord.map(n => n % 12)), dur = c.sixteenth * p.len * 0.85;
+      SND.ring(m.out, t, mtof(notes[Math.min(notes.length - 1, p.i)]), dur, m.variant % 2 ? 0.26 : 0.34);
       return true;
     },
   },
@@ -836,11 +844,18 @@ const ROLES = {
     play(m, s, t, c) {
       const root = c.chord[0] - 12;
       if (m.variant % 2 === 0) {
+        // a bouncing bassline on the chord (root, fifth, octave, and the chord's third and seventh),
+        // the knock box as the kick, and on the last bar a run up into the next chord
         let hit = false;
-        const k = { 0: 1, 8: 0.9, 10: 0.45 }[s];
+        const k = { 0: 1, 7: 0.5, 10: 0.8 }[s];
         if (k) { SND.knockBox(m.out, t, k); hit = true; }
-        const b = { 0: [0, 3], 3: [0, 1], 6: [7, 2], 11: [12, 1], 14: [7, 2] }[s];
-        if (b) { SND.pump(m.out, t, mtof(root + b[0]), c.sixteenth * b[1] * 0.9, 0.3); hit = true; }
+        const third = c.chord[1] - 12, seventh = c.chord[3] - 12;
+        const line = c.bar === 3
+          ? { 0: [root, 3], 3: [root + 12, 1], 6: [root + 7, 2], 8: [root, 2], 12: [third, 1], 13: [root + 7, 1], 14: [seventh, 1], 15: [root + 12, 1] }
+          : { 0: [root, 3], 3: [root + 12, 1], 6: [root + 7, 2], 8: [root, 2], 10: [c.bar % 2 ? seventh : third, 1], 11: [root + 7, 1], 14: [root + 12, 2] };
+        const b = line[s];
+        if (b) { SND.pump(m.out, t, mtof(b[0]), c.sixteenth * b[1] * 0.92, 0.34); hit = true; }
+        if (s === 12 && c.bar % 2 === 1) { ping(m.out, t, mtof(c.chord[3] + 24), .06, .25); ping(m.out, t, mtof(c.chord[3] + 24) * 2.7, .02, .08); }   // a cup set down on the saucer
         return hit;
       }
       if (s === 0 && c.bar % 2) { SND.steam(m.out, t, c.barLen, 0.12); return true; }
@@ -959,6 +974,7 @@ function scheduler() {
     const c = { g, bar, chord: CHORDS[bar], sixteenth: sixteenth(), barLen: sixteenth() * 16 };
     for (const m of members) {
       if (!m.out) continue;
+      if (A.night) { const n = nightFor(m); if (n.step(m, s, c)) { n.one(m, t, c, s); visualQueue.push({ id: m.id, t }); } continue; }
       if (ROLES[m.role].play(m, s, t, c)) visualQueue.push({ id: m.id, t, beat: m.role === "coffee" });
     }
     if (s % 4 === 0) visualQueue.push({ id: "beat", t });
@@ -1024,9 +1040,10 @@ const AMBIENT = {
     return { steps: chance(.25) ? [[0, one], [rand(.35, .5), one]] : [[0, one]], gap: [5, 12] };
   },
   phone(m, c) {
-    // two or three rings, then the call is picked up
-    const steps = [], n = chance(.5) ? 2 : 3, f = mtof(ambNote(c, 24));
-    for (let i = 0; i < n; i++) steps.push([i * 1.9, t => (m.variant % 2 ? SND.beep(m.out, t, f, .45, .12) : SND.ring(m.out, t, f, 1, .26), true)]);
+    // the ringtone plays two or three times, then the call is picked up
+    const steps = [], n = chance(.5) ? 2 : 3;
+    const notes = inRange(74, 93, c.chord.map(n => n % 12)), q = .17;
+    for (let i = 0; i < n; i++) [[0, 0], [2, 1], [4, 2], [6, 3], [8, 4], [9, 3], [10, 4]].forEach(([st, k]) => steps.push([i * 2.4 + st * q, t => (SND.ring(m.out, t, mtof(notes[k]), q * 1.6, .2), true)]));
     return { steps, gap: [30, 60] };
   },
   copier(m, c) {
@@ -1070,7 +1087,7 @@ function ambientTick() {
     if (!m.amb) m.amb = { q: [], next: ct + rand(.3, 6) };
     const a = m.amb;
     if (!a.q.length && a.next < ct + 0.12) {
-      const ev = AMBIENT[m.role](m, c), t0 = Math.max(a.next, ct + 0.03);
+      const nn = nightFor(m), ev = A.night ? { steps: [[0, t => (nn.one(m, t, c), true)]], gap: nn.gap } : AMBIENT[m.role](m, c), t0 = Math.max(a.next, ct + 0.03);
       a.q = ev.steps.map(([dt, fn]) => ({ t: t0 + dt, fn }));
       const last = a.q[a.q.length - 1].t;
       a.next = last + rand(ev.gap[0], ev.gap[1]) * busyScale();
@@ -1156,7 +1173,7 @@ function chatterTick(ct) {
     if (A.chatTalk <= 0) { A.chatTalk = Math.floor(rand(3, 8)); A.chatNext = ct + rand(18, 40); return; }
     const others = group.filter(m => m !== A.chatLast), who = pick(others.length ? others : group, Math.random);
     const t0 = Math.max(A.chatNext, ct + .02);
-    A.chatPan.pan && A.chatPan.pan.setValueAtTime(Math.max(-1, Math.min(1, (SEATS[who.desk].sx - LW / 2) / (LW / 2) * .8)), t0);
+    A.chatPan.pan && A.chatPan.pan.setValueAtTime(Math.max(-1, Math.min(1, (posOf(who)[0] - LW / 2) / (LW / 2) * .8)), t0);
     const kind = A.chatLast && chance(.18) ? "back" : chance(.07) ? "laugh" : "say";
     const end = sentence(who, t0, kind);
     who.talkUntil = end;
@@ -1187,7 +1204,7 @@ function applyMix(fade = .8) {
   A.revOut.gain.setTargetAtTime(amb ? .95 : .55, t, fade / 3);
   A.dly.delayTime.setTargetAtTime(amb ? .55 : 60 / A.bpm * 0.75, t, .05);
   A.room.gain.setTargetAtTime(amb && A.playing ? 1 : 0, t, fade);
-  members.forEach(m => { const pan = m.nodes && m.nodes[0]; if (pan && pan.pan) pan.pan.setTargetAtTime(Math.max(-1, Math.min(1, (SEATS[m.desk].sx - LW / 2) / (LW / 2) * (amb ? .95 : .7))), t, fade / 3); });
+  members.forEach(m => panTo(m, fade / 3));
 }
 function roomTone(ctx) {
   // air conditioning: soft low noise, and the faint hum of the lights
@@ -1224,6 +1241,271 @@ function syncMode() {
   el.value = amb ? 70 + A.busy * 50 : A.bpm;
   $("tempoOut").textContent = amb ? (A.busy < .34 ? "sleepy" : A.busy < .67 ? "steady" : "busy") : A.bpm + " bpm";
   el.setAttribute("aria-label", amb ? "Busyness" : "Tempo");
+}
+
+
+/* ---------- Night mode ----------
+   Clicking a window turns the office to night. Everyone keeps their seat, but each part changes to a
+   night-time sound: owls, a ticking clock, the microwave, slow typing, crickets, the vending machine,
+   a wind chime, the fridge hum and rain on the glass. */
+const NSND = {
+  // a phone buzzing face-down on the desk, then a soft call-join chime
+  buzz(d, t, f, v) {
+    for (let k = 0; k < 2; k++) { const o = A.ctx.createOscillator(); o.type = "square"; o.frequency.value = 160; const lp = filt("lowpass", 500, 2), g = susGain(t + k * .32, .01, v * .5, .2, .03); o.connect(lp); lp.connect(g); g.connect(d); o.start(t + k * .32); o.stop(t + k * .32 + .3); }
+    [1, 1.5].forEach((r, k) => tone(d, t + .75 + k * .14, f * r, .16, { vel: v * .5, attack: .005, release: .2 }));
+  },
+  // packing up: a bag zip pulled shut
+  zip(d, t, v) {
+    const n = noiseSrc(t, .5), bp = filt("bandpass", 1400, 3), g = susGain(t, .02, v, .32, .05);
+    bp.frequency.setValueAtTime(900, t); bp.frequency.exponentialRampToValueAtTime(4200, t + .34);
+    const am = A.ctx.createGain(), lfo = A.ctx.createOscillator(), lg = A.ctx.createGain(); am.gain.value = .5; lfo.type = "square"; lfo.frequency.setValueAtTime(60, t); lfo.frequency.linearRampToValueAtTime(140, t + .34); lg.gain.value = .5; lfo.connect(lg); lg.connect(am.gain); lfo.start(t); lfo.stop(t + .5);
+    n.connect(bp); bp.connect(am); am.connect(g); g.connect(d);
+  },
+  // the desk lamp: a switch click and the faint ting of the bulb
+  lamp(d, t, f, v) { burstN(d, t, v, "bandpass", 3200, 5, .01); burstN(d, t + .012, v * .5, "bandpass", 1200, 4, .015); ping(d, t + .01, f, v * .25, .4); },
+  // stirring a mug of tea: spoon clinks round the rim
+  stir(d, t, f, v) { for (let k = 0; k < 3; k++) modal(d, t + k * .16, f * (1 + k * .02), v * (1 - k * .2), [1, 2.4], [1, .25], [.35, .15]); },
+  // the paper shredder chewing a page
+  shred(d, t, dur, v) {
+    const n = noiseSrc(t, dur + .1), bp = filt("bandpass", 1100, 1.5), am = A.ctx.createGain(), lfo = A.ctx.createOscillator(), lg = A.ctx.createGain();
+    am.gain.value = .6; lfo.type = "sawtooth"; lfo.frequency.value = 38; lg.gain.value = .4; lfo.connect(lg); lg.connect(am.gain); lfo.start(t); lfo.stop(t + dur + .1);
+    const g = susGain(t, .03, v, dur, .08); n.connect(bp); bp.connect(am); am.connect(g); g.connect(d);
+    tone(d, t, 92, dur, { type: "sawtooth", vel: v * .5, cutoff: 300, attack: .03, release: .08 });
+  },
+  // the hand dryer: a rising whoosh that holds, then winds down
+  dryer(d, t, dur, v) {
+    const n = noiseSrc(t, dur + .5), bp = filt("bandpass", 600, .8), g = susGain(t, .25, v, dur, .4);
+    bp.frequency.setValueAtTime(400, t); bp.frequency.exponentialRampToValueAtTime(1500, t + .3);
+    n.connect(bp); bp.connect(g); g.connect(d);
+    tone(d, t, 210, dur, { type: "triangle", vel: v * .25, cutoff: 700, attack: .25, release: .4 });
+  },
+  // an owl: two soft hoots, the second longer and a little lower
+  owl(d, t, f, v) {
+    [[0, .22, 1], [.42, .55, .94]].forEach(([dt, dur, k]) => {
+      const o = A.ctx.createOscillator(); o.type = "sine";
+      o.frequency.setValueAtTime(f * k * 1.04, t + dt); o.frequency.exponentialRampToValueAtTime(f * k, t + dt + .06);
+      const lp = filt("lowpass", 900, .7), g = susGain(t + dt, .05, v, dur, .18);
+      o.connect(lp); lp.connect(g); g.connect(d); o.start(t + dt); o.stop(t + dt + dur + .3);
+      burstN(d, t + dt, v * .08, "bandpass", 700, 2, dur * .7, .04);
+    });
+  },
+  // the wall clock: tick, and a slightly lower tock
+  tick(d, t, v, lowK = 1) { burstN(d, t, v, "bandpass", 3800 * lowK, 6, .012); ping(d, t, 2400 * lowK, v * .25, .015, "triangle"); },
+  // microwave: a hum that runs, then the ding
+  microwave(d, t, dur, f, v) {
+    tone(d, t, 118, dur, { type: "sawtooth", vel: v * .35, cutoff: 260, attack: .05, release: .1 });
+    burstN(d, t, v * .1, "lowpass", 400, .7, dur, .05);
+    modal(d, t + dur + .05, f, v, [1, 2.76, 5.4], [1, .4, .15], [1.4, .5, .25]);
+  },
+  // a cricket: three fast chirps on one high note
+  cricket(d, t, f, v) { for (let k = 0; k < 3; k++) { ping(d, t + k * .045, f, v, .03); ping(d, t + k * .045, f * 1.5, v * .2, .02); } },
+  // the vending machine: a coil whirr, then the can thudding into the tray
+  vend(d, t, v) {
+    burstN(d, t, v * .25, "bandpass", 1600, 3, .25, .05);
+    const o = ping(d, t + .32, 110, v * .9, .2); o.frequency.setValueAtTime(130, t + .32); o.frequency.exponentialRampToValueAtTime(55, t + .45);
+    burstN(d, t + .32, v * .6, "lowpass", 500, .8, .12);
+    burstN(d, t + .36, v * .25, "bandpass", 2400, 6, .2);
+  },
+  // a wind chime by the open window
+  chime(d, t, f, v) { modal(d, t, f, v, [1, 2.76, 5.4], [1, .3, .12], [2.4, 1, .5]); },
+  // the fridge hum: a low drone on the root
+  fridge(d, t, f, dur, v) {
+    tone(d, t, f, dur, { type: "sawtooth", vel: v, cutoff: 220, attack: dur * .3, release: .4 });
+    tone(d, t, f * 2, dur, { type: "sine", vel: v * .25, attack: dur * .3, release: .4 });
+  },
+  // rain on the window: a hiss that swells and a few drops
+  rain(d, t, dur, v) {
+    const n = noiseSrc(t, dur + .4), bp = filt("bandpass", 2600, .6), hp = filt("highpass", 900, .5), g = susGain(t, dur * .4, v, dur * .7, .4);
+    n.connect(hp); hp.connect(bp); bp.connect(g); g.connect(d);
+    for (let k = 0; k < 5; k++) burstN(d, t + Math.random() * dur, v * 1.4, "bandpass", 3000 + Math.random() * 3000, 8, .01);
+  },
+};
+// one night sound per role, for the musical grid (s = step in the bar) and as a one-off for ambient
+const NIGHT = {
+  phone:    { step: (m, s, c) => s === 0 && c.bar % 2 === 0, one: (m, t, c) => NSND.buzz(m.out, t, mtof(c.chord[0] + 24), .3), gap: [18, 35] },
+  cough:    { step: (m, s, c) => s === 8 && c.bar % 2 === 1, one: (m, t) => NSND.zip(m.out, t, .3), gap: [12, 25] },
+  coffee:   { step: (m, s, c) => s === 0 && c.bar === 1, one: (m, t, c) => NSND.microwave(m.out, t, c.barLen ? c.barLen * .9 : 2.4, mtof(c.chord[2] + 24), .3), gap: [40, 70] },
+  typing:   { step: (m, s) => [0, 3, 7, 10].includes(s) && Math.random() > .25, one: (m, t) => { for (let k = 0; k < 4; k++) SND.key(m.out, t + k * rand(.18, .35), .18); }, gap: [4, 10] },
+  clicking: { step: (m, s, c) => s === 4 && c.bar % 2 === 0, one: (m, t, c) => NSND.lamp(m.out, t, mtof(pick(c.chord, Math.random) + 36), .3), gap: [10, 20] },
+  stamp:    { step: (m, s, c) => s === 8 && c.bar === 3, one: (m, t) => NSND.vend(m.out, t, .5), gap: [30, 55] },
+  glass:    { step: (m, s) => [0, 6, 11].includes(s), one: (m, t, c) => NSND.stir(m.out, t, mtof(pick(c.chord, Math.random) + 24), .14), gap: [4, 9] },
+  copier:   { step: (m, s, c) => s === 0 && c.bar % 2 === 0, one: (m, t, c) => NSND.shred(m.out, t, c.barLen ? c.barLen * .4 : 1.2, .16), gap: [15, 30] },
+  flush:    { step: (m, s, c) => s === 0 && c.bar === 2, one: (m, t, c) => NSND.dryer(m.out, t, c.barLen ? c.barLen * .8 : 2.5, .16), gap: [45, 80] },
+};
+// three people make their own night sound, whatever their daytime role
+NSND.marker = (d, t, f, v) => {
+  const o = A.ctx.createOscillator(); o.type = "triangle"; o.frequency.setValueAtTime(f, t); o.frequency.linearRampToValueAtTime(f * 1.06, t + .12);
+  const g2 = envGain(t, .01, v * .35, .12); o.connect(g2); g2.connect(d); o.start(t); o.stop(t + .2);
+  burstN(d, t, v * .2, "bandpass", 3000, 4, .12);
+  burstN(d, t + .3, v * .5, "lowpass", 600, .7, .04);                   // the sticky note patted onto the glass
+};
+NSND.page = (d, t, v) => { const n = noiseSrc(t, .3), bp = filt("bandpass", 1800, .8), g2 = envGain(t, .03, v, .18); bp.frequency.setValueAtTime(900, t); bp.frequency.exponentialRampToValueAtTime(3800, t + .16); n.connect(bp); bp.connect(g2); g2.connect(d); };
+const NIGHT_BY_NAME = {
+  Krtin:   { step: (m, s) => [3, 7, 11, 14].includes(s), one: (m, t) => SND.pen(m.out, t, .45), gap: [2, 5] },
+  Sathvik: { step: (m, s, c) => s === 4 && c.bar % 2 === 0, one: (m, t, c) => NSND.marker(m.out, t, mtof(pick(c.chord, Math.random) + 36), .3), gap: [8, 16] },
+  Avani:   { step: (m, s, c) => s === 12 && c.bar % 2 === 1, one: (m, t) => NSND.page(m.out, t, .22), gap: [6, 12] },
+};
+const nightFor = m => NIGHT_BY_NAME[m.name] || NIGHT[m.role];
+const NIGHT_NAMES = { phone: "a phone buzzing", cough: "a bag zipped shut", coffee: "the microwave", typing: "slow late-night typing", clicking: "the desk lamp", stamp: "the vending machine", glass: "a spoon stirring tea", copier: "the shredder", flush: "the hand dryer" };
+// the windows you can click: [wall, from, to, bottom, top]
+const WINDOWS = [["x", 14, 54, 22, 52], ["x", 150, 196, 22, 54]];
+// the window under a point, if there is one
+function windowAt(p) {
+  return WINDOWS.find(([w, a, b, z0, z1]) => { const pts = w === "x" ? quadX(.2, a, b, z0, z1) : quadY(.2, a, b, z0, z1); const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]); return p.x >= Math.min(...xs) && p.x <= Math.max(...xs) && p.y >= Math.min(...ys) && p.y <= Math.max(...ys); });
+}
+A.night = false; let nightK = 0;
+let rainUntil = 0;
+/* Night spots: where each person goes when night falls. stay keeps them at their desk with a new action;
+   fromDesk puts them beside their own desk; otherwise x, y, the way they face and whether they sit. */
+const NIGHT_PLAN = {
+  Tavish:   { x: 12, y: 162, f: "E", seated: true, act: "phone" },
+  Rhea:     { fromDesk: true, u: -21, v: -12, act: "zip" },
+  Sathvik:  { x: 69.5, y: 40, f: "W", act: "marker" },
+  Krtin:    { x: 42, y: 30, f: "S", seated: true, act: "pen", depth: 50 },
+  Asawari:  { stay: true, act: "lamp" },
+  Shreyas:  { x: 222, y: 132, f: "E", act: "floorlamp" },
+  Shriram:  { x: 212, y: 76, f: "N", act: "vend" },
+  Ashmita:  { x: 205, y: 84, f: "N", act: "queue" },
+  Ruhani:   { x: 149, y: 30, f: "E", seated: true, act: "stir", depth: 191 },
+  Trayi:    { x: 74.5, y: 27, f: "N", act: "shred" },
+  Avani:    { x: 50.5, y: 168, f: "W", seated: true, act: "magazine" },
+};
+function nightSpot(m) {
+  const p = NIGHT_PLAN[m.name];
+  if (!p || p.stay) return null;
+  if (p.fromDesk) { const st = SEATS[m.desk], [x, y] = st.L(p.u, p.v); return { kind: "spot", x, y, f: st.f, seated: false, place: p.act }; }
+  return { kind: "spot", x: p.x, y: p.y, f: p.f, seated: !!p.seated, place: p.act, depth: p.depth };
+}
+const daySpot = m => { const st = SEATS[m.desk]; return { kind: "spot", x: st.x, y: st.y, f: st.f, seated: st.seated, place: st.place }; };
+// walking between day and night spots: a straight stroll, facing the way they go
+function startWalks(on) {
+  const now = performance.now();
+  members.forEach((m, k) => {
+    const from = m.walk ? m.walk.cur : on ? daySpot(m) : nightSpot(m), to = on ? nightSpot(m) : daySpot(m);
+    if (!from || !to || (!on && !nightSpot(m))) { m.walk = null; m.away = on && !!nightSpot(m); return; }
+    walkTo(m, from, to, now + (k % 5) * 160, on);
+  });
+}
+function walkTo(m, from, to, t0, toNight) { m.away = true; m.walk = { from, to, t0, dur: 900 + Math.hypot(to.x - from.x, to.y - from.y) * 14, toNight, cur: from }; }
+function whereIs(m, now) {
+  if (m.walk) {
+    const w = m.walk, k = clamp01((now - w.t0) / w.dur);
+    if (k >= 1) { m.walk = null; m.away = w.toNight; return m.away ? w.to : null; }
+    if (k <= 0) { w.cur = w.from; return w.from; }
+    const e = smooth(k), dx = w.to.x - w.from.x, dy = w.to.y - w.from.y;
+    const f = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "E" : "W") : (dy > 0 ? "S" : "N");
+    return w.cur = { kind: "spot", x: w.from.x + dx * e, y: w.from.y + dy * e, f, seated: false, place: "walk" };
+  }
+  return m.away ? nightSpot(m) : null;
+}
+const posOf = m => m.at ? iso(...m.at) : [SEATS[m.desk].sx, SEATS[m.desk].sy];
+// stereo position follows where they are headed
+function panTo(m, fade = .8) {
+  const pan = m.nodes && m.nodes[0], spot = A.night && nightSpot(m), sx = spot ? iso(spot.x, spot.y)[0] : SEATS[m.desk].sx;
+  if (pan && pan.pan) pan.pan.setTargetAtTime(Math.max(-1, Math.min(1, (sx - LW / 2) / (LW / 2) * (A.mode === "ambient" ? .95 : .7))), A.ctx.currentTime, fade);
+}
+function setNight(on) {
+  A.night = on;
+  document.body.classList.toggle("night", on);
+  startWalks(on);
+  members.forEach(m => { m.amb = null; if (A.ctx) panTo(m, 1.5); });
+  toast(on ? "Night falls. The office hums a different tune." : "Morning. Back to the day shift.");
+}
+// draw the night over the finished frame: a deep blue wash, night windows, and warm pools of light
+const STARS = [...Array(26)].map((_, i) => [(i * 37) % 100 / 100, (i * 53 % 100) / 100, .3 + (i % 3) * .2]);
+// five looks for the night, chosen with ?night=1..5 (1 by default)
+const NIGHT_STYLES = [
+  { name: "Lamplight", wash: "#3b4775", page: "#3b4775", pool: "255,196,110", poolA: .42, fixtures: "pendant", screen: .25 },
+  { name: "Neon", wash: "#2a2550", page: "#2a2550", pool: "255,90,200", poolA: .32, fixtures: "neon", screen: .55 },
+  { name: "Moonlit", wash: "#55628c", page: "#55628c", pool: "200,220,255", poolA: .2, fixtures: "moon", screen: .3 },
+  { name: "Cosy", wash: "#5a4a6e", page: "#5a4a6e", pool: "255,170,90", poolA: .5, fixtures: "string", screen: .2 },
+  { name: "Blackout", wash: "#1f2440", page: "#1f2440", pool: "255,214,150", poolA: .6, fixtures: "desklamp", screen: .35 },
+];
+let NS = NIGHT_STYLES[Math.max(0, Math.min(4, (+new URLSearchParams(location.search).get("night") || 3) - 1))];
+function setNightStyle(k) { NS = NIGHT_STYLES[k]; document.documentElement.style.setProperty("--night-page", NS.page); }
+setNightStyle(NIGHT_STYLES.indexOf(NS));
+// a soft elliptical pool of light on the floor
+function pool(x, y, z, r, rgb, a) {
+  const q = iso(x, y, z), gr = g.createRadialGradient(q[0], q[1], 0, q[0], q[1], r);
+  gr.addColorStop(0, `rgba(${rgb},${a})`); gr.addColorStop(1, `rgba(${rgb},0)`);
+  g.fillStyle = gr; g.beginPath(); g.ellipse(q[0], q[1], r, r * .6, 0, 0, 7); g.fill();
+}
+// the fixed lights in the room, drawn on top of the night wash
+const PENDANTS = [[108, 106], [180, 106], [150, 172], [32, 44], [150, 30], [222, 30]];
+function fixtures(now, k) {
+  const f = NS.fixtures;
+  if (f === "pendant") {
+    PENDANTS.forEach(([x, y]) => {
+      g.globalCompositeOperation = "source-over";
+      seg(g, iso(x, y, WH), iso(x, y, 46), "#2b2b2e", .4);
+      const a = iso(x - 3, y + 3, 46), b2 = iso(x + 3, y - 3, 46), c2 = iso(x, y, 50);
+      g.beginPath(); g.moveTo(...a); g.lineTo(...c2); g.lineTo(...b2); g.closePath(); g.fillStyle = "#2b2b2e"; g.fill();
+      g.globalCompositeOperation = "lighter"; pool(x, y, 46, 6, "255,230,170", .9); pool(x, y, 0, 40, "255,200,120", .28);
+    });
+  } else if (f === "neon") {
+    g.globalCompositeOperation = "lighter";
+    [[[0, 30, 40], [0, 140, 40], "255,60,190"], [[60, 0, 58], [200, 0, 58], "60,220,255"], [[240, 10, 30], [240, 140, 30], "255,60,190"]].forEach(([p0, p1, rgb]) => {
+      for (let w = 3; w >= 1; w--) { seg(g, iso(...p0), iso(...p1), `rgba(${rgb},${.25 + (3 - w) * .3})`, w * 1.2); }
+    });
+    pool(120, 120, 0, 120, "120,80,255", .12);
+  } else if (f === "moon") {
+    g.globalCompositeOperation = "lighter";
+    WINDOWS.forEach(([w, a2, b3, z0, z1]) => {
+      const mid = (a2 + b3) / 2, pts = [iso(0, a2, z1), iso(0, b3, z1), iso(60, b3 + 30, 0), iso(60, a2 + 30, 0)];
+      g.beginPath(); pts.forEach((q, i) => i ? g.lineTo(...q) : g.moveTo(...q)); g.closePath();
+      const q0 = iso(0, mid, z1), q1 = iso(60, mid + 30, 0), gr = g.createLinearGradient(q0[0], q0[1], q1[0], q1[1]);
+      gr.addColorStop(0, "rgba(200,220,255,.28)"); gr.addColorStop(1, "rgba(200,220,255,.04)"); g.fillStyle = gr; g.fill();
+    });
+  } else if (f === "string") {
+    g.globalCompositeOperation = "source-over";
+    const runs = [[[0, 4, 66], [0, 206, 62]], [[4, 0, 66], [236, 0, 62]]];
+    runs.forEach(([p0, p1]) => {
+      const n = 26; g.strokeStyle = "#2b2b2e"; g.lineWidth = .3; g.beginPath();
+      for (let i = 0; i <= n; i++) { const t2 = i / n, q = iso(p0[0] + (p1[0] - p0[0]) * t2, p0[1] + (p1[1] - p0[1]) * t2, p0[2] + (p1[2] - p0[2]) * t2 - Math.sin(t2 * Math.PI * 6) ** 2 * 3); i ? g.lineTo(...q) : g.moveTo(...q); }
+      g.stroke();
+      g.globalCompositeOperation = "lighter";
+      for (let i = 0; i <= n; i++) { const t2 = i / n, q = iso(p0[0] + (p1[0] - p0[0]) * t2, p0[1] + (p1[1] - p0[1]) * t2, p0[2] + (p1[2] - p0[2]) * t2 - Math.sin(t2 * Math.PI * 6) ** 2 * 3), tw = .6 + .4 * Math.sin(now / 300 + i); const gr = g.createRadialGradient(q[0], q[1], 0, q[0], q[1], 3); gr.addColorStop(0, `rgba(255,214,140,${tw})`); gr.addColorStop(1, "rgba(255,214,140,0)"); g.fillStyle = gr; g.fillRect(q[0] - 3, q[1] - 3, 6, 6); }
+      g.globalCompositeOperation = "source-over";
+    });
+  } else if (f === "desklamp") {
+    // little lamps on every desk, lit or not
+    SEATS.forEach((st, i) => {
+      if (st.kind !== "desk") return;
+      const [x, y] = st.L(-12, 4), on = members.some(m => m.desk === i);
+      g.globalCompositeOperation = "source-over";
+      seg(g, iso(x, y, 15.6), iso(x, y, 21), "#2b2b2e", .5); seg(g, iso(x, y, 21), iso(...st.L(-9, 1, 22)), "#2b2b2e", .5);
+      const h = iso(...st.L(-9, 1, 22)); g.beginPath(); g.ellipse(h[0], h[1] + .6, 1.8, 1, 0, 0, 7); g.fillStyle = on ? "#ffd27a" : "#3a3a3c"; g.fill();
+      if (on) { g.globalCompositeOperation = "lighter"; const [cx, cy] = st.L(-6, -2); pool(cx, cy, 15.6, 16, "255,214,150", .55); }
+    });
+  }
+}
+function drawNight(now) {
+  nightK += ((A.night ? 1 : 0) - nightK) * .06;
+  if (nightK < .01) return;
+  g.save();
+  g.globalCompositeOperation = "multiply"; g.globalAlpha = nightK;
+  g.fillStyle = NS.wash; g.fillRect(0, 0, LW, LH);
+  g.globalCompositeOperation = "source-over"; g.globalAlpha = nightK;
+  // the windows: a night sky with a moon and stars
+  WINDOWS.forEach(([w, a, b, z0, z1], wi) => {
+    const pts = w === "x" ? quadX(.25, a + 1, b - 1, z0 + 1, z1 - 1) : quadY(.25, a + 1, b - 1, z0 + 1, z1 - 1);
+    poly(g, pts, "#1b2340", null);
+    const at = (u, v) => w === "x" ? iso(.3, a + 1 + u * (b - a - 2), z1 - 1 - v * (z1 - z0 - 2)) : iso(a + 1 + u * (b - a - 2), .3, z1 - 1 - v * (z1 - z0 - 2));
+    STARS.forEach(([u, v, r], k) => { const q = at(u, v), tw = .6 + .4 * Math.sin(now / 500 + k); g.fillStyle = `rgba(255,248,220,${tw})`; g.fillRect(q[0], q[1], r, r); });
+    if (wi === 1) { const q = at(.7, .28); g.beginPath(); g.arc(q[0], q[1], 3.2, 0, 7); g.fillStyle = "#fff4cf"; g.fill(); g.beginPath(); g.arc(q[0] + 1.3, q[1] - .8, 2.8, 0, 7); g.fillStyle = "#1b2340"; g.fill(); }
+    if (false) { g.strokeStyle = "rgba(190,215,255,.7)"; g.lineWidth = .35; for (let k = 0; k < 18; k++) { const u = ((k * 37 + Math.floor(now / 90) * 13) % 100) / 100, v = ((now / 9 + k * 23) % 100) / 100; const q = at(u, v); g.beginPath(); g.moveTo(q[0], q[1]); g.lineTo(q[0] - .4, q[1] + 2.2); g.stroke(); } }
+    seg(g, ...(w === "x" ? [iso(.3, (a + b) / 2, z0 + 2), iso(.3, (a + b) / 2, z1 - 2)] : [iso((a + b) / 2, .3, z0 + 2), iso((a + b) / 2, .3, z1 - 2)]), "#3a3a3c", .4);
+  });
+  fixtures(now, nightK);
+  // light around everyone who is in, flickering on their sound
+  g.globalCompositeOperation = "lighter";
+  members.forEach(m => {
+    const st = SEATS[m.desk], [x, y] = m.at || (st.kind === "desk" ? [st.cx, st.cy] : [st.x, st.y]);
+    pool(x, y, 15, 24 + (m.pulse || 0) * 6, NS.pool, NS.poolA);
+  });
+  // the wall screen glows
+  pool(83, 0, 40, 30, "120,220,190", NS.screen);
+  g.restore();
 }
 
 /* ---------- Office geometry: an architect's axonometric ----------
@@ -1283,19 +1565,73 @@ SEATS.forEach(s => {
   }
 });
 const DESK_COUNT = LAYOUT.desks.length;
+// a vending machine by the washroom, a shredder by the copier and a reading lamp: where people drift at night
+const NIGHT_FURNITURE = [
+  { depth: 280, draw: () => drawVending(g) },
+  { depth: 92, draw: () => drawShredder(g) },
+  { depth: 356, draw: () => floorLamp(g, 227.5, 128) },
+];
+function drawVending(c) {
+  box(c, 207, 61, 0, 219, 69, 34, { top: "#ffffff", left: "#2c3a66", right: "#22305a" }, .4);
+  poly(c, quadY(69.05, 208.5, 215, 9, 31), "#cfe6f5", INK_LINE, .35);                                   // the glass front
+  const cols = [PAL.coral, PAL.yellow, PAL.mint, PAL.sky, PAL.coralLight];
+  for (let r = 0; r < 4; r++) for (let k = 0; k < 4; k++) poly(c, quadY(69.1, 209.2 + k * 1.5, 210.3 + k * 1.5, 26 - r * 4.6, 28.6 - r * 4.6), cols[(r + k) % 5], null);
+  poly(c, quadY(69.05, 216, 218, 20, 28), "#22305a", INK_LINE, .3);                                       // the keypad
+  for (let k = 0; k < 3; k++) seg(c, iso(216.4, 69.1, 26.5 - k * 2), iso(217.6, 69.1, 26.5 - k * 2), "#9fe3c8", .5);
+  poly(c, quadY(69.05, 209, 215, 3, 6.5), "#1b2340", INK_LINE, .3);                                      // the drop tray
+}
+function drawShredder(c) {
+  box(c, 72, 15, 0, 77, 20, 11, { top: "#3a3a3c", left: "#d8d8d6", right: "#c9c9c6" }, .35);
+  seg(c, iso(73, 17.5, 11.05), iso(76, 17.5, 11.05), "#9a9a9c", .6);
+  ellipseFloor(c, 76.2, 15.8, .35, 11.06, "#9fe3c8", null);
+}
+function floorLamp(c, x, y) {
+  ellipseFloor(c, x, y, 2.2, 0, "#2b2b2e");
+  const top = [x - .4, y + 2.6, 32];
+  seg(c, iso(x, y, 0), iso(x, y, 30), INK_LINE, .7); seg(c, iso(x, y, 30), iso(...top), INK_LINE, .7);
+  const sh = (z, r) => [iso(top[0] - r, top[1] + r, z), iso(top[0] + r, top[1] - r, z)];
+  const [a, b] = sh(32.2, 1.4), [d, e] = sh(29.4, 2.8);
+  poly(c, [a, b, e, d], PAL.yellow, INK_LINE, .35);
+}
 // everything that is drawn in depth order: seats (desk or spot, with their person) and plants
 const DRAW_ORDER = [
   ...SEATS.map((s, i) => ({ depth: s.depth, seat: i })),
   ...LAYOUT.plants.map(([x, y, ...rest]) => ({ depth: x + y, plant: [x, y, ...rest] })),
   { depth: 420, draw: () => wallShelf(...LAYOUT.wallShelf) },
-  ...[["meet", 51], ["washX", 210], ["washY", 300]].map(([k, depth]) => ({ depth, draw: () => { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(GLASS[k].cv, 0, 0); g.restore(); } })),
+  ...[["meet", 51], ["washX", 210], ["washY", 270]].map(([k, depth]) => ({ depth, draw: () => { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(GLASS[k].cv, 0, 0); g.restore(); } })),
   { depth: 86, draw: () => drawCopier(g) },
   { depth: 104, draw: () => drawCooler(g) },
   { depth: 220, draw: () => drawSink(g) },   // in front of the washroom's glass wall, behind whoever washes up
   // the kitchen's round table and its two stools, clear of the coffee machine
   { depth: 179, draw: () => stool(149, 30) }, { depth: 190, draw: () => kitchenTable(160, 30) }, { depth: 201, draw: () => stool(171, 30) },
   ...LAYOUT.beanbags.map(([x, y, col]) => ({ depth: x + y, draw: () => beanbag(x, y, PAL[col]) })),
+  ...NIGHT_FURNITURE,
 ].sort((a, b) => a.depth - b.depth);
+
+// people away from their seats: drawn where they are, in depth order with the room
+function awayItems(now) {
+  const out = [];
+  for (const m of members) {
+    m.at = null;
+    if (!m.away && !m.walk) continue;
+    const spot = whereIs(m, now);
+    if (!spot) continue;
+    m.at = [spot.x, spot.y];
+    const F = figure(m, spot, pose(m, spot, clockFor(m, now))), anchor = iso(spot.x, spot.y, 0), plan = spot.place === "walk" ? {} : NIGHT_PLAN[m.name] || {};
+    const lower = () => crayon(anchor, c => drawLower(c, F)), upper = () => { crayon(anchor, c => drawUpper(c, F)); drawHeld(F); };
+    const shadow = () => !spot.seated && shadowAt(spot.x, spot.y, 5);
+    const depth = spot.depth || spot.x + spot.y;
+    if (plan.act === "stir") { out.push({ depth: 185, draw: () => lower() }, { depth: 191, draw: upper }); continue; }
+    out.push({ depth, draw: () => {
+      shadow(); lower();
+      if (plan.act === "pen") meetingTableTop();
+      upper();
+      if (plan.act === "pen") plant(g, 32, 44, 16, .5, "succulent", "white");
+      if (plan.act === "magazine") armchairFront(g, 44, 160);
+    } });
+  }
+  return out;
+}
 
 /* ---------- Role icons (5 x 5) ---------- */
 const ICONS = {
@@ -1522,6 +1858,7 @@ function callIn(seat) {
   if (!CAST[seat] || members.some(m => m.desk === seat)) return null;
   const c = CAST[seat], m = makeMember(c.role, seat, c.name, c.seed, c.variant);
   members.push(m);
+  if (A.night && nightSpot(m)) walkTo(m, daySpot(m), nightSpot(m), performance.now() + 700, true);   // arriving after dark: sit down, then wander off
   ensureNodes(m);
   render();
   if (members.length === CAST_SIZE) celebrate();
@@ -1530,7 +1867,7 @@ function callIn(seat) {
 function fire(m) {
   members = members.filter(o => o !== m);
   releaseNodes(m);
-  burst(SEATS[m.desk].sx, SEATS[m.desk].sy - 20, ROLES[m.role].color, 12);
+  const [bx, by] = posOf(m); burst(bx, by - 20, ROLES[m.role].color, 12);
   render();
 }
 
@@ -2024,7 +2361,8 @@ function pose(m, seat, T) {
   const deskZ = 16.5;
   const ownDesk = !standing && place === "desk";
   // the role decides the action; a desk-bound copy of a room role gets a simple desk version
-  const act = place === "desk" ? ({ coffee: "sip", copier: "typing", flush: "scroll", glass: "glassDesk" }[m.role] || m.role) : place;
+  const stayAct = A.night && place === "desk" && NIGHT_PLAN[m.name] && NIGHT_PLAN[m.name].stay ? NIGHT_PLAN[m.name].act : null;
+  const act = stayAct || (place === "desk" ? ({ coffee: "sip", copier: "typing", flush: "scroll", glass: "glassDesk" }[m.role] || m.role) : place);
   if (act === "typing") {
     const side = m.hits % 2 ? 1 : -1, tap = Math.max(soon, Math.exp(-hit * 18));
     R = [11.2 + Math.sin(t * .9 + idle) * .3, -2.6 + Math.sin(t * .6) * .4, deskZ + .3 - (side < 0 ? tap * .45 : 0)];
@@ -2118,6 +2456,46 @@ function pose(m, seat, T) {
     L = [8.2, 1.1 - Math.sin(w) * .55, 23.6 - Math.cos(w) * .3];
     const look = Math.max(soon, back);
     lean = .2; nod = .25 - look * .15; turn = look * .5;
+  } else if (act === "walk") {
+    const sw = Math.sin(t * 9);
+    R = [sw * 1.6, -3.6, 13]; L = [-sw * 1.6, 3.6, 13]; lean = .06;
+  } else if (act === "zip") {
+    // zipping up a bag held in front, then hoisting it
+    const pull = Math.max(strike, back);
+    L = [5, 1.6, 15.5]; R = [5 - pull * .3, -1 - pull * 2.4, 16 + pull * .4];
+    props.push({ kind: "bag", hand: "L" }); nod = .3;
+  } else if (act === "marker") {
+    // writing on a sticky note stuck to the glass
+    const w = t * 3;
+    R = [4.4, -1 + Math.sin(w) * .5, 27.5 + Math.cos(w * 1.3) * .4 - back * .8]; L = [4.4, 1.6, 27.4];
+    props.push({ kind: "note", hand: "L" }, { kind: "markerPen", hand: "R" }); nod = -.05;
+  } else if (act === "pen") {
+    const click = Math.max(strike, back);
+    R = [8, -1.6, 16.6 - click * .4]; L = [7.6, 2.4, 16.1];
+    props.push({ kind: "penStick", hand: "R" }); lean = .02; nod = .1;
+  } else if (act === "lamp") {
+    const reach = follow(an, "lamp", soon > 0 || hit < .9 ? 1 : 0, t, .12);
+    R = v3.mix([10.4, -3, deskZ - .1], [12.4, -9, 21.5], reach); L = [10.6, 3, deskZ - .1]; turn = -.15 * reach;
+    props.push({ kind: "deskLamp", at: [13.6, -10.4, 15.6] });
+  } else if (act === "floorlamp") {
+    const reach = follow(an, "fl", soon > 0 || hit < .9 ? 1 : 0, t, .12);
+    R = v3.mix([2, -3.4, 14], [4.6, -1.6, 30.5], reach); L = [3.6, 2, 22.5];
+    props.push({ kind: "book", hand: "L" }); nod = -.05;
+  } else if (act === "vend") {
+    const press = Math.max(strike, back);
+    R = [5.6 + press * .4, -1.4, 24 - press * .3]; L = [1.4, 3.4, 13]; nod = .12;
+  } else if (act === "stir") {
+    const w = t * 6;
+    R = [6.4 + Math.cos(w) * .4, -.6 + Math.sin(w) * .4, 21.2]; L = [6.2, 2.2, 20.5];
+    props.push({ kind: "teaMug", hand: "R" }); nod = .18;
+  } else if (act === "shred") {
+    const feed = Math.max(strike, back);
+    R = [5, -1, 14.2 + (1 - feed) * 2.6]; L = [3.4, 2.4, 15];
+    props.push({ kind: "sheet", hand: "R" }); nod = .3;
+  } else if (act === "magazine") {
+    const flip = Math.max(strike, back);
+    R = [6.4, -1.8 + flip * 1.4, 15.6 + flip]; L = [6.4, 1.8, 15.6];
+    props.push({ kind: "magazine", flip }); nod = .3; lean = -.04;
   } else if (act === "beanbag") {
     // sunk into the beanbag, typing on a laptop resting on the knees
     const side = m.hits % 2 ? 1 : -1, tap = Math.max(soon, Math.exp(-hit * 18));
@@ -2138,6 +2516,16 @@ function pose(m, seat, T) {
   }
 
   if (T.talk) { mouth = Math.sin(t * 19 + idle) > -.2 ? "open" : "smile"; nod += Math.sin(t * 5) * .03; }
+  // at night everyone stretches now and then: arms up over the head, leaning back, a big yawn
+  if (A.night) {
+    const ph = ((t + idle * 2.3) % 11) / 11, st = ph < .3 ? Math.sin(Math.PI * ph / .3) : 0, k = smooth(st);
+    if (k > .01) {
+      const top = hip[2] + 12.4 + 7.5;
+      R = v3.mix(R, [.6, -2.4, top], k); L = v3.mix(L, [.6, 2.4, top], k);
+      lean -= .2 * k; nod -= .3 * k; headR = headL = null;
+      if (st > .45) mouth = "open";
+    }
+  }
   // torso and head; breathing lifts the chest a little
   const breath = Math.sin(t * 1.7 + idle) * .1, torso = 12.4;
   const neck = v3.add(hip, [Math.sin(lean) * torso, 0, Math.cos(lean) * torso + breath]);
@@ -2165,6 +2553,7 @@ function pose(m, seat, T) {
   }
   let toeR = v3.add(anR, [2.6, 0, 0]), toeL = v3.add(anL, [2.6, 0, 0]);
   if (act === "queue") toeR = v3.add(toeR, [0, 0, 1.2 * Math.max(strike, back)]);   // tapping a foot while waiting
+  if (act === "walk") { const sw = Math.sin(t * 9) * 2.2; knR = v3.add(knR, [sw, 0, 0]); anR = v3.add(anR, [sw * 1.4, 0, Math.max(0, sw) * .5]); knL = v3.add(knL, [-sw, 0, 0]); anL = v3.add(anL, [-sw * 1.4, 0, Math.max(0, -sw) * .5]); toeR = v3.add(anR, [2.6, 0, 0]); toeL = v3.add(anL, [2.6, 0, 0]); }
   return { hip, neck, head, shR, shL, elR, elL, hR, hL, hipR, hipL, knR, knL, anR, anL, toeR, toeL, mouth, props, act };
 }
 
@@ -2297,6 +2686,18 @@ function drawHeld(F) {
       box(g, x0, y0, z0, x1, y1, z0 + 5.6, { top: "#ffffff", left: "#ffffff", right: "#f3f3f1" }, .35);
       for (let k = 1; k < 4; k++) seg(g, iso(x1 + .02, y0, z0 + 5.6 - k * .35), iso(x1 + .02, y1, z0 + 5.6 - k * .35), "#c9c9c6", .25);
     }
+    else if (pr.kind === "bag") box(g, h[0] - 1.8, h[1] - 1.8, h[2] - 5, h[0] + 1.8, h[1] + 1.8, h[2] - .4, { top: shade(PAL.cobalt, 1.15), left: PAL.cobalt, right: shade(PAL.cobalt, .82) }, .35);
+    else if (pr.kind === "note") { const sq = (y, z, c) => poly(g, quadX(64.4, y - 1.3, y + 1.3, z - 1.3, z + 1.3), c, INK_LINE, .25); sq(37, 31, PAL.coralLight); sq(43.5, 29.5, PAL.mint); sq(h[1], h[2], PAL.yellow); }
+    else if (pr.kind === "markerPen") { const tip = W(v3.add(F.P.hR, [1.6, 0, .6])); seg(g, iso(...h), iso(...tip), "#2b2b2e", .9); }
+    else if (pr.kind === "penStick") { seg(g, iso(...h), iso(...v3.add(h, [0, 0, 2.4])), PAL.cobalt, .8); }
+    else if (pr.kind === "book") box(g, h[0] - 1.4, h[1] - 1.4, h[2] - 3.6, h[0] + 1.4, h[1] + 1.4, h[2] + .2, { top: "#ffffff", left: PAL.coral, right: shade(PAL.coral, .85) }, .3);
+    else if (pr.kind === "teaMug") cupAt(v3.add(h, [0, 0, -1.2]), 1.1, 2.3, PAL.mint);
+    else if (pr.kind === "sheet") poly(g, [iso(h[0] - 1.8, h[1], h[2]), iso(h[0] + 1.8, h[1], h[2]), iso(h[0] + 1.8, h[1] + .3, h[2] - 4.6), iso(h[0] - 1.8, h[1] + .3, h[2] - 4.6)], "#ffffff", INK_LINE, .3);
+    else if (pr.kind === "magazine") {
+      poly(g, [[6.2, -2.6, 15.1], [6.2, 2.6, 15.1], [8, 2.6, 18.3], [8, -2.6, 18.3]].map(p => iso(...W(p))), "#ffffff", INK_LINE, .35);
+      seg(g, iso(...W([6.2, 0, 15.1])), iso(...W([8, 0, 18.3])), PAL.coral, .5);
+      poly(g, [[6.2, -.1, 15.1], [6.2, -2.6 + pr.flip * 2.5, 15.1 + pr.flip * 1.2], [8, -2.6 + pr.flip * 2.5, 18.3 + pr.flip * 1.2], [8, -.1, 18.3]].map(p => iso(...W(p))), PAL.coralLight, INK_LINE, .3);
+    }
     else if (pr.kind === "mobile") { const p = iso(...v3.mix(Wd.hR, Wd.hL, .5)); g.fillStyle = "#2b2b2e"; g.fillRect(p[0] - .9, p[1] - 1.6, 1.8, 2.6); g.fillStyle = PAL.sky; g.fillRect(p[0] - .6, p[1] - 1.3, 1.2, 1.9); }
   }
 }
@@ -2322,9 +2723,9 @@ function clockFor(m, now) {
 
 // one seat with its person: the order depends on whether the chair is in front of or behind the desk
 function drawSeat(i, now) {
-  const s = SEATS[i], m = members.find(o => o.desk === i);
+  const s = SEATS[i], m = members.find(o => o.desk === i), here = m && !m.away;
   const col = m ? shade(ROLES[m.role].color, 1.3) : null, lit = m && m.pulse > .35;
-  const F = m ? figure(m, s, pose(m, s, clockFor(m, now))) : null;
+  const F = here ? figure(m, s, pose(m, s, clockFor(m, now))) : null;
   const anchor = iso(s.x, s.y, 0);
   const lower = () => F && crayon(anchor, c => drawLower(c, F));
   const upper = () => { if (!F) return; crayon(anchor, c => drawUpper(c, F)); drawHeld(F); };
@@ -2337,15 +2738,15 @@ function drawSeat(i, now) {
       seg(g, iso(cx, cy, 2), iso(cx, cy, 9), INK_LINE, .8);
       lbox(g, L, -4, -19, 9, 4, -11, 10.6, { top: seatCol, left: side, right: side });
     };
-    const backrest = () => lbox(g, L, -4, -20.5, 10, 4, -19.5, m ? 19 : 21, { top: seatCol, left: seatCol, right: side });
-    if (m) shadowAt(cx, cy, 6);
+    const backrest = () => lbox(g, L, -4, -20.5, 10, 4, -19.5, here ? 19 : 21, { top: seatCol, left: seatCol, right: side });
+    if (here) shadowAt(cx, cy, 6);
     if (chairBehind) { backrest(); base(); lower(); drawDeskTop(i, s, m, col, lit, F); upper(); }
     else { drawDeskTop(i, s, m, col, lit, F); lower(); base(); upper(); backrest(); }   // the seat hides the legs running away under the desk
     if (!m && LAYOUT.hot.includes(i)) hotDesk(s, i);
     if (!m) hoverHint(i, cx, cy, now);
   } else {
-    if (s.place === "beanbag") beanbag(s.x - 1, s.y - 1, "#e0483e", !!m);
-    if (m) {
+    if (s.place === "beanbag") beanbag(s.x - 1, s.y - 1, "#e0483e", !!here);
+    if (here) {
       if (s.place !== "beanbag" && s.place !== "couch") shadowAt(s.x, s.y, 5);
       lower();
       if (s.place === "meeting") meetingTableTop();
@@ -2357,7 +2758,7 @@ function drawSeat(i, now) {
       if (plantAfter) plant(g, 32, 44, 16, .5, "succulent", "pink");
       roomFx(s, m, F);
       if (clockFor(m, now).talk) speechBubble(F.S.head, now);
-    } else hoverHint(i, s.x, s.y, now);
+    } else if (!m) hoverHint(i, s.x, s.y, now);
   }
 }
 function bookshelf(x0, y0, x1, y1, h) {
@@ -2567,6 +2968,13 @@ function drawArmchair(c, x, y) {
   box(c, x + 12, y, 2.4, x + 16, y + 16, 19.5, f(1), lw);                       // the back, facing you
   seg(c, iso(x + 16.05, y + 1, 17.5), iso(x + 16.05, y + 15, 17.5), shade(col, 1.15), .45);
 }
+// the parts of the armchair nearer than its sitter: the near arm and the back
+function armchairFront(c, x, y) {
+  const col = PAL.cobalt, f = k => ({ top: shade(col, k * 1.18), left: shade(col, k), right: shade(col, k * .86) }), lw = .4;
+  box(c, x, y + 12.8, 2.4, x + 12, y + 16, 12.4, f(.97), lw); cylX(c, x, x + 12, y + 14.4, 12.4, 1.6, shade(col, 1.12));
+  box(c, x + 12, y, 2.4, x + 16, y + 16, 19.5, f(1), lw);
+  seg(c, iso(x + 16.05, y + 1, 17.5), iso(x + 16.05, y + 15, 17.5), shade(col, 1.15), .45);
+}
 // a slouchy beanbag: a soft lump, taller at the back where it props you up, with a dent where you sit
 function beanbag(x, y, col, sat) {
   const [cx, cy] = iso(x, y, 0), rx = 9, ry = 4.4, h = sat ? 6.2 : 8.4;
@@ -2641,6 +3049,7 @@ function drawDeskTop(i, s, m, col, lit, F) {
       const [a, b] = at; let z = 15.6;
       [["#5b6ee1", 3.4, 1.2], [PAL.coral, 3, 1], [PAL.yellow, 3.2, .9], ["#2f7f57", 2.8, 1.1]].forEach(([c, r, h], k) => { box(g, a - r + k * .3, b - r * .7, z, a + r - k * .2, b + r * .7, z + h, { top: shade(c, 1.12), left: c, right: shade(c, .85) }, .3); z += h; });
     });
+    if (pr.kind === "deskLamp") add(() => { const [a, b] = at; ellipseFloor(g, a, b, 1.4, 15.6, "#2b2b2e"); seg(g, iso(a, b, 15.6), iso(a, b, 21), INK_LINE, .6); cylinder(g, a, b, 20.6, 22.4, 1.7, PAL.yellow, .3); });
     if (pr.kind === "stapler") add(() => { const [a, b] = at; box(g, a - 1, b - 1, 15.6, a + 1, b + 1, 16.6 - pr.down * .4, { top: "#2b2b2e", left: "#2b2b2e", right: "#2b2b2e" }, .3); });
   }
   // flat paper goes under anything standing at about the same depth
@@ -2696,7 +3105,7 @@ function frame(now) {
       if (!m) continue;
       m.pulse = 1; m.hitT = ev.t; m.hits = (m.hits || 0) + 1;
       if (ev.beat) glow = 1;
-      if (Math.random() < 0.3) note(SEATS[m.desk].sx, SEATS[m.desk].sy - 44, ROLES[m.role].color);
+      if (Math.random() < 0.3) { const [nx, ny] = posOf(m); note(nx, ny - 44, ROLES[m.role].color); }
     }
   }
   members.forEach(m => m.pulse *= 0.85);
@@ -2708,8 +3117,11 @@ function frame(now) {
   if (glow > 0.05) { g.globalAlpha = 0.12 * glow; poly(g, PLAN.map(([x, y]) => iso(x, y)), PAL.coral, null); g.globalAlpha = 1; }
   drawVitals(now);
   drawClockHands();
-  for (const it of DRAW_ORDER) it.draw ? it.draw() : it.plant ? plant(g, it.plant[0], it.plant[1], 0, ...it.plant.slice(2)) : drawSeat(it.seat, now);
+  const order = awayItems(now);
+  if (order.length) order.push(...DRAW_ORDER), order.sort((a, b) => a.depth - b.depth);
+  for (const it of order.length ? order : DRAW_ORDER) it.draw ? it.draw() : it.plant ? plant(g, it.plant[0], it.plant[1], 0, ...it.plant.slice(2)) : drawSeat(it.seat, now);
 
+  drawNight(now);
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
     p.x += p.vx; p.y += p.vy;
@@ -2732,7 +3144,21 @@ function toLogical(e) {
 }
 function deskAt(p) {
   let hit = -1;
-  for (const { seat: i } of DRAW_ORDER.filter(o => o.seat != null)) { const [a, b, c, d] = SEATS[i].box; if (p.x >= a && p.x <= c && p.y >= b && p.y <= d) hit = i; }
+  for (const { seat: i } of DRAW_ORDER.filter(o => o.seat != null)) {
+    const [a, b, c, d] = SEATS[i].box, m = members.find(o => o.desk === i);
+    if (m && m.at) continue;
+    if (p.x >= a && p.x <= c && p.y >= b && p.y <= d) hit = i;
+  }
+  return hit;
+}
+// someone away from their seat, hit where they are now; the one nearest the front wins
+function movedAt(p) {
+  let hit = null, best = -1;
+  for (const m of members) {
+    if (!m.at) continue;
+    const [sx, sy] = iso(...m.at), seated = m.walk ? false : (nightSpot(m) || {}).seated;
+    if (p.x >= sx - 8 && p.x <= sx + 8 && p.y >= sy - (seated ? 30 : 38) && p.y <= sy + 3 && m.at[0] + m.at[1] > best) { hit = m; best = m.at[0] + m.at[1]; }
+  }
   return hit;
 }
 /* ---------- Out-of-office calendars ----------
@@ -3533,6 +3959,10 @@ const tip = $("tip");
 // what is under a point on the office: its name, a hint, where the tip sits, and what a click does
 function whatAt(p) {
   if (clockAt(p)) return { key: "clock", at: iso(0, CLOCK.y0 + CLOCK.r, CLOCK.z1 + 1), title: `It's ${timeNow()}`, hover: "When does corporate India log off?", hint: "find out when corporate India logs off", act: openClock };
+  const w = windowAt(p);
+  if (w) return { key: "window", at: iso(0, (w[1] + w[2]) / 2, w[4]), title: "Window", hover: A.night ? "Click to bring the morning back" : "Click to fast-forward to night", hint: A.night ? "bring the morning back" : "fast-forward to night", act: () => { start(); setNight(!A.night); } };
+  const mv = movedAt(p);
+  if (mv) { const [sx, sy] = posOf(mv); return { key: "moved" + mv.id, at: [sx, sy - 48], title: mv.name, hint: "send them home", act: () => fire(mv) }; }
   if (printAt(p)) return { key: "album", at: iso(0, 105, 50), title: "Humanise", hover: "Click to flip through the album", hint: "flip through the album", act: openAlbum };
   if (screenAt(p)) return { key: "screen", at: iso(83, 0, 55), title: "Click me", hover: "What is this place?", hint: "find out what this place is", act: openScreen };
   if (shelfAt(p)) return { key: "shelf", at: iso(234, 104, 18), title: "Bookshelf", hover: "Click for Plum's reports and guides", hint: "open Plum's reports and guides", act: openShelf };
@@ -3575,6 +4005,7 @@ document.addEventListener("keydown", e => {
   if (e.code === "Space" && (e.target === document.body || e.target === cv)) { e.preventDefault(); A.playing ? stop() : start(); }
   else if (e.key === "m" || e.key === "M") pickMode(A.mode === "musical" ? "ambient" : "musical");
   else if (e.key === "e" || e.key === "E") $("fillBtn").click();
+  else if (e.key === "n" || e.key === "N") { start(); setNight(!A.night); }
 });
 
 /* ---------- Explore: small slabs float over everything you can click ---------- */
@@ -3584,6 +4015,7 @@ function markSpots() {
   // one mark over each run of snack boxes on a shelf
   [...new Set(SNACK_BOXES.map(sb => sb[1]))].forEach(z => { const xs = SNACK_BOXES.filter(sb => sb[1] === z).map(sb => sb[0]); pts.push(iso((Math.min(...xs) + Math.max(...xs) + 5) / 2, 2.8, z + 7)); });
   LAYOUT.hot.filter(i => !CAST[i]).forEach(i => pts.push(iso(SEATS[i].cx, SEATS[i].cy, 24)));
+  WINDOWS.forEach(([, a, b, , z1]) => pts.push(iso(0, (a + b) / 2, z1 + 3)));
   return pts;
 }
 const SPOTS_TO_CLICK = markSpots(), exploreBtn = $("exploreBtn");
