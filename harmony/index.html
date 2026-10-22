@@ -219,6 +219,20 @@ body.exploring .mark { opacity: 1; animation: markBob 1.6s ease-in-out infinite;
   padding: 9px 18px 9px 14px;
 }
 .btn.play:hover { --top: #f27f7a; }
+/* the song picker: what the office plays in Music */
+.song { position: relative; }
+.song[hidden] { display: none; }
+.song .btn { display: inline-flex; align-items: center; gap: 8px; max-width: 260px; }
+.song .btn span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.song .btn svg { width: 13px; height: 13px; fill: currentColor; flex: none; }
+.song .btn .caret { width: 9px; height: 9px; }
+.songmenu { position: absolute; top: calc(100% + 12px); left: 0; z-index: 6; width: 290px; background: #fff; color: #2b2b2d; border: 1px solid #3a3a3c; box-shadow: 1px 1px 0 #cfd6e2, 2px 2px 0 #cfd6e2, 3px 3px 0 #cfd6e2, 4px 4px 0 #cfd6e2, 4px 4px 0 1px #3a3a3c; padding: 6px; display: grid; gap: 2px; }
+.songmenu[hidden] { display: none; }
+.songmenu button { display: grid; grid-template-columns: 16px 1fr; column-gap: 8px; align-items: baseline; text-align: left; padding: 8px 10px; border: 0; background: none; color: inherit; cursor: pointer; font: 400 14px/1.2 var(--font-label); }
+.songmenu button:hover, .songmenu button:focus-visible { background: #f3f7fb; outline: none; }
+.songmenu button i { font-style: normal; color: #ee6f6a; visibility: hidden; }
+.songmenu button[aria-checked="true"] i { visibility: visible; }
+.songmenu button small { grid-column: 2; font: 400 12px/1.3 var(--font-body); color: #6b6b6e; }
 /* the welcome: two short cards on a first visit, in the menu's look: the logo, the bold name, iso blocks */
 .intro { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); background: rgba(28, 28, 30, .42); }
 .intro[hidden], .intro .card[hidden] { display: none; }
@@ -497,6 +511,10 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
       <input type="range" id="tempo" min="70" max="120" value="88">
       <output id="tempoOut">88 bpm</output>
     </label>
+  </div>
+  <div class="song">
+    <button class="btn" id="songBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="songMenu"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5 13 1v9.2a2.2 2.2 0 1 1-1.4-2V4.1L7.4 5v6.7a2.2 2.2 0 1 1-1.4-2z"/></svg><span id="songName">Office groove</span><svg class="caret" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 3h8L5 8z"/></svg></button>
+    <div class="songmenu" id="songMenu" role="menu" aria-label="Song" hidden></div>
   </div>
 </div>
 </div>
@@ -1082,12 +1100,116 @@ function coffeeMoments(m, s, t, c) {
   if (c.bar === 3 && s === 8) SND.steam(m.out, t, c.sixteenth * 8, .11);
 }
 
+/* ---------- Office FM: famous tunes, played by whoever is in ----------
+   Old, out-of-copyright pieces arranged for the office. Everyone has a part, in sixteenths: the phone
+   carries the tune, the coffee machine the bass, the glass the chords, the stamps and the paper the
+   drums. Only the people who are in play, so a song fills out as the office does. */
+const NOTE_AT = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+const nn = s => { const m = /^([A-G])([#b]?)(\d)$/.exec(s); return 12 * (+m[3] + 1) + NOTE_AT[m[1]] + (m[2] === "#" ? 1 : m[2] === "b" ? -1 : 0); };
+// "E5:2 -:1 C4" -> [[step, note, length]]: "-" is a rest, and a length is one sixteenth unless given
+function tune(str, at = 0, shift = 0) {
+  const out = [];
+  for (const tok of str.trim().split(/\s+/)) { const [n, l] = tok.split(":"), len = +l || 1; if (n !== "-") out.push([at, nn(n) + shift, len]); at += len; }
+  return out;
+}
+// a pattern played every bar: hits on these sixteenths, from a given time round the song on
+const every = (len, steps, v, from = 0) => { const out = []; for (let b = 0; b < len; b += 16) for (const s of steps) out.push([b + s, null, 1, v, from]); return out; };
+const MOUNTAIN = "B4:2 C#5:2 D5:2 E5:2 F#5:2 D5:2 F#5:4 F5:2 C#5:2 F5:4 E5:2 C5:2 E5:4 B4:2 C#5:2 D5:2 E5:2 F#5:2 D5:2 F#5:2 B5:2 A5:2 F#5:2 D5:2 F#5:2 A5:8";
+const ELISE = "E5 D#5 E5 D#5 E5 B4 D5 C5 A4:2 -:1 C4 E4 A4 B4:2 -:1 E4 G#4 B4 C5:2 -:1 E4 E5 D#5 E5 D#5 E5 B4 D5 C5 A4:2 -:1 C4 E4 A4 B4:2 -:1 E4 C5 B4 A4:4";
+const JOY_A = "F#5:4 F#5:4 G5:4 A5:4 A5:4 G5:4 F#5:4 E5:4 D5:4 D5:4 E5:4 F#5:4 ";
+const JOY = JOY_A + "F#5:6 E5:2 E5:8 " + JOY_A + "E5:6 D5:2 D5:8 E5:4 E5:4 F#5:4 D5:4 E5:4 F#5:2 G5:2 F#5:4 D5:4 E5:4 F#5:2 G5:2 F#5:4 E5:4 D5:4 E5:4 A4:8 " + JOY_A + "E5:6 D5:2 D5:8";
+const JOY_ROOTS = "D D A A D D A A D D A A D D A D A A A D A A D A D D A A D D A D".split(" ");   // one chord per half bar
+const SONGS = {
+  groove: { name: "Office groove", note: "The original lo-fi loop" },
+  mountain: {
+    name: "In the Hall of the Mountain King", note: "Grieg, 1875. Starts slow, ends in chaos", len: 64, passes: 6,
+    // slow and quiet at first; faster and louder every time round, then the whole office crashes in
+    bpm: pass => [72, 88, 106, 126, 148, 174][pass], level: pass => .55 + pass * .1,
+    finale: { phone: nn("B5"), coffee: nn("B1"), glass: [nn("B4"), nn("D5"), nn("F#5")], copier: nn("B1") },
+    parts: {
+      phone: tune(MOUNTAIN),
+      coffee: tune(MOUNTAIN, 0, -24),
+      glass: [0, 16, 32, 48].flatMap((b, i) => [4, 12].map(s => [b + s, i === 1 ? [nn("C#5"), nn("F5")] : [nn("D5"), nn("F#5")], 1, .2, 1])),
+      copier: [[0, nn("B1"), 32, .3, 1], [32, nn("F#1"), 32, .3, 1]],
+      stamp: every(64, [0, 8], .55), "stamp:2": every(64, [4, 12], .45, 1),
+      cough: every(64, [2, 6, 10, 14], .25), "cough:2": every(64, [4, 12], .6, 2),
+      typing: [...every(64, [0, 2, 4, 6, 8, 10, 12, 14], .22, 3), ...every(64, [1, 3, 5, 7, 9, 11, 13, 15], .16, 4)], "typing:2": every(64, [4, 12], .4, 2),
+      clicking: every(64, [3, 7, 11, 15], .35, 2), "clicking:2": every(64, [6, 14], .45, 3),
+      flush: [[32, null, 32, .35, 4]],
+    },
+  },
+  elise: {
+    name: "Für Elise", note: "Beethoven, 1810. The piano tune everyone knows", len: 48, bpm: 128,
+    parts: {
+      phone: tune(ELISE),
+      coffee: [[8, nn("A2"), 3], [14, nn("E2"), 3], [20, nn("A2"), 3], [32, nn("A2"), 3], [38, nn("E2"), 3], [44, nn("A2"), 4]],
+      glass: [[9, nn("E4")], [10, nn("A4")], [15, nn("E4")], [16, nn("G#4")], [21, nn("E4")], [22, nn("A4")], [33, nn("E4")], [34, nn("A4")], [39, nn("E4")], [40, nn("G#4")], [45, nn("E4")], [46, nn("A4")]].map(([s, n]) => [s, n, 1, .18]),
+      copier: [[0, nn("A1"), 48, .25, 1]],
+      typing: [2, 8, 14, 20, 26, 32, 38, 44].map(s => [s, null, 1, .12, 1]), "typing:2": [[2, null, 1, .2, 2], [26, null, 1, .2, 2]],
+      cough: [[2, null, 1, .3, 1], [26, null, 1, .3, 1]], "cough:2": [[44, null, 1, .25, 2]],
+      stamp: [[8, null, 1, .22, 2], [32, null, 1, .22, 2]], "stamp:2": [[20, null, 1, .22, 3], [44, null, 1, .25, 3]],
+      clicking: [5, 11, 17, 23, 29, 35, 41, 47].map(s => [s, null, 1, .18, 3]), "clicking:2": [[26, null, 1, .3, 3]],
+    },
+  },
+  joy: {
+    name: "Ode to Joy", note: "Beethoven, 1824. Everyone joins in", len: 256, bpm: 116,
+    parts: {
+      phone: tune(JOY),
+      coffee: JOY_ROOTS.flatMap((r, h) => [[h * 8, nn(r + "2"), 3], [h * 8 + 4, nn(r + "2") + 12, 3, .26]]),
+      glass: JOY_ROOTS.map((r, h) => [h * 8 + 4, r === "D" ? [nn("F#4"), nn("A4")] : [nn("C#4"), nn("E4")], 1, .2]),
+      copier: JOY_ROOTS.filter((_, h) => h % 4 === 0).map((r, i) => [i * 32, nn(r + "1"), 32, .3]),
+      stamp: every(256, [0, 8], .5), "stamp:2": every(256, [4, 12], .42),
+      cough: every(256, [4, 12], .55), "cough:2": [[248, null, 1, .5], [250, null, 1, .55], [252, null, 1, .6], [254, null, 1, .7]],
+      typing: every(256, [0, 2, 4, 6, 8, 10, 12, 14], .2), "typing:2": every(256, [6, 14], .35),
+      clicking: every(256, [2, 6, 10, 14], .28), "clicking:2": every(256, [14], .4),
+      flush: [[176, null, 16, .35]],
+    },
+  },
+};
+// what each person's part sounds like
+const SONG_V = { phone: .32, coffee: .32, glass: .22, copier: .35, stamp: .5, cough: .5, typing: .25, clicking: .35, flush: .4 };
+const SONG_SOUND = {
+  phone: (m, t, n, d, v) => SND.ring(m.out, t, mtof(n), d * .85, v),
+  coffee: (m, t, n, d, v) => SND.pump(m.out, t, mtof(n), d * .9, v),
+  glass: (m, t, n, d, v) => [].concat(n).forEach((k, i) => SND.glass(m.out, t + i * .012, mtof(k), v * (i ? .8 : 1))),
+  copier: (m, t, n, d, v) => SND.copier(m.out, t, d, mtof(n), v),
+  stamp: (m, t, n, d, v) => m.variant % 2 ? SND.stapler(m.out, t, v) : SND.stamp(m.out, t, v),
+  cough: (m, t, n, d, v) => SND.cough(m.out, t, v, m.variant % 2 ? 185 : 160),
+  typing: (m, t, n, d, v) => m.variant % 2 ? SND.spacebar(m.out, t, v) : SND.key(m.out, t, v),
+  clicking: (m, t, n, d, v) => m.variant % 2 ? SND.pen(m.out, t, v) : SND.mouse(m.out, t, v),
+  flush: (m, t, n, d, v) => SND.flush(m.out, t, d, v),
+};
+// index every part by step once, so each sixteenth only looks up what plays on it
+for (const S of Object.values(SONGS)) for (const [k, ev] of Object.entries(S.parts || {})) {
+  const by = new Map(); ev.forEach(e => { if (!by.has(e[0])) by.set(e[0], []); by.get(e[0]).push(e); }); S.parts[k] = by;
+}
+function songStep(m, st, pass, t, S) {
+  const evs = S.parts[m.variant % 2 ? m.role + ":2" : m.role]?.get(st);
+  if (!evs) return false;
+  const lv = S.level ? S.level(pass) : 1;
+  let hit = false;
+  for (const [, n, len, v, from = 0] of evs) if (pass >= from) { SONG_SOUND[m.role](m, t, n, sixteenth() * len, (v ?? SONG_V[m.role]) * lv * 1.35); hit = true; }
+  return hit;
+}
+function songTick() {
+  const S = A.song, pass = A.songPass, st = A.songAt, t = A.next, finale = S.passes && pass >= S.passes;
+  if (st === 0 && S.bpm && !finale) { A.bpm = typeof S.bpm === "function" ? S.bpm(pass) : S.bpm; $("tempoOut").textContent = A.bpm + " bpm"; setDelayTime(); }
+  if (finale) { if (st === 0) for (const m of members) if (m.out) { SONG_SOUND[m.role](m, t, S.finale[m.role], sixteenth() * 12, SONG_V[m.role] * 1.6); visualQueue.push({ id: m.id, t }); } }
+  else for (const m of members) if (m.out && songStep(m, st, pass, t, S)) visualQueue.push({ id: m.id, t, beat: m.role === "coffee" });
+  if (st % 4 === 0) visualQueue.push({ id: "beat", t });
+  A.next += sixteenth(); A.songAt++;
+  if (A.songAt >= (finale ? 16 : S.len)) { A.songAt = 0; A.songPass = finale ? 0 : pass + 1; }
+}
+
 /* ---------- Scheduler ---------- */
 function sixteenth() { return 60 / A.bpm / 4; }
 function scheduler() {
   chatterTick(A.ctx.currentTime);
+  bedTick(A.ctx.currentTime);
+  if (A.mode === "ambient" && !A.night) farTick(A.ctx.currentTime);
   if (A.mode === "ambient") { ambientTick(); return; }
   while (A.next < A.ctx.currentTime + 0.12) {
+    if (A.song && A.song.parts && !A.night) { songTick(); continue; }
     const g = A.step % 64, s = g % 16, bar = g >> 4;
     const swing = s % 2 ? sixteenth() * A.swing : 0;
     const t = A.next + swing;
@@ -1352,19 +1474,94 @@ function applyMix(fade = .8) {
   A.buzz.gain.setTargetAtTime(A.playing ? (amb ? 1 : .6) : 0, t, fade);
   members.forEach(m => panTo(m, fade / 3));
 }
+// long noise for the beds under everything: a one-second loop is easy to hear repeating, these never line up
+function longNoise(ctx, sec, brown) {
+  const b = ctx.createBuffer(1, Math.floor(ctx.sampleRate * sec), ctx.sampleRate), d = b.getChannelData(0);
+  let last = 0;
+  for (let i = 0; i < d.length; i++) { const w = Math.random() * 2 - 1; last = brown ? (last + .02 * w) / 1.02 : w; d[i] = brown ? last * 3.5 : w; }
+  return b;
+}
 function roomTone(ctx) {
   // air conditioning: soft low noise, and the faint hum of the lights
   A.room = ctx.createGain(); A.room.gain.value = 0; A.room.connect(A.master);
-  const n = ctx.createBufferSource(); n.buffer = A.noise; n.loop = true;
+  const n = ctx.createBufferSource(); n.buffer = longNoise(ctx, 23, true); n.loop = true;
   const lp = filt("lowpass", 420, .5), ng = ctx.createGain(); ng.gain.value = .045;
   n.connect(lp); lp.connect(ng); ng.connect(A.room); n.start();
   [[100, .006], [200, .003]].forEach(([f, v]) => { const o = ctx.createOscillator(), og = ctx.createGain(); o.frequency.value = f; og.gain.value = v; o.connect(og); og.connect(A.room); o.start(); });
   // a very light buzz under everything, like a busy café heard from a corner: voice-band noise that swells and settles
   A.buzz = ctx.createGain(); A.buzz.gain.value = 0; A.buzz.connect(A.master);
-  const bn = ctx.createBufferSource(); bn.buffer = A.noise; bn.loop = true; bn.playbackRate.value = .93;
+  const bn = ctx.createBufferSource(); bn.buffer = longNoise(ctx, 31, false); bn.loop = true;
   const bp = filt("bandpass", 520, .7), lp2 = filt("lowpass", 1800, .5), bg = ctx.createGain(); bg.gain.value = .022;
   bn.connect(bp); bp.connect(lp2); lp2.connect(bg); bg.connect(A.buzz); bn.start();
-  [[.11, .006], [.27, .004], [.7, .0025]].forEach(([f, d]) => { const o = ctx.createOscillator(), og = ctx.createGain(); o.frequency.value = f; og.gain.value = d; o.connect(og); og.connect(bg.gain); o.start(); });
+  A.buzzBed = bg;   // it drifts up and down at random (see bedTick), never on a cycle you could count
+  // the rest of the building, heard but not seen: duller and roomier, each sound from its own place
+  A.far = ctx.createGain(); A.far.gain.value = 1;
+  const flp = filt("lowpass", 2600, .5), frs = ctx.createGain(); frs.gain.value = 1.3;
+  A.far.connect(flp); flp.connect(A.master); flp.connect(frs); frs.connect(A.rev);
+}
+// the buzz swells and settles: a new level every few seconds, reached at a new pace each time
+function bedTick(ct) {
+  if (!A.buzzBed || (A.bedNext && A.bedNext > ct)) return;
+  A.buzzBed.gain.setTargetAtTime(rand(.013, .03), ct, rand(.8, 3.5));
+  A.bedNext = ct + rand(2, 9);
+}
+/* Office sounds from round the corner, inspired by office-ambience recordings: someone walks past, a door,
+   a chair, a drawer, the lift, a phone on another floor, paper, a keyboard you can't see. Each comes at a
+   random moment from a random place, never the same one twice in a row. */
+function farOut(pan) {
+  const p = A.ctx.createStereoPanner ? A.ctx.createStereoPanner() : A.ctx.createGain();
+  if (p.pan) p.pan.value = pan; p.connect(A.far); setTimeout(() => p.disconnect(), 12000); return p;
+}
+const FAR = {
+  steps(t) {
+    // footsteps crossing the room, heel and a little scuff, panning as they go
+    const n = Math.floor(rand(6, 14)), gap = rand(.42, .6), from = rand(-1, 1), to = -from, p = farOut(from);
+    if (p.pan) p.pan.linearRampToValueAtTime(to, t + n * gap);
+    for (let i = 0; i < n; i++) { const k = 1 - Math.abs(i - n / 2) / n, at = t + i * gap + rand(-.025, .025); burstN(p, at, rand(.16, .24) * k, "lowpass", rand(220, 300), 1, .06); burstN(p, at + .012, .03 * k, "bandpass", 1600, 2, .025); }
+  },
+  door(t) {
+    // a slow creak, then the latch
+    const p = farOut(rand(-1, 1)), o = A.ctx.createOscillator(), bp = filt("bandpass", 900, 6), g = susGain(t, .1, .05, rand(.5, 1.1), .1);
+    o.type = "sawtooth"; o.frequency.setValueAtTime(rand(70, 95), t); o.frequency.linearRampToValueAtTime(rand(110, 150), t + .8);
+    o.connect(bp); bp.connect(g); g.connect(p); o.start(t); o.stop(t + 1.4);
+    const shut = t + rand(1.4, 3); burstN(p, shut, .35, "lowpass", 300, 1, .12); burstN(p, shut, .12, "bandpass", 2400, 3, .03);
+  },
+  chair(t) {
+    // castors rolling, and a squeak as someone leans back
+    const p = farOut(rand(-.9, .9)), n = noiseSrc(t, 1.4), bp = filt("bandpass", rand(350, 500), 2.5), g = susGain(t, .15, .07, rand(.6, 1.1), .2);
+    n.connect(bp); bp.connect(g); g.connect(p);
+    const o = A.ctx.createOscillator(), og = susGain(t + .9, .03, .025, .25, .08); o.frequency.setValueAtTime(rand(900, 1200), t + .9); o.frequency.linearRampToValueAtTime(rand(1300, 1600), t + 1.2);
+    o.connect(og); og.connect(p); o.start(t + .9); o.stop(t + 1.5);
+  },
+  drawer(t) {
+    const p = farOut(rand(-.9, .9)), n = noiseSrc(t, .8), bp = filt("bandpass", 900, 1.5), g = susGain(t, .05, .08, rand(.3, .5), .05);
+    n.connect(bp); bp.connect(g); g.connect(p);
+    burstN(p, t + rand(.45, .6), .32, "lowpass", 380, 1, .1);
+  },
+  lift(t) {
+    // the lift arriving down the corridor: two soft chime notes
+    const p = farOut(rand(-1, 1) > 0 ? .85 : -.85);
+    ping(p, t, 1318.5, .05, 1.6); ping(p, t + .45, 1046.5, .05, 2.2);
+  },
+  phone(t) {
+    const p = farOut(rand(-1, 1)), n = Math.floor(rand(2, 4));
+    for (let i = 0; i < n; i++) { SND.deskRing(p, t + i * 3, .4, .04); SND.deskRing(p, t + i * 3 + .55, .4, .04); }
+  },
+  paper(t) {
+    const p = farOut(rand(-.9, .9)), n = Math.floor(rand(4, 9));
+    for (let i = 0; i < n; i++) burstN(p, t + i * rand(.08, .25), rand(.05, .1), "highpass", rand(2500, 4000), .7, rand(.05, .12));
+  },
+  keys(t) {
+    const p = farOut(rand(-1, 1)), n = Math.floor(rand(10, 30));
+    let at = t; for (let i = 0; i < n; i++) { at += chance(.1) ? rand(.3, .7) : rand(.07, .18); SND.key(p, at, rand(.06, .1)); }
+  },
+};
+function farTick(ct) {
+  if (A.farNext == null || A.farNext < ct - 2) A.farNext = ct + rand(2, 6);
+  if (A.farNext > ct + .12) return;
+  const kinds = Object.keys(FAR).filter(k => k !== A.farLast), k = pick(kinds, Math.random);
+  FAR[k](Math.max(A.farNext, ct + .03)); A.farLast = k;
+  A.farNext += rand(4, 16) * busyScale();
 }
 function setMode(mode) {
   if (mode === A.mode) return;
@@ -1389,6 +1586,8 @@ function syncMode() {
   document.querySelectorAll(".modeswitch .ml").forEach(b => b.classList.toggle("on", b.dataset.mode === A.mode));
   $("modeHint").textContent = (amb ? "Ambiance: the office hum" : "Music: everyone on the beat") + " · click to switch";
   $("tempoName").textContent = amb ? "Busyness" : "Tempo";
+  document.querySelector(".song").hidden = amb;
+  if (amb && !$("songMenu").hidden) setSongMenu(false);
   const el = $("tempo");
   el.value = amb ? 70 + A.busy * 50 : A.bpm;
   $("tempoOut").textContent = amb ? (A.busy < .34 ? "sleepy" : A.busy < .67 ? "steady" : "busy") : A.bpm + " bpm";
@@ -2062,6 +2261,34 @@ $("tempo").addEventListener("input", e => {
   if (A.mode === "ambient") { A.busy = (+e.target.value - 70) / 50; syncMode(); return; }
   A.bpm = +e.target.value; $("tempoOut").textContent = A.bpm + " bpm"; setDelayTime();
 });
+// the song picker
+const songBtn = $("songBtn"), songMenu = $("songMenu");
+songMenu.innerHTML = Object.entries(SONGS).map(([k, s]) => `<button type="button" role="menuitemradio" aria-checked="${k === "groove"}" data-k="${k}"><i>●</i><span>${s.name}</span><small>${s.note}</small></button>`).join("");
+function setSongMenu(open) { songMenu.hidden = !open; songBtn.setAttribute("aria-expanded", String(open)); if (open) songMenu.querySelector('[aria-checked="true"]').focus(); }
+function setSong(k) {
+  const S = SONGS[k];
+  if (!A.song || !A.song.parts) A.grooveBpm = A.bpm;
+  A.song = S.parts ? S : null; A.songAt = 0; A.songPass = 0;
+  if (!A.song) { A.bpm = A.grooveBpm || 88; A.step = 0; }
+  if (A.ctx) A.next = Math.max(A.next, A.ctx.currentTime + .05);
+  $("songName").textContent = S.name; $("tempoOut").textContent = (A.song && typeof S.bpm === "number" ? S.bpm : A.bpm) + " bpm";
+  songMenu.querySelectorAll("button").forEach(b => b.setAttribute("aria-checked", String(b.dataset.k === k)));
+  const lead = members.some(m => m.role === "phone");
+  toast(A.song ? `Now playing: ${S.name}.${lead ? "" : " Tavish has the tune: call him in to hear it."}` : "Back to the office groove");
+}
+songBtn.addEventListener("click", e => { e.stopPropagation(); setSongMenu(songMenu.hidden); });
+songMenu.addEventListener("click", e => {
+  const b = e.target.closest("button[data-k]"); if (!b) return;
+  e.stopPropagation(); setSongMenu(false); songBtn.focus();
+  if (A.mode !== "musical") setMode("musical");
+  setSong(b.dataset.k); start();
+});
+songMenu.addEventListener("keydown", e => {
+  const items = [...songMenu.querySelectorAll("button")], i = items.indexOf(document.activeElement);
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); items[(i + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length].focus(); }
+  if (e.key === "Escape") { e.stopPropagation(); setSongMenu(false); songBtn.focus(); }
+});
+document.addEventListener("click", () => { if (!songMenu.hidden) setSongMenu(false); });
 $("fillBtn").addEventListener("click", () => {
   start();
   const empty = SEATS.map((_, i) => i).filter(i => CAST[i] && !members.some(m => m.desk === i));
