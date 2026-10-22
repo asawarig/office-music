@@ -2592,13 +2592,27 @@ const TOPS = ["#2b2b2e", "#2c3a66", "#d94f3d", "#e2a23b", "#2f7f57", "#6a4fb3", 
 const PANTS = ["#e85a9a", "#4c6fc2", "#2b2b2e", "#e2a23b", "#2f7f57", "#c0392b", "#8a8f9c"];
 const SHOE_COLS = ["#2b2b2e", "#5a3a28", "#ffffff", "#ee6f6a"];
 // bold crayon colours: a plain jumper and trousers that never match, after the first crayon style
-// a few people have a fixed look: Avani and Trayi wear their hair long, Ruhani wears hers in a bun, Shriram is bald
-const LOOK_FOR = { Avani: { hairStyle: "long", hair: "#1f1b19" }, Trayi: { hairStyle: "long", hair: "#3b2618" }, Ruhani: { hairStyle: "bun", hair: "#1f1b19" }, Shriram: { hairStyle: "bald" } };
+// everyone's face, after the team's own sketches: skin, hair, glasses and beards
+const LOOK_FOR = {
+  Trayi: { skin: "#f6c48f", hair: "#1f1b19", hairStyle: "wavy", glasses: { col: "#1f1b19" } },
+  Ruhani: { skin: "#f6c795", hair: "#161414", hairStyle: "straight", glasses: { col: "#161414", big: true } },
+  Krtin: { skin: "#efbb84", hair: "#1f1b19", hairStyle: "short", glasses: { col: "#1f1b19" }, beard: "scruff" },
+  Tavish: { skin: "#f7c898", hair: "#161414", hairStyle: "messy" },
+  Rhea: { skin: "#eaaf6b", hair: "#161414", hairStyle: "pony" },
+  Shriram: { skin: "#d19753", hair: "#2a1d14", hairStyle: "bald", beard: "full", brows: true },
+  Shreyas: { skin: "#e6ad6c", hair: "#3a2a1c", hairStyle: "bald", beard: "goatee" },
+  Akanksha: { skin: "#fed8ab", hair: "#1f1b19", hairStyle: "sidePony", glasses: { col: "#7a7a7e", shape: "round" } },
+  Asawari: { skin: "#fed8aa", hair: "#1f1b19", streak: "#9a4a22", hairStyle: "straight", glasses: { col: "#f28d9b", big: true } },
+  Avani: { skin: "#fed8ab", hair: "#161414", hairStyle: "curly", glasses: { col: "#7a7a7e" } },
+  Ashmita: { skin: "#fed8aa", hair: "#3a2418", ends: "#94431c", hairStyle: "curlyLong" },
+  Sathvik: { skin: "#fed8ac", hair: "#1f1b19", hairStyle: "spiky", beard: "stubble" },
+  Ganapathi: { skin: "#f7c794", hair: "#3a2418", hairStyle: "short", glasses: { col: "#1f1b19" } },
+};
 function lookFor(m) {
   if (m.look) return m.look;
   const r = rng(m.seed + 7), top = pick(TOPS, r);
   return m.look = {
-    skin: pick(SKINS, r), hair: pick(HAIRS, r), hairStyle: pick(["short", "bun", "long", "bob", "short"], r),
+    skin: pick(SKINS, r), hair: pick(HAIRS, r), hairStyle: pick(["short", "messy", "straight", "curly", "pony"], r),
     top, pattern: "plain", pants: pick(PANTS.filter(c => c !== top), r), pantsDots: false, shoes: pick(SHOE_COLS, r),
     ...LOOK_FOR[m.name],
   };
@@ -2885,15 +2899,211 @@ function drawLower(c, F) {
     strokeLine(c, [S["an" + s], S["toe" + s]], 1.5 * U, k < 1 ? shade(look.shoes, .85) : look.shoes);
   });
 }
+/* ---------- Heads: hair, glasses and beards, after the face sheet ----------
+   Every look is drawn in four passes so it layers with the body:
+   behind (before the body), over (after the body and neck, before the head), head (the head, hair and face),
+   front (last, for hair that falls in front of the shoulders).
+   H = { hx, hy, r, d, front, mouth, eyes }: head centre and radius, the way they face on screen (±1),
+   whether the face shows, and the mouth shape. */
+const HEADS = (() => {
+  const ell = (c, x, y, rx, ry, col, rot = 0) => { c.beginPath(); c.ellipse(x, y, Math.max(.01, rx), Math.max(.01, ry), rot, 0, 7); c.fillStyle = col; c.fill(); };
+  const dot = (c, x, y, r, col) => { c.beginPath(); c.arc(x, y, Math.max(.01, r), 0, 7); c.fillStyle = col; c.fill(); };
+  const line = (c, pts, w, col) => { c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.strokeStyle = col; c.lineWidth = w; c.lineCap = "round"; c.lineJoin = "round"; c.stroke(); };
+  const poly = (c, pts, col) => { c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); c.fillStyle = col; c.fill(); };
+  const clipHead = (c, H) => { c.save(); c.beginPath(); c.arc(H.hx, H.hy, H.r, 0, 7); c.clip(); };
+  // curls: an ellipse with a scalloped edge; "from" and "to" limit the scallops to part of the edge
+  function curls(c, x, y, rx, ry, br, col, n = 14, from = 0, to = 6.283) {
+    ell(c, x, y, rx, ry, col);
+    for (let i = 0; i < n; i++) { const a = from + (i + .5) / n * (to - from); dot(c, x + Math.cos(a) * rx, y + Math.sin(a) * ry, br * (.8 + .4 * ((i * 7) % 5) / 4), col); }
+  }
+  // a lock of hair: a tapering stroke along a curve through three points
+  function lock(c, a, b, e, w0, w1, col) {
+    for (let t = 0; t <= 1.001; t += .04) {
+      const u = 1 - t, x = u * u * a[0] + 2 * u * t * b[0] + t * t * e[0], y = u * u * a[1] + 2 * u * t * b[1] + t * t * e[1];
+      dot(c, x, y, w0 + (w1 - w0) * t, col);
+    }
+  }
+  // a long fall of hair with a straight, blunt end
+  function fall(c, x0, x1, y0, y1, col) {
+    const w = Math.abs(x1 - x0), rr = Math.min(w / 2, (y1 - y0) / 3);
+    c.beginPath(); c.roundRect(Math.min(x0, x1), y0, w, y1 - y0, [rr, rr, rr * .2, rr * .2]); c.fillStyle = col; c.fill();
+  }
+  function streaks(c, H, look, xs, y0, y1) {
+    if (!look.streak) return;
+    for (const x of xs) line(c, [[x, y0], [x + H.r * .08, (y0 + y1) / 2], [x - H.r * .04, y1]], H.r * .15, look.streak);
+  }
+  // the lower part of a curly mass turns a lighter colour at the ends
+  function ends(c, look, H, fn) {
+    if (!look.ends) return;
+    const { hx, hy, r } = H; c.save(); c.beginPath(); c.moveTo(hx - r * 4, hy + r * 5);
+    for (let x = -4; x <= 4.01; x += .1) c.lineTo(hx + x * r, hy + r * (1.05 + .22 * Math.sin(x * 4.2) + .1 * Math.sin(x * 9.1)));
+    c.lineTo(hx + r * 4, hy + r * 5); c.clip(); fn(look.ends); c.restore();
+  }
+  const LONG = { straight: 2.35, wavy: 1.8, curlyLong: 2.3 };
+
+  function behind(c, look, H) {
+    const { hx, hy, r, d, front } = H, col = look.hair, s = look.hairStyle;
+    if (!front) return;
+    if (s === "straight") fall(c, hx - r * 1.12 - d * r * .08, hx + r * 1.1 - d * r * .08, hy - r * .4, hy + r * LONG.straight, col);
+    else if (s === "wavy") curls(c, hx - d * r * .08, hy + r * .55, r * 1.22, r * 1.28, r * .26, col, 18);
+    else if (s === "curlyLong") { const f = k => curls(c, hx - d * r * .08, hy + r * .6, r * 1.62, r * 1.75, r * .4, k, 20); f(col); ends(c, look, H, f); }
+    else if (s === "curly") curls(c, hx - d * r * .08, hy - r * .12, r * 1.06, r * .9, r * .16, col, 18);
+    else if (s === "pony") lock(c, [hx - d * r * .5, hy - r * .98], [hx - d * r * 1.8, hy - r * 1.3], [hx - d * r * 1.3, hy + r * 2.1], r * .42, r * .12, col);
+  }
+
+  // after the body: long hair lies down the back, seen from behind
+  function over(c, look, H) {
+    const { hx, hy, r, front } = H, col = look.hair, s = look.hairStyle;
+    if (front) return;
+    if (s === "straight") { fall(c, hx - r * 1.08, hx + r * 1.08, hy - r * .3, hy + r * LONG.straight, col); streaks(c, H, look, [hx - r * .55, hx + r * .1, hx + r * .65], hy + r * .2, hy + r * 2.15); }
+    else if (s === "wavy") curls(c, hx, hy + r * .6, r * 1.2, r * 1.28, r * .26, col, 18);
+    else if (s === "curlyLong") { const f = k => curls(c, hx, hy + r * .6, r * 1.58, r * 1.75, r * .4, k, 20); f(col); ends(c, look, H, f); }
+  }
+
+  function head(c, look, H) {
+    const { hx, hy, r, d, front } = H, col = look.hair, s = look.hairStyle;
+    dot(c, hx, hy, r, look.skin);
+    if (s === "bald") {
+      ell(c, hx - d * r * .25, hy - r * .55, r * .34, r * .17, "rgba(255,255,255,.5)", -.4 * d);
+      if (front) face(c, look, H);
+      else if (look.glasses) temple(c, look, H);
+      return;
+    }
+    if (!front) {
+      // from behind: the back of the head down to the nape, or all of it under long hair
+      const low = LONG[s] ? r : s === "curly" ? r * .78 : s === "pony" || s === "sidePony" ? r * .75 : r * .62;
+      clipHead(c, H); c.fillStyle = col; c.fillRect(hx - r, hy - r, r * 2, r + low); c.restore();
+      if (s === "curly") curls(c, hx, hy - r * .1, r * 1.04, r * .9, r * .16, col, 18);
+      if (s === "curlyLong") curls(c, hx, hy - r * .1, r * 1.2, r * 1.08, r * .34, col, 16);
+      if (s === "wavy") curls(c, hx, hy - r * .12, r * 1.02, r * 1, r * .18, col, 14);
+      if (s === "messy") shag(c, H, col);
+      if (s === "spiky") spikes(c, H, col);
+      if (s === "pony") { dot(c, hx, hy - r * .8, r * .3, col); lock(c, [hx, hy - r * .82], [hx + d * r * .4, hy + r * .5], [hx + d * r * .08, hy + r * 2.2], r * .36, r * .1, col); }
+      if (s === "sidePony") lock(c, [hx + d * r * .3, hy + r * .55], [hx + d * r * .9, hy + r * 1.1], [hx + d * r * .7, hy + r * 2.1], r * .32, r * .1, col);
+      streaks(c, H, look, [hx - r * .45, hx + r * .3], hy - r * .85, hy + r * .3);
+      if (look.glasses && (s === "short" || s === "spiky" || s === "messy")) temple(c, look, H);
+      return;
+    }
+    // from the front: hair over the top and down the back of the head, the face clear
+    clipHead(c, H);
+    if (LONG[s] || s === "sidePony") {
+      ell(c, hx - d * r * .25, hy - r * .68, r * 1.02, r * .5, col);
+      c.fillStyle = col; c.fillRect(hx - d * r * 1.05, hy - r * .7, d * r * .5, r * 1.8);
+      // a side fringe swept across the forehead
+      if (s === "sidePony") { c.beginPath(); c.moveTo(hx - d * r * .55, hy - r * .95); c.quadraticCurveTo(hx + d * r * .15, hy - r * .5, hx + d * r * 1.05, hy - r * .32); c.lineTo(hx + d * r * 1.05, hy - r * 1.05); c.fill(); }
+    } else if (s === "pony") {
+      ell(c, hx - d * r * .4, hy - r * .66, r * 1, r * .48, col);
+      c.fillStyle = col; c.fillRect(hx - d * r * 1.05, hy - r * .7, d * r * .45, r * 1.05);
+    } else if (s !== "curly" && s !== "curlyLong") {
+      ell(c, hx - d * r * .3, hy - r * .62, r * 1.05, r * .55, col);
+      c.fillStyle = col; c.fillRect(hx - d * r * 1.05, hy - r * .7, d * r * .42, r * 1);
+    }
+    c.restore();
+    if (s === "curly") { curls(c, hx - d * r * .15, hy - r * .7, r * 1, r * .4, r * .15, col, 11, 3.3, 6.2); curls(c, hx - d * r * .2, hy - r * .55, r * .92, r * .28, r * .11, col, 8, .4, 2.9); }
+    if (s === "curlyLong") { curls(c, hx - d * r * .1, hy - r * .82, r * 1.12, r * .36, r * .3, col, 9, 3.3, 6.2); curls(c, hx - d * r * .1, hy - r * .66, r * .95, r * .24, r * .16, col, 7, .4, 2.9); }
+    if (s === "wavy") curls(c, hx - d * r * .2, hy - r * .74, r * .95, r * .36, r * .15, col, 12);
+    if (s === "messy") shag(c, H, col);
+    if (s === "spiky") spikes(c, H, col);
+    if (s === "pony") dot(c, hx - d * r * .55, hy - r * .92, r * .28, col);
+    streaks(c, H, look, [hx - d * r * .1], hy - r * 1.02, hy - r * .55);
+    face(c, look, H);
+  }
+
+  // messy hair: locks swept to one side, a few sticking out
+  function shag(c, H, col) {
+    const { hx, hy, r, d, front } = H, s = front ? d : 1;
+    for (let i = 0; i < 7; i++) {
+      const a = -2.9 + i * .38, bx = hx + Math.cos(a) * r * .72, by = hy + Math.sin(a) * r * .72;
+      const ex = bx + s * r * (.35 + (i % 3) * .12) + Math.cos(a) * r * .3, ey = by + Math.sin(a) * r * .35 + (i % 2 ? r * .12 : -r * .05);
+      lock(c, [bx - Math.cos(a) * r * .2, by - Math.sin(a) * r * .2], [bx + Math.cos(a) * r * .25, by + Math.sin(a) * r * .3], [ex, ey], r * .26, r * .05, col);
+    }
+    if (front) for (let i = 0; i < 3; i++) lock(c, [hx + d * r * (-.3 + i * .32), hy - r * .7], [hx + d * r * (-.1 + i * .32), hy - r * .45], [hx + d * r * (.05 + i * .34), hy - r * (.22 + (i % 2) * .1)], r * .2, r * .04, col);
+  }
+  // short spiky hair: short tufts all over the top
+  function spikes(c, H, col) {
+    const { hx, hy, r } = H;
+    for (let i = 0; i < 11; i++) {
+      const a = -2.75 + i * .2, k = (i % 3) * .05, lean = i % 2 ? .25 : -.2;
+      lock(c, [hx + Math.cos(a) * r * .72, hy + Math.sin(a) * r * .72], [hx + Math.cos(a) * r * (.95 + k), hy + Math.sin(a) * r * (.95 + k)],
+        [hx + Math.cos(a + lean) * r * (1.1 + k), hy + Math.sin(a + lean) * r * (1.1 + k)], r * .17, r * .05, col);
+    }
+  }
+  // from behind, glasses show as an arm over the ear
+  function temple(c, look, H) {
+    const { hx, hy, r, d } = H;
+    line(c, [[hx + d * r * 1.0, hy - r * .02], [hx + d * r * .6, hy - r * .1]], Math.max(r * .1, .28), look.glasses.col);
+  }
+
+  function face(c, look, H) {
+    const { hx, hy, r, d } = H, ink = "#3a2a22", e1 = [hx + d * r * .02, hy - r * .02], e2 = [hx + d * r * .56, hy];
+    const mx = hx + d * r * .32, my = hy + r * .55, bc = look.beardCol || look.hair;
+    // beards first, so the mouth sits on top
+    if (look.beard === "full") {
+      clipHead(c, H);
+      poly(c, [[hx - d * r * .55, hy + r * .05], [hx - d * r * .2, hy + r * .35], [mx - d * r * .3, my - r * .18], [mx + d * r * .45, my - r * .18], [hx + d * r * 1.1, hy + r * .15], [hx + d * r * 1.1, hy + r * 1.2], [hx - d * r * .6, hy + r * 1.2]], bc);
+      c.restore();
+      // the beard comes to a point below the chin
+      c.beginPath(); c.moveTo(mx - d * r * .5, hy + r * .8); c.quadraticCurveTo(mx - d * r * .1, hy + r * 1.3, mx + d * r * .02, hy + r * 1.3); c.quadraticCurveTo(mx + d * r * .3, hy + r * 1.2, mx + d * r * .55, hy + r * .72); c.fillStyle = bc; c.fill();
+      ell(c, mx, my - r * .12, r * .34, r * .12, bc);
+    } else if (look.beard === "goatee") {
+      ell(c, mx, my - r * .14, r * .3, r * .1, bc);
+      line(c, [[mx - r * .26, my - r * .12], [mx - r * .24, my + r * .2]], r * .1, bc); line(c, [[mx + r * .26, my - r * .12], [mx + r * .24, my + r * .2]], r * .1, bc);
+      clipHead(c, H); ell(c, mx, my + r * .3, r * .26, r * .16, bc); c.restore();
+    } else if (look.beard === "stubble" || look.beard === "scruff") {
+      // a soft shadow along the jaw, with a darker moustache and chin for a fuller beard
+      clipHead(c, H); c.globalAlpha = look.beard === "scruff" ? .32 : .2;
+      poly(c, [[hx - d * r * .45, hy + r * .1], [hx - d * r * .1, hy + r * .4], [hx + d * r * 1.1, hy + r * .3], [hx + d * r * 1.1, hy + r * 1.2], [hx - d * r * .5, hy + r * 1.2]], bc);
+      c.globalAlpha = 1; c.restore();
+      if (look.beard === "scruff") { ell(c, mx, my - r * .13, r * .26, r * .08, bc); clipHead(c, H); ell(c, mx, my + r * .36, r * .13, r * .14, bc); c.restore(); }
+    }
+    if (H.eyes !== false) {
+      const er = Math.max(.32, r * .12);
+      dot(c, ...e1, er, ink); dot(c, ...e2, er, ink);
+      if (look.brows) { line(c, [[e1[0] - r * .14, e1[1] - r * .3], [e1[0] + r * .1, e1[1] - r * .34]], r * .1, bc); line(c, [[e2[0] - r * .08, e2[1] - r * .34], [e2[0] + r * .13, e2[1] - r * .3]], r * .1, bc); }
+      if (!look.beard || look.beard === "stubble") { c.globalAlpha = .4; ell(c, hx + d * r * .62, hy + r * .32, r * .17, r * .1, "#e8857a"); c.globalAlpha = 1; }
+      const mc = look.beard === "full" ? "#7a3a2a" : ink;
+      if (H.mouth === "open") ell(c, mx, my, r * .17, r * .16, mc);
+      else if (H.mouth === "sip") { c.beginPath(); c.arc(mx, my, r * .1, 0, 7); c.strokeStyle = mc; c.lineWidth = .3; c.stroke(); }
+      else line(c, [[mx - r * .14, my], [mx + r * .14, my]], .3, mc);
+    }
+    if (look.glasses) {
+      const g = look.glasses, k = g.big ? 1.2 : 1, lw = Math.max(r * (g.big ? .13 : .1), .28);
+      c.strokeStyle = g.col; c.lineWidth = lw; c.lineJoin = "round";
+      const lens = (e, w, h) => { c.beginPath(); if (g.shape === "round") c.ellipse(e[0], e[1], w / 2, h / 2, 0, 0, 7); else c.roundRect(e[0] - w / 2, e[1] - h / 2, w, h, r * .08); c.stroke(); };
+      const w1 = r * .5 * k, w2 = r * .4 * k, h = r * .4 * k;
+      lens(e1, w1, h); lens(e2, w2, h);
+      line(c, [[e1[0] + d * w1 / 2, e1[1] - h * .1], [e2[0] - d * w2 / 2, e2[1] - h * .1]], lw, g.col);
+      line(c, [[e1[0] - d * w1 / 2, e1[1] - h * .2], [hx - d * r * .62, hy - r * .1]], lw, g.col);
+    }
+  }
+
+  // hair that falls in front of the shoulders: curtains either side of the face, a side ponytail
+  function front(c, look, H) {
+    const { hx, hy, r, d, front } = H, col = look.hair, s = look.hairStyle;
+    if (!front) return;
+    if (s === "straight") {
+      fall(c, hx - d * r * 1.1, hx - d * r * .4, hy - r * .4, hy + r * (LONG.straight - .1), col);
+      fall(c, hx + d * r * .9, hx + d * r * 1.14, hy - r * .2, hy + r * (LONG.straight - .3), col);
+      streaks(c, H, look, [hx - d * r * .72, hx + d * r * 1.02], hy - r * .1, hy + r * 1.9);
+    } else if (s === "wavy") {
+      curls(c, hx - d * r * .78, hy + r * .5, r * .3, r * 1.1, r * .16, col, 10);
+      curls(c, hx + d * r * 1.0, hy + r * .45, r * .16, r * 1.0, r * .13, col, 8);
+    } else if (s === "curlyLong") {
+      const f = k => { curls(c, hx - d * r * .9, hy + r * .55, r * .4, r * 1.2, r * .24, k, 10); curls(c, hx + d * r * 1.08, hy + r * .5, r * .24, r * 1.08, r * .2, k, 9); };
+      f(col); ends(c, look, H, f);
+    } else if (s === "sidePony") lock(c, [hx - d * r * .72, hy + r * .3], [hx - d * r * 1.3, hy + r * 1.2], [hx - d * r * .85, hy + r * 2.15], r * .34, r * .1, col);
+  }
+
+  return { behind, over, head, front };
+})();
 function drawUpper(c, F) {
   const { S, look, far, near, faceShows, dir, P } = F;
   const arm = (s, k) => {
     strokeLine(c, [S["sh" + s], S["el" + s], S["h" + s]], 2 * U, shade(look.top, k));
     c.beginPath(); c.arc(S["h" + s][0], S["h" + s][1], .8 * U, 0, 7); c.fillStyle = shade(look.skin, k < 1 ? .9 : 1); c.fill();
   };
-  // long hair falls behind the shoulders
-  const r = 2.3 * U, [hx, hy] = S.head;
-  if (look.hairStyle === "long") { c.beginPath(); c.ellipse(hx - dir * r * .15, hy + r * .55, r * 1.1, r * 1.35, 0, 0, 7); c.fillStyle = look.hair; c.fill(); }
+  const r = 2.3 * U, [hx, hy] = S.head, H = { hx, hy, r, d: dir, front: faceShows, mouth: P.mouth };
+  HEADS.behind(c, look, H);
   arm(far, .84);
   const body = hull2([S["sh" + far], S["sh" + near], mix2(S.hipR, S.shR, -.05), mix2(S.hipL, S.shL, -.05)]);
   const bodyPath = () => { c.beginPath(); body.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); };
@@ -2906,32 +3116,9 @@ function drawUpper(c, F) {
     c.restore();
   }
   strokeLine(c, [S.neck, mix2(S.neck, S.head, .55)], 1.1 * U, look.skin);
-  // from behind, long hair hangs down over the back
-  if (look.hairStyle === "long" && !faceShows) { c.beginPath(); c.ellipse(hx, hy + r * 1.05, r * 1.02, r * 1.55, 0, 0, 7); c.fillStyle = look.hair; c.fill(); }
-  c.beginPath(); c.arc(hx, hy, r, 0, 7); c.fillStyle = look.skin; c.fill();
-  // hair: a cap on top from the front, nearly all of the head from behind
-  if (look.hairStyle === "bald") {
-    // a shine on top, and a little hair left round the back and sides
-    c.save(); c.beginPath(); c.arc(hx, hy, r, 0, 7); c.clip(); c.fillStyle = shade(look.hair, 1.15);
-    if (!faceShows) c.fillRect(hx - r, hy + r * .05, r * 2, r * .5); else c.fillRect(hx - dir * r * 1.05 - (dir > 0 ? 0 : -r * .1), hy - r * .15, r * .38 * dir, r * .55);
-    c.restore();
-    c.beginPath(); c.ellipse(hx - dir * r * .25, hy - r * .55, r * .32, r * .16, -.4 * dir, 0, 7); c.fillStyle = "rgba(255,255,255,.55)"; c.fill();
-  } else {
-  c.save(); c.beginPath(); c.arc(hx, hy, r, 0, 7); c.clip(); c.fillStyle = look.hair;
-  if (!faceShows) c.fillRect(hx - r, hy - r, r * 2, r * 1.65);
-  else { c.beginPath(); c.ellipse(hx - dir * r * .35, hy - r * .55, r * 1.05, r * (look.hairStyle === "bob" ? .9 : .65), 0, 0, 7); c.fill(); if (look.hairStyle === "bob") c.fillRect(hx - dir * r * 1.1 - (dir > 0 ? 0 : -r * .1), hy - r * .2, r * .7 * dir, r * 1.1); }
-  c.restore();
-  }
-  if (look.hairStyle === "bun") { c.beginPath(); c.arc(hx - dir * r * .45, hy - r * 1.02, r * .45, 0, 7); c.fillStyle = look.hair; c.fill(); }
-  if (faceShows) {
-    const ink = "#3a2a22", er = Math.max(.32, r * .12);
-    c.fillStyle = ink; c.beginPath(); c.arc(hx + dir * r * .2, hy - r * .05, er, 0, 7); c.arc(hx + dir * r * .66, hy, er, 0, 7); c.fill();
-    c.globalAlpha = .5; c.fillStyle = "#e8857a"; c.beginPath(); c.ellipse(hx + dir * r * .42, hy + r * .38, r * .22, r * .13, 0, 0, 7); c.fill(); c.globalAlpha = 1;
-    const mx = hx + dir * r * .45, my = hy + r * .55;
-    if (P.mouth === "open") { c.beginPath(); c.ellipse(mx, my, r * .17, r * .16, 0, 0, 7); c.fillStyle = ink; c.fill(); }
-    else if (P.mouth === "sip") { c.beginPath(); c.arc(mx, my, r * .1, 0, 7); c.strokeStyle = ink; c.lineWidth = .3; c.stroke(); }
-    else strokeLine(c, [[mx - r * .15, my], [mx + r * .15, my]], .3, ink);
-  }
+  HEADS.over(c, look, H);
+  HEADS.head(c, look, H);
+  HEADS.front(c, look, H);
   arm(near, 1);
 }
 // things held in the hands, drawn after the figure
