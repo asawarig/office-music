@@ -232,6 +232,23 @@ body.exploring .mark { opacity: 1; animation: markBob 1.6s ease-in-out infinite;
   padding: 9px 18px 9px 14px;
 }
 .btn.play:hover { --top: #f27f7a; }
+/* the welcome: two short cards on a first visit, the why and then what to do */
+.intro { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); background: rgba(43, 43, 45, .38); }
+.intro[hidden], .intro .card[hidden] { display: none; }
+.intro .card { width: min(460px, 100%); max-height: 100%; overflow-y: auto; background: var(--surface); color: var(--fg); border: 1px solid var(--edge); box-shadow: 2px 2px 0 #cfd6e2, 4px 4px 0 #cfd6e2, 6px 6px 0 #cfd6e2, 6px 6px 0 1px var(--edge); padding: 26px 26px 22px; display: grid; gap: 14px; }
+.intro .eyebrow { margin: 0; font: 400 12px/1 var(--font-label); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+.intro h2 { margin: 0; font: 400 26px/1.15 var(--font-display); text-wrap: balance; }
+.intro p { margin: 0; font-size: 17px; line-height: 1.5; }
+.intro .big { color: var(--accent); }
+.intro .src { font-size: 12.5px; color: var(--muted); }
+.intro .src a { color: inherit; }
+.intro .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 6px; }
+.intro .dots { display: flex; gap: 6px; }
+.intro .dots i { width: 8px; height: 8px; border: 1px solid var(--edge); }
+.intro .dots i.on { background: var(--edge); }
+.intro .acts { display: flex; gap: 14px; align-items: center; }
+.intro .skip { border: 0; background: none; color: var(--muted); font: 400 14px/1 var(--font-label); cursor: pointer; padding: 6px 2px; text-decoration: underline; text-underline-offset: 3px; }
+.intro .btn.play { min-width: 0; }
 .btn.play svg { width: 14px; height: 14px; fill: currentColor; shape-rendering: crispEdges; }
 .tempo {
   display: flex;
@@ -483,6 +500,25 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
 </div>
 </div>
 <button class="btn explore" id="exploreBtn" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3C4 3 1.5 6 1 8c.5 2 3 5 7 5s6.5-3 7-5c-.5-2-3-5-7-5zm0 8a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg><span>Explore</span><small id="exploreCount"></small></button>
+<div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introTitle" hidden>
+  <div class="card" data-step="1">
+    <p class="eyebrow">Why we built it</p>
+    <h2 id="introTitle">A little noise helps you think</h2>
+    <p>A study found that a moderate buzz of background sound, around <span class="big">70 dB</span>, like a busy café, made people more creative than working in a quiet room.</p>
+    <p>So if it gets too quiet where you work, you can always count on this office.</p>
+    <p class="src">Source: <a href="https://academic.oup.com/jcr/article/39/4/784/1795620" target="_blank" rel="noopener">Mehta, Zhu &amp; Cheema, "Is Noise Always Bad?", Journal of Consumer Research, 2012</a></p>
+    <div class="row"><div class="dots" aria-label="Step 1 of 2"><i class="on"></i><i></i></div>
+      <div class="acts"><button type="button" class="skip" data-intro="close">Skip</button><button type="button" class="btn play" data-intro="next">Next</button></div></div>
+  </div>
+  <div class="card" data-step="2" hidden>
+    <p class="eyebrow">How it works</p>
+    <h2>13 sounds, 13 people</h2>
+    <p>There are 13 sounds in this office, and they all work together. Each one belongs to someone. Find all 13 employees to hear the whole office.</p>
+    <p>Want some fun? Flip the switch to Music and everyone plays on the beat.</p>
+    <div class="row"><div class="dots" aria-label="Step 2 of 2"><i></i><i class="on"></i></div>
+      <div class="acts"><button type="button" class="skip" data-intro="back">Back</button><button type="button" class="btn play" data-intro="go">Start listening</button></div></div>
+  </div>
+</div>
 <aside class="menu" id="menu" hidden>
   <button class="close" id="menuClose" aria-label="Close menu">×</button>
   <header class="top">
@@ -550,7 +586,7 @@ const pick = (arr, r) => arr[Math.floor(r() * arr.length)];
 /* ---------- Audio engine ---------- */
 const A = { ctx: null, master: null, rev: null, dly: null, analyser: null, noise: null,
             playing: false, bpm: 88, step: 0, next: 0, timer: null,
-            mode: "musical", busy: .5, chordIdx: 0, chordAt: 0, swing: .12 };
+            mode: "ambient", busy: .5, chordIdx: 0, chordAt: 0, swing: .12 };
 const visualQueue = [];
 
 function initAudio() {
@@ -1467,7 +1503,7 @@ function syncMode() {
   $("modeHint").textContent = (amb ? "Ambiance: the office hum" : "Music: everyone on the beat") + " · click to switch";
   // the vibe only shapes the music, so it steps aside in Ambiance
   document.querySelector(".vibe").hidden = amb;
-  if (amb && typeof setVibeMenu === "function" && !vibeMenu.hidden) setVibeMenu(false);
+  if (amb && !$("vibeMenu").hidden) setVibeMenu(false);
   $("tempoName").textContent = amb ? "Busyness" : "Tempo";
   const el = $("tempo");
   el.value = amb ? 70 + A.busy * 50 : A.bpm;
@@ -4570,7 +4606,33 @@ exploreBtn.addEventListener("click", () => { exploreTouched = true; setExplore(!
 // on a first visit the marks come up for a few seconds, then fade
 let explored = false;
 try { explored = !!localStorage.getItem("office-harmony-explored"); localStorage.setItem("office-harmony-explored", "1"); } catch (e) {}
-if (!explored) { setTimeout(() => { if (!exploreTouched) setExplore(true); }, 1200); setTimeout(() => { if (!exploreTouched) setExplore(false); }, 6500); }
+const showMarks = () => { setTimeout(() => { if (!exploreTouched) setExplore(true); }, 600); setTimeout(() => { if (!exploreTouched) setExplore(false); }, 5900); };
+
+/* ---------- Welcome: on a first visit, why the office hums and what to do in it ---------- */
+const intro = $("intro"), introCards = intro.querySelectorAll(".card");
+function introStep(n) { introCards.forEach(c => { c.hidden = c.dataset.step !== String(n); }); introCards[n - 1].querySelector(".btn").focus(); }
+function closeIntro(play) {
+  intro.hidden = true;
+  try { localStorage.setItem("office-harmony-intro", "1"); } catch (e) {}
+  if (play && !A.playing) start();
+  if (!explored) showMarks();
+}
+intro.addEventListener("click", e => {
+  const b = e.target.closest("[data-intro]");
+  if (b) ({ next: () => introStep(2), back: () => introStep(1), close: () => closeIntro(false), go: () => closeIntro(true) })[b.dataset.intro]();
+  else if (e.target === intro) closeIntro(false);
+});
+// while it's open, the office's own keys wait; Escape closes it
+document.addEventListener("keydown", e => {
+  if (intro.hidden) return;
+  e.stopImmediatePropagation();
+  if (e.key === "Escape") closeIntro(false);
+  else if (e.key === "Tab") { const f = [...intro.querySelectorAll(".card:not([hidden]) button, .card:not([hidden]) a")], i = f.indexOf(document.activeElement);
+    if (e.shiftKey ? i <= 0 : i === f.length - 1) { e.preventDefault(); f[e.shiftKey ? f.length - 1 : 0].focus(); } }
+}, true);
+let introSeen = false;
+try { introSeen = !!localStorage.getItem("office-harmony-intro"); } catch (e) {}
+if (!introSeen) { intro.hidden = false; introStep(1); } else if (!explored) showMarks();
 
 /* ---------- Boot with a starter team so the office isn't empty ---------- */
 readTokens();
