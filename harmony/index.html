@@ -500,11 +500,11 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
 const VIBES = [
   { name: "Lo-fi", note: "Slow, swung and dusty. The original.", bpm: 88, swing: .12, rev: .55, fb: .33, tone: 20000,
     chords: [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]] },          // Fmaj7 Em7 Dm7 Cmaj7
-  { name: "Bossa nova", note: "Straight, warm and sunny.", bpm: 116, swing: 0, rev: .4, fb: .22, tone: 11000,
+  { name: "Bossa nova", note: "A clave, a two-step bass and a shaker.", groove: "bossa", bpm: 116, swing: 0, rev: .4, fb: .22, tone: 11000,
     chords: [[48, 52, 55, 59], [57, 61, 64, 67], [50, 53, 57, 60], [55, 59, 62, 65]] },          // Cmaj7 A7 Dm7 G7
-  { name: "Jazz", note: "Heavy swing round a ii–V–I.", bpm: 100, swing: .3, rev: .5, fb: .25, tone: 9000,
+  { name: "Jazz", note: "Walking bass, ride cymbal, swung.", groove: "jazz", bpm: 100, swing: .3, rev: .5, fb: .25, tone: 9000,
     chords: [[55, 58, 62, 65], [48, 52, 55, 58], [53, 57, 60, 64], [50, 54, 57, 60]] },          // Gm7 C7 Fmaj7 D7
-  { name: "Synth pop", note: "Bright, straight and full of echo.", bpm: 118, swing: 0, rev: .35, fb: .45, tone: 20000,
+  { name: "Synth pop", note: "Four on the floor and a riff.", groove: "synth", bpm: 118, swing: 0, rev: .35, fb: .45, tone: 20000,
     chords: [[57, 60, 64, 69], [53, 57, 60, 65], [48, 52, 55, 60], [55, 59, 62, 67]] },          // Am F C G
 ];
 let VIBE = VIBES[0];
@@ -764,23 +764,23 @@ const SND = {
     burstN(d, t, v * 0.7, "bandpass", 220, 1.5, 0.06);
     burstN(d, t, v * 0.15, "bandpass", 1900, 9, 0.03);
   },
-  // the espresso pump as a round, plucky bass: a sine sub under a saw whose filter closes as the note goes,
-  // a little rattle of the pump on top, and a soft hiss of water
+  // an espresso machine's vibratory pump, on a bass note: a buzzing square chopped by the pump's 50 Hz
+  // stroke, a hollow metal body, the pressure building through the note, and water gurgling through the puck
   pump(d, t, f, dur, v) {
-    const ctx = A.ctx, o = ctx.createOscillator(), sub = ctx.createOscillator();
-    o.type = "sawtooth"; sub.type = "sine";
-    o.frequency.setValueAtTime(f * 0.97, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.03);
-    sub.frequency.value = f;
-    const lp = filt("lowpass", 1500, 2.5);
-    lp.frequency.setValueAtTime(1500, t); lp.frequency.exponentialRampToValueAtTime(260, t + Math.max(.08, dur * .9));
-    const og = ctx.createGain(); og.gain.value = .45;
-    const g = susGain(t, 0.006, v, dur, 0.05);
-    o.connect(og); og.connect(lp); sub.connect(lp); lp.connect(g); g.connect(d);
-    const am = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();   // the pump's rattle
-    am.gain.value = .85; lfo.frequency.value = 50; lg.gain.value = .15; lfo.connect(lg); lg.connect(am.gain);
-    g.disconnect(); g.connect(am); am.connect(d);
-    o.start(t); sub.start(t); lfo.start(t); o.stop(t + dur + 0.1); sub.stop(t + dur + 0.1); lfo.stop(t + dur + 0.1);
-    const n = noiseSrc(t, dur + 0.1), bp = filt("bandpass", 1800, 1.2), ng = susGain(t, 0.02, v * 0.04, dur, 0.04);
+    const ctx = A.ctx, o = ctx.createOscillator(), o2 = ctx.createOscillator();
+    o.type = "square"; o2.type = "sawtooth";
+    o.frequency.setValueAtTime(f * .985, t); o.frequency.linearRampToValueAtTime(f, t + .05); o2.frequency.value = f * 2.005;
+    const o2g = ctx.createGain(); o2g.gain.value = .25;
+    const body = filt("bandpass", Math.min(1200, f * 3), 1.1), lp = filt("lowpass", 1700, .7);
+    const stroke = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
+    stroke.gain.value = .6; lfo.type = "triangle"; lfo.frequency.value = 50; lg.gain.value = .4; lfo.connect(lg); lg.connect(stroke.gain);
+    const g = ctx.createGain(), end = t + Math.max(.06, dur);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(v * .75, t + .012); g.gain.linearRampToValueAtTime(v, t + dur * .6); g.gain.setTargetAtTime(.0001, end, .035);
+    o.connect(body); o2.connect(o2g); o2g.connect(body); o.connect(lp); body.connect(stroke); lp.connect(stroke); stroke.connect(g); g.connect(d);
+    o.start(t); o2.start(t); lfo.start(t); [o, o2, lfo].forEach(x => x.stop(end + .2));
+    // water through the coffee: wobbling, bubbly noise
+    const n = noiseSrc(t, dur + .2), bp = filt("bandpass", 650, 4), wob = ctx.createOscillator(), wg = ctx.createGain(), ng = susGain(t, .03, v * .16, dur, .06);
+    wob.frequency.value = 7 + Math.random() * 4; wg.gain.value = 320; wob.connect(wg); wg.connect(bp.frequency); wob.start(t); wob.stop(end + .2);
     n.connect(bp); bp.connect(ng); ng.connect(d);
   },
   // steam wand frothing milk: hiss with a gurgling, wobbling band
@@ -890,6 +890,7 @@ const ROLES = {
         const b = line[s];
         if (b) { SND.pump(m.out, t, mtof(b[0]), c.sixteenth * b[1] * 0.92, 0.34); hit = true; }
         if (s === 12 && c.bar % 2 === 1) { ping(m.out, t, mtof(c.chord[3] + 24), .06, .25); ping(m.out, t, mtof(c.chord[3] + 24) * 2.7, .02, .08); }   // a cup set down on the saucer
+        coffeeMoments(m, s, t, c);
         return hit;
       }
       if (s === 0 && c.bar % 2) { SND.steam(m.out, t, c.barLen, 0.12); return true; }
@@ -996,6 +997,174 @@ const ROLES = {
 
 const ROLE_IDS = Object.keys(ROLES);
 
+/* ---------- Grooves: each vibe gives everyone a different part ----------
+   Lo-fi uses each role's own pattern. The other vibes replace them, role by role: the same office
+   sounds, playing that style's rhythm. A role's second person (variant 1) gets a second part. */
+const tonesIn = (c, lo, hi) => inRange(lo, hi, c.chord.map(n => n % 12));
+const toneAt = (c, i, lo, hi) => { const n = tonesIn(c, lo, hi); return n[((i % n.length) + n.length) % n.length]; };
+const nextRoot = c => CHORDS[(c.bar + 1) % CHORDS.length][0];
+// a melody: per bar, step -> [chord-tone index, length in sixteenths]
+function lead(m, s, t, c, bars, fn) { const n = bars[c.bar][s]; if (!n) return false; fn(mtof(toneAt(c, n[0], 74, 93)), c.sixteenth * n[1] * .85); return true; }
+// the sounds that say "coffee machine" in any style: beans grinding into bar 3, the steam wand hissing into the top
+function coffeeMoments(m, s, t, c) {
+  if (c.bar === 2 && s === 12) SND.grinder(m.out, t, c.sixteenth * 4, .28);
+  if (c.bar === 3 && s === 8) SND.steam(m.out, t, c.sixteenth * 8, .11);
+}
+const GROOVES = {
+  bossa: {
+    // the paper stack plays the bossa clave; a second knocker keeps soft off-beats
+    cough(m, s, t, c) {
+      const hits = m.variant % 2 ? [2, 6, 10, 14] : c.bar % 2 ? [3, 6, 10] : [0, 3, 6, 10, 13];
+      if (!hits.includes(s)) return false;
+      SND.cough(m.out, t, m.variant % 2 ? .22 : .5, m.variant % 2 ? 190 : 165); return true;
+    },
+    // stamps as the low surdo on beat three; the stapler is a rim tap
+    stamp(m, s, t, c) {
+      if (m.variant % 2) { if (![3, 7, 11, 14].includes(s)) return false; SND.stapler(m.out, t, .3); return true; }
+      if (s === 8) { SND.stamp(m.out, t, .55); return true; }
+      if (s === 0) { SND.stamp(m.out, t, .3); return true; }
+      return false;
+    },
+    // keys as a shaker: every eighth, leaning on the off-beats; the spacebar answers on 2 and 4
+    typing(m, s, t, c) {
+      if (m.variant % 2) { if (s !== 4 && s !== 12) return false; SND.spacebar(m.out, t, .3); return true; }
+      if (s % 2) return false;
+      SND.key(m.out, t, s % 4 === 2 ? .32 : .16); return s % 4 === 2;
+    },
+    clicking(m, s, t, c) {
+      if (m.variant % 2) { if (s !== 6 && s !== 14) return false; SND.pen(m.out, t, .4); return true; }
+      if (![2, 5, 8, 11, 14].includes(s)) return false;
+      SND.mouse(m.out, t, .3); return true;
+    },
+    // the classic bossa bass: root, a fifth to lean on, root again, the fifth leading on
+    coffee(m, s, t, c) {
+      const root = c.chord[0] - 12, line = { 0: [root, 6], 6: [root + 7, 2], 8: [root, 6], 14: [root + 7, 2] }[s];
+      if (s === 0) SND.knockBox(m.out, t, .45);
+      coffeeMoments(m, s, t, c);
+      if (!line) return false;
+      SND.pump(m.out, t, mtof(line[0]), c.sixteenth * line[1] * .9, .3); return true;
+    },
+    // pen-on-glass chords pushed ahead of the beat, two notes at a time
+    glass(m, s, t, c) {
+      const hits = c.bar % 2 ? [0, 5, 8, 13] : [2, 5, 10, 13], i = hits.indexOf(s);
+      if (i < 0) return false;
+      SND.glass(m.out, t, mtof(toneAt(c, i, 70, 84)), .15); SND.glass(m.out, t + .01, mtof(toneAt(c, i + 2, 70, 84)), .12); return true;
+    },
+    // a long, lazy tune that hangs on the chord
+    phone(m, s, t, c) {
+      return lead(m, s, t, c, [
+        { 0: [2, 4], 4: [3, 2], 6: [2, 2], 8: [1, 6] }, { 0: [0, 4], 6: [1, 2], 8: [2, 8] },
+        { 0: [3, 4], 4: [4, 2], 6: [3, 2], 8: [2, 6] }, { 2: [1, 2], 4: [0, 12] },
+      ], (f, d) => SND.ring(m.out, t, f, d, .3));
+    },
+    copier(m, s, t, c) {
+      if (s !== 0 || c.bar % 2) return false;
+      SND.copier(m.out, t, c.barLen * 2, mtof(c.chord[0] - 24), .35); return true;
+    },
+  },
+  jazz: {
+    // keys ride the cymbal: ding, ding-a, ding, ding-a (the swing pushes the "a" late)
+    typing(m, s, t, c) {
+      if (m.variant % 2) { if (s !== 4 && s !== 12) return false; SND.spacebar(m.out, t, .25); return true; }
+      const v = { 0: .38, 4: .45, 7: .22, 8: .38, 12: .45, 15: .22 }[s];
+      if (!v) return false;
+      SND.key(m.out, t, v); return true;
+    },
+    // paper knocks are the hi-hat on 2 and 4; a second knocker comps like a snare
+    cough(m, s, t, c) {
+      if (m.variant % 2) { if (![[7], [10], [3, 7], [14]][c.bar].includes(s)) return false; SND.cough(m.out, t, .4, 180); return true; }
+      if (s !== 4 && s !== 12) return false;
+      SND.cough(m.out, t, .35, 185); return true;
+    },
+    // a feathered kick on every beat, and a "bomb" at the end of the chorus
+    stamp(m, s, t, c) {
+      if (m.variant % 2) { if (!(c.bar % 2 && (s === 7 || s === 15))) return false; SND.stapler(m.out, t, .35); return true; }
+      if (c.bar === 3 && s === 14) { SND.stamp(m.out, t, .55); return true; }
+      if (s % 4) return false;
+      SND.stamp(m.out, t, .16); return s === 0;
+    },
+    clicking(m, s, t, c) {
+      if (m.variant % 2) { if (s !== 7 && s !== 15) return false; SND.pen(m.out, t, .35); return true; }
+      if (![2, 6, 10, 14].includes(s)) return false;
+      SND.mouse(m.out, t, .22); return true;
+    },
+    // walking bass: root, third, fifth, then a half step into the next chord
+    coffee(m, s, t, c) {
+      coffeeMoments(m, s, t, c);
+      if (s % 4) return false;
+      const root = c.chord[0] - 12, walk = [root, toneAt(c, 1, root, root + 11), toneAt(c, 2, root, root + 11), nextRoot(c) - 12 - 1];
+      SND.pump(m.out, t, mtof(walk[s / 4]), c.sixteenth * 3.6, .32); return true;
+    },
+    // Charleston comping on the glass
+    glass(m, s, t, c) {
+      const hits = c.bar % 2 ? [4, 10] : [0, 6];
+      if (!hits.includes(s)) return false;
+      SND.glass(m.out, t, mtof(toneAt(c, 1, 70, 84)), .16); SND.glass(m.out, t + .012, mtof(toneAt(c, 3, 70, 84)), .13); return true;
+    },
+    // a bebop line in eighths, then a held answer
+    phone(m, s, t, c) {
+      const run = [0, 1, 2, 3, 4, 3, 2, 1], bars = [{}, { 0: [2, 6], 8: [1, 4] }, {}, { 0: [4, 6], 8: [3, 6] }];
+      run.forEach((k, i) => { bars[0][i * 2] = [k + (i % 3 === 2 ? 1 : 0), 1.4]; bars[2][i * 2] = [run[7 - i] + 1, 1.4]; });
+      return lead(m, s, t, c, bars, (f, d) => SND.ring(m.out, t, f, d, .24));
+    },
+    flush(m, s, t, c) {
+      if (c.bar !== 3 || s !== 8) return false;
+      SND.flush(m.out, t, c.barLen * .7, .35); return true;
+    },
+  },
+  synth: {
+    // four on the floor from the stamp; the stapler claps on 2 and 4
+    stamp(m, s, t, c) {
+      if (m.variant % 2) { if (s !== 4 && s !== 12) return false; SND.stapler(m.out, t, .55); return true; }
+      if (s % 4) return false;
+      SND.stamp(m.out, t, .6); return true;
+    },
+    cough(m, s, t, c) {
+      if (m.variant % 2) { if (!(c.bar === 3 && s >= 12)) return false; SND.cough(m.out, t, .3 + (s - 12) * .08, 190); return true; }
+      if (s !== 4 && s !== 12) return false;
+      SND.cough(m.out, t, .7); return true;
+    },
+    // keys as the open hat on every off-beat, with soft sixteenths between
+    typing(m, s, t, c) {
+      if (m.variant % 2) { if (s % 4 !== 2) return false; SND.spacebar(m.out, t, .35); return true; }
+      if (s % 4 === 2) { SND.key(m.out, t, .5); return true; }
+      if (s % 2) SND.key(m.out, t, .14);
+      return false;
+    },
+    clicking(m, s, t, c) {
+      if (m.variant % 2) { if (!(c.bar === 3 && s === 12)) return false; for (let k = 0; k < 8; k++) SND.wheel(m.out, t + k * c.sixteenth / 2, .35); return true; }
+      if (!(s % 2)) return false;
+      SND.mouse(m.out, t, .2); return false;
+    },
+    // octave bass in eighths
+    coffee(m, s, t, c) {
+      coffeeMoments(m, s, t, c);
+      if (s % 2) return false;
+      const root = c.chord[0] - 12;
+      SND.pump(m.out, t, mtof(s % 4 ? root + 12 : root), c.sixteenth * 1.6, .28); return s % 4 === 0;
+    },
+    // the glass runs up the chord like an arpeggiator
+    glass(m, s, t, c) {
+      if (s % 2) return false;
+      SND.glass(m.out, t, mtof(toneAt(c, s / 2, 74, 93)), .14); return s % 4 === 0;
+    },
+    // a hooky riff on a bright beep, and a step down at the end of the loop
+    phone(m, s, t, c) {
+      const riff = { 0: [4, 2], 3: [3, 1], 4: [2, 2], 6: [3, 1], 8: [4, 2], 11: [5, 1], 12: [4, 3] };
+      return lead(m, s, t, c, [riff, riff, riff, { 0: [4, 2], 2: [3, 2], 4: [2, 2], 6: [1, 2], 8: [0, 8] }], (f, d) => SND.beep(m.out, t, f, d, .16));
+    },
+    copier(m, s, t, c) {
+      if (s !== 0 || c.bar % 2) return false;
+      SND.copier(m.out, t, c.barLen * 2, mtof(c.chord[0] - 24), .4); return true;
+    },
+    // the flush becomes a riser into the top of the loop
+    flush(m, s, t, c) {
+      if (c.bar !== 3 || s !== 0) return false;
+      SND.flush(m.out, t, c.barLen * .95, .35); return true;
+    },
+  },
+};
+
 /* ---------- Scheduler ---------- */
 function sixteenth() { return 60 / A.bpm / 4; }
 function scheduler() {
@@ -1009,7 +1178,8 @@ function scheduler() {
     for (const m of members) {
       if (!m.out) continue;
       if (A.night) { const n = nightFor(m); if (n.step(m, s, c)) { n.one(m, t, c, s); visualQueue.push({ id: m.id, t }); } continue; }
-      if (ROLES[m.role].play(m, s, t, c)) visualQueue.push({ id: m.id, t, beat: m.role === "coffee" });
+      const part = VIBE.groove && GROOVES[VIBE.groove][m.role];
+      if (part ? part(m, s, t, c) : ROLES[m.role].play(m, s, t, c)) visualQueue.push({ id: m.id, t, beat: m.role === "coffee" });
     }
     if (s % 4 === 0) visualQueue.push({ id: "beat", t });
     A.next += sixteenth();
@@ -3845,7 +4015,7 @@ function openScreen() {
     <svg class="ecg" viewBox="0 0 300 30" aria-hidden="true"><path d="M0 18h70l6-8 6 8h14l5-16 7 26 5-10h40l6-8 6 8h14l5-16 7 26 5-10h94" fill="none" stroke="#9fe3c8" stroke-width="2" stroke-linejoin="round"/></svg>
     <h2>Pull up a chair.</h2>
     <p>Why an office full of noise? In five experiments, a moderate buzz of background sound, around 70 dB, about a busy café, made people more creative than a quiet room. So if it gets too quiet where you work, you can always count on this office.</p>
-    <p>We'd love to have you over. Small problem: our office has a few chairs, and the internet has a few billion people. So we built a digital office instead. No ID card needed.</p>
+    <p>We'd love to have you over. Small problem: our office has a few chairs, and the internet has a few billion people. So we built a digital office instead.</p>
     <p class="tip2">Go explore: click people, the empty desks, the whiteboard, the snack boxes and the bookshelf. Hit Play, then try Ambient.</p>
     <div class="sf"><button class="go" type="button">Go explore →</button><span>Source: <a href="https://academic.oup.com/jcr/article/39/4/784/1795620" target="_blank" rel="noopener">Mehta, Zhu & Cheema, "Is Noise Always Bad?", Journal of Consumer Research, 2012</a></span></div>
   </div></div><div class="stand"></div>`;
