@@ -254,8 +254,21 @@ canvas#office {
   max-width: 100%;
   aspect-ratio: 440 / 310;
   cursor: default;
-  touch-action: manipulation;
+  touch-action: none;
 }
+/* zoom and pan: the office moves, the controls stay put */
+.board { transform-origin: 0 0; will-change: transform; }
+.board.glide { transition: transform .22s ease; }
+body.zoomed canvas#office { cursor: grab; }
+body.panning canvas#office { cursor: grabbing !important; }
+.zoomer { position: fixed; right: max(14px, env(safe-area-inset-right, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); z-index: 5; display: flex; gap: 10px; }
+.zoomer .btn { width: 40px; height: 38px; padding: 0; display: grid; place-items: center; font: 400 20px/1 var(--font-label); }
+.zoomer .btn svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.zoomer .btn:disabled { opacity: .4; cursor: default; }
+.zoomer output { align-self: center; min-width: 4ch; text-align: right; background: rgba(255,255,255,.85); padding: 3px 5px; font: 400 12px/1 var(--font-label); color: #6b6b6e; font-variant-numeric: tabular-nums; }
+.poplayer { position: fixed; inset: 0; z-index: 7; pointer-events: none; }
+.poplayer > * { pointer-events: auto; }
+@media (prefers-reduced-motion: reduce) { .board.glide { transition: none; } }
 .tags { position: absolute; inset: 0; pointer-events: none; }
 .tag {
   position: absolute;
@@ -294,7 +307,8 @@ canvas#office {
   padding: 7px 10px;
   font-size: 13px;
   line-height: 1.35;
-  transform: translate(-50%, calc(-100% - 8px));
+  transform-origin: 0 0;
+  transform: scale(var(--iz, 1)) translate(-50%, calc(-100% - 8px));
   white-space: nowrap;
   z-index: 2;
 }
@@ -398,7 +412,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
 .toasts {
   position: fixed;
   left: 50%;
-  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  bottom: calc(70px + env(safe-area-inset-bottom, 0px));
   transform: translateX(-50%);
   display: grid;
   gap: 8px;
@@ -489,9 +503,16 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
   </header>
   <footer class="foot">
     <span>Hover over someone to see who they are. Click them to send them home, or click an empty seat to call its person back. On a phone, tap once to see what something is and tap again to use it.</span>
-    <span class="keys"><kbd>Space</kbd> play or pause · <kbd>M</kbd> Music or Ambiance · <kbd>E</kbd> everyone in · <kbd>V</kbd> next vibe · <kbd>N</kbd> day or night · <kbd>Esc</kbd> close</span>
+    <span class="keys"><kbd>Space</kbd> play or pause · <kbd>M</kbd> Music or Ambiance · <kbd>E</kbd> everyone in · <kbd>V</kbd> next vibe · <kbd>N</kbd> day or night · <kbd>+</kbd> <kbd>−</kbd> zoom · drag to move around · <kbd>0</kbd> whole office · <kbd>Esc</kbd> close</span>
   </footer>
 </aside>
+<div class="poplayer" id="poplayer"></div>
+<div class="zoomer" role="group" aria-label="Zoom">
+  <output id="zoomOut" aria-live="polite">100%</output>
+  <button class="btn" id="zoomMinus" type="button" aria-label="Zoom out"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10"/></svg></button>
+  <button class="btn" id="zoomFit" type="button" aria-label="See the whole office"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg></button>
+  <button class="btn" id="zoomPlus" type="button" aria-label="Zoom in"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h10M8 3v10"/></svg></button>
+</div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
 <script>
@@ -1733,7 +1754,7 @@ function drawNight(now) {
    The left wall is the x = 0 plane, the back wall is y = 0. iso() projects into a 440 x 310 frame;
    the canvas draws it at three times that resolution with thin vector lines. */
 const LW = 440, LH = 310, K = 0.9, OX = 206.5, OY = 85, WH = 70;
-const SC = Math.min(4, Math.max(3, Math.ceil((devicePixelRatio || 1) * Math.min(innerWidth, innerHeight * LW / LH) / LW)));
+const SC = Math.min(5, Math.max(4, Math.ceil((devicePixelRatio || 1) * Math.min(innerWidth, innerHeight * LW / LH) / LW) + 1));   // extra detail for zooming in
 const iso = (x, y, z = 0) => [OX + (x - y) * K, OY + (x + y) * K / 2 - z * K];
 const PLAN = [[0, 0], [240, 0], [240, 150], [200, 150], [200, 210], [0, 210]];
 
@@ -3820,7 +3841,7 @@ function openSnack(b) {
 }
 // only one popup is open at a time; this closes whichever it is and says whether there was one
 function closePopups() {
-  const open = !!document.querySelector(".board > [role=dialog]");
+  const open = !!document.querySelector(".poplayer > [role=dialog]");
   closeSnack(); closeCal(); closeWB(); closeShelf(); closeScreen(); closeAlbum(); closeClock();
   return open;
 }
@@ -4174,13 +4195,13 @@ const ALB_CSS = `
 // the popup styles go last in the page so nothing else overrides them
 document.body.insertAdjacentHTML("beforeend", `<style>${CAL_CSS}${WALL_CSS}${BOARD_CSS}${SNACK_CSS}${WB_CSS}${SHELF_CSS}${SCR_CSS}${ALB_CSS}${CLK_CSS}
 /* every popup shares one close button in its top right corner */
-.board > [role=dialog] .cx { position: absolute; top: 10px; right: 10px; margin: 0; padding: 0; width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid #3a3a3c; border-radius: 0; background: #fff; color: #2b2b2d; font: 400 18px/1 var(--font-label); cursor: pointer; z-index: 3; box-shadow: 1px 1px 0 #cfd6e2, 2px 2px 0 #cfd6e2, 3px 3px 0 #cfd6e2, 3px 3px 0 1px #3a3a3c; }
-.board > [role=dialog] .cx:hover { background: #f3f7fb; }
-.board > [role=dialog] .cx:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #cfd6e2, 1px 1px 0 1px #3a3a3c; }
-.board > [role=dialog] .cx:focus-visible { outline: 3px solid #5b6ee1; outline-offset: 2px; }
+.poplayer > [role=dialog] .cx { position: absolute; top: 10px; right: 10px; margin: 0; padding: 0; width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid #3a3a3c; border-radius: 0; background: #fff; color: #2b2b2d; font: 400 18px/1 var(--font-label); cursor: pointer; z-index: 3; box-shadow: 1px 1px 0 #cfd6e2, 2px 2px 0 #cfd6e2, 3px 3px 0 #cfd6e2, 3px 3px 0 1px #3a3a3c; }
+.poplayer > [role=dialog] .cx:hover { background: #f3f7fb; }
+.poplayer > [role=dialog] .cx:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 #cfd6e2, 1px 1px 0 1px #3a3a3c; }
+.poplayer > [role=dialog] .cx:focus-visible { outline: 3px solid #5b6ee1; outline-offset: 2px; }
 .board > .album .cx { top: 20px; right: 20px; }
 .board > .scrpop .cx { top: 20px; right: 20px; }
-.board > [role=dialog] :is(.ch, .shh, .sh, .ah) { padding-right: 40px; }
+.poplayer > [role=dialog] :is(.ch, .shh, .sh, .ah) { padding-right: 40px; }
 .snack .lt, .wbpop .wh { padding-right: 36px; }
 /* nothing on the page is bold */
 *, *::before, *::after { font-weight: 400 !important; }
@@ -4248,6 +4269,7 @@ cv.addEventListener("pointermove", e => {
 cv.addEventListener("pointerleave", () => { hoverDesk = -1; if (pointerKind !== "touch") tip.hidden = true; });
 // with a mouse a click acts at once; on a touch screen the first tap shows what it is and the second does it
 cv.addEventListener("click", e => {
+  if (panMoved) { panMoved = false; return; }
   const h = whatAt(toLogical(e));
   closePopups();
   if (!h.act) { armed = null; tip.hidden = true; return; }
@@ -4263,6 +4285,84 @@ document.addEventListener("keydown", e => {
   else if (e.key === "v" || e.key === "V") { start(); setVibe((VIBES.indexOf(VIBE) + 1) % VIBES.length); toast(`Vibe: ${VIBE.name}. ${VIBE.note}`); }
   else if (e.key === "n" || e.key === "N") { start(); setNight(!A.night); }
 });
+
+/* ---------- Zoom and pan ----------
+   Wheel or pinch to zoom where you point, drag to move around, + − and the frame button to step.
+   The office itself is scaled; the bar, Explore, these buttons and any open popup stay where they are. */
+const ZMAX = 3, view = { k: 1, x: 0, y: 0 }, boardEl = cv.parentElement, stageEl = $("stage"), touches = new Map();
+let panMoved = false, gesture = null;
+const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
+function baseRect() { const r = boardEl.getBoundingClientRect(); return { left: r.left - view.x, top: r.top - view.y, w: r.width / view.k, h: r.height / view.k }; }
+function applyView(glide) {
+  if (view.k <= 1.001) { view.k = 1; view.x = view.y = 0; }
+  else {
+    // the office can't be dragged off screen: its edges stop at the middle of the view
+    const b = baseRect();
+    view.x = clampN(view.x, innerWidth / 2 - b.left - b.w * view.k, innerWidth / 2 - b.left);
+    view.y = clampN(view.y, innerHeight / 2 - b.top - b.h * view.k, innerHeight / 2 - b.top);
+  }
+  boardEl.classList.toggle("glide", !!glide);
+  boardEl.style.transform = view.k === 1 ? "" : `translate(${view.x}px, ${view.y}px) scale(${view.k})`;
+  boardEl.style.setProperty("--iz", 1 / view.k);
+  document.body.classList.toggle("zoomed", view.k > 1);
+  $("zoomMinus").disabled = view.k <= 1; $("zoomFit").disabled = view.k <= 1; $("zoomPlus").disabled = view.k >= ZMAX;
+  $("zoomOut").textContent = Math.round(view.k * 100) + "%";
+}
+function zoomAt(cx, cy, k, glide) {
+  const b = baseRect(), u = (cx - b.left - view.x) / view.k, v = (cy - b.top - view.y) / view.k;
+  view.k = clampN(k, 1, ZMAX); view.x = cx - b.left - u * view.k; view.y = cy - b.top - v * view.k;
+  applyView(glide);
+}
+const zoomStep = f => zoomAt(innerWidth / 2, innerHeight / 2, view.k * f, true);
+$("zoomPlus").addEventListener("click", () => zoomStep(1.5));
+$("zoomMinus").addEventListener("click", () => zoomStep(1 / 1.5));
+$("zoomFit").addEventListener("click", () => { view.k = 1; applyView(true); });
+stageEl.addEventListener("wheel", e => {
+  e.preventDefault();
+  zoomAt(e.clientX, e.clientY, view.k * Math.exp(-e.deltaY * (e.ctrlKey ? .01 : .0015)));
+}, { passive: false });
+// one finger or the mouse drags the office around; two fingers pinch to zoom
+cv.addEventListener("pointerdown", e => {
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (touches.size === 1) gesture = { pan: true, sx: e.clientX, sy: e.clientY, x0: view.x, y0: view.y };
+  if (touches.size === 2) { const [a, b] = [...touches.values()]; gesture = { pinch: true, d0: Math.hypot(a.x - b.x, a.y - b.y), k0: view.k }; }
+});
+cv.addEventListener("pointermove", e => {
+  if (!touches.has(e.pointerId) || !gesture) return;
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (gesture.pinch && touches.size >= 2) {
+    const [a, b] = [...touches.values()];
+    panMoved = true; zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, gesture.k0 * Math.hypot(a.x - b.x, a.y - b.y) / gesture.d0);
+  } else if (gesture.pan && view.k > 1) {
+    const dx = e.clientX - gesture.sx, dy = e.clientY - gesture.sy;
+    if (!panMoved && Math.hypot(dx, dy) < 5) return;
+    if (!panMoved) { panMoved = true; cv.setPointerCapture(e.pointerId); document.body.classList.add("panning"); tip.hidden = true; }
+    view.x = gesture.x0 + dx; view.y = gesture.y0 + dy; applyView();
+  }
+});
+const endTouch = e => {
+  touches.delete(e.pointerId);
+  if (!touches.size) { gesture = null; document.body.classList.remove("panning"); setTimeout(() => { panMoved = false; }, 0); }
+};
+cv.addEventListener("pointerup", endTouch); cv.addEventListener("pointercancel", endTouch);
+document.addEventListener("keydown", e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || /^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+  if (e.key === "+" || e.key === "=") zoomStep(1.5);
+  else if (e.key === "-" || e.key === "_") zoomStep(1 / 1.5);
+  else if (e.key === "0") { view.k = 1; applyView(true); }
+});
+addEventListener("resize", () => applyView());
+// popups open in place, then lift into a fixed layer at the same spot, full size and kept on screen
+const popLayer = $("poplayer");
+new MutationObserver(muts => muts.forEach(mu => mu.addedNodes.forEach(el => {
+  if (!(el instanceof HTMLElement) || el.getAttribute("role") !== "dialog") return;
+  const r = el.getBoundingClientRect(), fit = el.style.transform ? parseFloat(el.style.transform.replace("scale(", "")) || 1 : 1;
+  popLayer.appendChild(el);
+  const w = el.offsetWidth * fit, h = el.offsetHeight * fit;
+  el.style.left = clampN(r.left + r.width / 2 - w / 2, 8, innerWidth - w - 8) + "px";
+  el.style.top = clampN(r.top + r.height / 2 - h / 2, 8, innerHeight - h - 8) + "px";
+}))).observe(boardEl, { childList: true });
+applyView();
 
 /* ---------- Explore: small slabs float over everything you can click ---------- */
 const MARK_SVG = `<svg viewBox="0 0 20 24" aria-hidden="true"><path d="M10 15v8" stroke="#3a3a3c" stroke-width="1.2" stroke-linecap="round"/><path d="M10 1 19 5.5 10 10 1 5.5Z" fill="#f6a5a1"/><path d="M1 5.5 10 10v4L1 9.5Z" fill="#ee6f6a"/><path d="M10 10 19 5.5v4L10 14Z" fill="#c4534f"/><path d="M10 1 19 5.5v4L10 14 1 9.5v-4ZM1 5.5 10 10 19 5.5M10 10v4" fill="none" stroke="#3a3a3c" stroke-width=".8" stroke-linejoin="round"/></svg>`;
