@@ -1224,11 +1224,9 @@ function ambientTick() {
     }
   }
 }
-/* Pantry chatter: when two or more people are at the kitchen, the water cooler or the copier,
-   they talk now and then. Speech is built syllable by syllable: a glottal source with a little
+/* Chatter: when two or more people are within talking distance, they talk now and then. Speech is built syllable by syllable: a glottal source with a little
    breath, consonant onsets (stops, hisses, hums), vowel formants that glide into each other, and
    sentence melody that starts high and settles. Heard from across the room, it is muffled. */
-const PANTRY = new Set(["kitchen", "cooler", "copier"]);
 const SPEECH_V = { i: [270, 2290, 3010], e: [530, 1840, 2480], a: [730, 1090, 2440], o: [570, 840, 2410], u: [300, 870, 2240], "ə": [500, 1500, 2500], ai: [660, 1400, 2500] };
 // a voice per person: lower or higher, set by their seed
 function voiceOf(m) {
@@ -1299,22 +1297,20 @@ function phoneLine(m, t, kind) {
   m.talkUntil = Math.max(m.talkUntil || 0, sentence(m, t, kind, lp));
   setTimeout(() => { lp.disconnect(); g.disconnect(); }, (m.talkUntil - A.ctx.currentTime + 1) * 1000);
 }
-// who talks: people together at the pantry, or in Ambiance anyone with whoever sits nearest
+// who talks: only people within talking distance of each other (never from the washroom)
+const TALK_DIST = 40;
+const near = (a, b) => { const p = posOf(a), q = posOf(b); return Math.hypot(p[0] - q[0], p[1] - q[1]) <= TALK_DIST; };
 function chatGroup() {
-  const here = members.filter(m => m.out), pantry = here.filter(m => PANTRY.has(SEATS[m.desk].place));
-  if (pantry.length >= 2) return pantry;
-  if (A.mode !== "ambient" || A.night || here.length < 2) return null;
-  const a = pick(here, Math.random), [ax, ay] = posOf(a), far = m => Math.hypot(posOf(m)[0] - ax, posOf(m)[1] - ay);
-  return [a, here.filter(m => m !== a).sort((p, q) => far(p) - far(q))[0]];
+  const here = members.filter(m => m.out && SEATS[m.desk].place !== "washroom");
+  const social = here.filter(m => here.some(o => o !== m && near(m, o)));
+  if (!social.length) return null;
+  const a = pick(social, Math.random);
+  return [a, ...here.filter(o => o !== a && near(a, o))];
 }
 function chatterTick(ct) {
   const amb = A.mode === "ambient" && !A.night;
-  // in Ambiance the room is never quite silent: a murmur of voices from all around, busier when it's busy
-  if (amb && members.some(m => m.out)) {
-    if (A.babNext == null || A.babNext < ct - 1) A.babNext = ct + rand(.2, 1);
-    while (A.babNext < ct + .12) { sentence({ seed: Math.floor(Math.random() * 1e6) }, A.babNext, chance(.05) ? "laugh" : "say", A.babble); A.babNext += rand(.5, 2.2) * busyScale(); }
-  } else A.babNext = null;
-  if (A.chatGroup && A.chatGroup.some(m => !m.out)) { A.chatGroup = null; A.chatTalk = 0; }
+  // a conversation ends when someone leaves or walks out of earshot
+  if (A.chatGroup && A.chatGroup.some(m => !m.out || !near(m, A.chatGroup[0]))) { A.chatGroup = null; A.chatTalk = 0; }
   if (A.chatNext == null) { A.chatNext = ct + rand(2, 6); A.chatTalk = Math.floor(rand(3, 8)); }
   while (A.chatNext < ct + 0.12) {
     if (!A.chatGroup) { A.chatGroup = chatGroup(); if (!A.chatGroup) { A.chatNext = ct + 2; return; } }
@@ -1339,10 +1335,6 @@ function chatBus(ctx) {
   const lp = filt("lowpass", 1250, .5), hp = filt("highpass", 140, .5), rs = ctx.createGain(); rs.gain.value = .7;
   A.chatPan = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
   A.chat.connect(hp); hp.connect(lp); lp.connect(A.chatPan); A.chatPan.connect(A.master); A.chatPan.connect(rs); rs.connect(A.rev);
-  // the far-off murmur: duller, quieter and roomier than anyone close by
-  A.babble = ctx.createGain(); A.babble.gain.value = .5;
-  const blp = filt("lowpass", 750, .5), bhp = filt("highpass", 170, .5), brs = ctx.createGain(); brs.gain.value = 1.1;
-  A.babble.connect(bhp); bhp.connect(blp); blp.connect(A.master); blp.connect(brs); brs.connect(A.rev);
 }
 // the visual queue stays sorted by time: ambient steps arrive out of order across people
 function queueVisual(ev) {
