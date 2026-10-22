@@ -583,6 +583,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
     </div>
     <div class="transport">
       <button class="btn" id="fillBtn">Everyone in</button>
+      <button class="btn" id="welcomeBtn" type="button">How it works</button>
       <button class="btn" id="clearBtn">Empty office</button>
     </div>
   </header>
@@ -4743,9 +4744,12 @@ document.addEventListener("keydown", e => {
   else if (e.key === "Tab") { const f = [...intro.querySelectorAll(".card:not([hidden]) button, .card:not([hidden]) a")], i = f.indexOf(document.activeElement);
     if (e.shiftKey ? i <= 0 : i === f.length - 1) { e.preventDefault(); f[e.shiftKey ? f.length - 1 : 0].focus(); } }
 }, true);
+function openIntro() { intro.hidden = false; introStep(1); }
+// the menu can bring it back, and ?welcome in the link always shows it
+$("welcomeBtn").addEventListener("click", () => { setMenu(false); openIntro(); });
 let introSeen = false;
 try { introSeen = !!localStorage.getItem("office-harmony-intro"); } catch (e) {}
-if (!introSeen) { intro.hidden = false; introStep(1); } else if (!explored) showMarks();
+if (!introSeen || new URLSearchParams(location.search).has("welcome")) openIntro(); else if (!explored) showMarks();
 
 /* ---------- Boot with a starter team so the office isn't empty ---------- */
 readTokens();
