@@ -789,6 +789,26 @@ const SND = {
     ping(d, t, f * 4, v * .26, .055, "sine", .001);
     burstN(d, t, v * .07, "bandpass", Math.min(9000, f * 6), 2, .012);
   },
+  // a classic office desk phone: an electronic trill flipping between two tones, out of a small speaker
+  deskRing(d, t, dur, v) {
+    const ctx = A.ctx, o = ctx.createOscillator(), lfo = ctx.createOscillator(), dep = ctx.createGain();
+    o.type = "square"; o.frequency.value = 1180; lfo.type = "square"; lfo.frequency.value = 17; dep.gain.value = 150;
+    lfo.connect(dep); dep.connect(o.frequency);
+    const bp = filt("bandpass", 1400, .9), lp = filt("lowpass", 3000, .7), g = susGain(t, .008, v, dur, .03);
+    o.connect(bp); bp.connect(lp); lp.connect(g); g.connect(d);
+    o.start(t); lfo.start(t); o.stop(t + dur + .1); lfo.stop(t + dur + .1);
+  },
+  // the water cooler: water running into a glass, and air glugging up through the bottle
+  pour(d, t, dur, v) {
+    const n = noiseSrc(t, dur + .2), bp = filt("bandpass", 1100, 1.2), g = susGain(t, .06, v, dur, .12);
+    bp.frequency.setValueAtTime(900, t); bp.frequency.linearRampToValueAtTime(1500, t + dur);   // the glass fills, the note rises
+    n.connect(bp); bp.connect(g); g.connect(d);
+  },
+  glug(d, t, v) {
+    const o = A.ctx.createOscillator(), f = 230 + Math.random() * 180, g = envGain(t, .004, v, .07);
+    o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f * 2.3, t + .06);
+    o.connect(g); g.connect(d); o.start(t); o.stop(t + .14);
+  },
   // modern desk phone beep
   beep(d, t, f, dur, v) {
     tone(d, t, f, dur, { vel: v, attack: 0.004, release: 0.02 });
@@ -1305,11 +1325,15 @@ const AMBIENT = {
     return { steps: chance(.25) ? [[0, one], [rand(.35, .5), one]] : [[0, one]], gap: [5, 12] };
   },
   phone(m, c) {
-    // the ringtone plays two or three times, then the call is picked up
+    // a desk phone trills, brr-brr, two or three times; then it's picked up and they talk for a while
     const steps = [], n = chance(.5) ? 2 : 3;
-    const notes = inRange(74, 93, c.chord.map(n => n % 12)), q = .17;
-    for (let i = 0; i < n; i++) [[0, 0], [2, 1], [4, 2], [6, 3], [8, 4], [9, 3], [10, 4]].forEach(([st, k]) => steps.push([i * 2.4 + st * q, t => (SND.ring(m.out, t, mtof(notes[k]), q * 1.6, .2), true)]));
-    return { steps, gap: [30, 60] };
+    for (let i = 0; i < n; i++) for (const k of [0, .55]) steps.push([i * 3 + k, t => (SND.deskRing(m.out, t, .4, .12), true)]);
+    let at = n * 3 - 1.6;
+    steps.push([at, t => (burstN(m.out, t, .25, "bandpass", 1600, 1, .03), false)]);   // the handset lifted
+    const lines = Math.floor(rand(3, 7));
+    for (let k = 0; k < lines; k++) { at += k ? rand(2.6, 4.2) : .6; steps.push([at, t => (phoneLine(m, t, chance(.25) ? "back" : chance(.06) ? "laugh" : "say"), false)]); }
+    steps.push([at + 3.4, t => (burstN(m.out, t, .3, "lowpass", 900, 1, .04), false)]);   // and put down
+    return { steps, gap: [25, 50] };
   },
   copier(m, c) {
     const steps = [], n = chance(.3) ? Math.floor(rand(2, 4)) : 1, root = mtof(c.chord[0] - 24);
@@ -1317,9 +1341,11 @@ const AMBIENT = {
     return { steps, gap: [20, 40] };
   },
   glass(m, c) {
-    const steps = [[0, t => (SND.glass(m.out, t, mtof(ambNote(c, 24)), rand(.14, .2)), true)]];
-    if (chance(.3)) steps.push([rand(.4, .9), t => (SND.glass(m.out, t, mtof(ambNote(c, 24)), rand(.1, .15)), true)]);
-    return { steps, gap: [4, 10] };
+    // at the water cooler: a refill, with the bottle glugging; at a desk, just a quiet gulp now and then
+    if (SEATS[m.desk].place !== "cooler") return { steps: [[0, t => (SND.glug(m.out, t, .05), false)], [.35, t => (SND.glug(m.out, t, .04), false)]], gap: [12, 25] };
+    const steps = [[0, t => (SND.pour(m.out, t, 1.7, .07), true)]], n = Math.floor(rand(3, 6));
+    for (let i = 0; i < n; i++) steps.push([.35 + i * rand(.22, .4), t => (SND.glug(m.out, t, .12), false)]);
+    return { steps, gap: [14, 28] };
   },
   coffee(m, c) {
     // grind, pump, a few drips into the cup, a little steam
@@ -1376,8 +1402,9 @@ function voiceOf(m) {
   return m.voice = { f0: high ? 185 + r() * 45 : 98 + r() * 30, fs: high ? 1.17 : 1, rate: .9 + r() * .25 };
 }
 // one syllable: an optional consonant, then a vowel gliding from the last one
+let speakTo = null;   // where the sentence being built is heard: the chat bus unless said otherwise
 function syllable(t, V, vowel, prev, cons, dur, amp, fA, fB) {
-  const ctx = A.ctx, out = A.chat;
+  const ctx = A.ctx, out = speakTo || A.chat;
   let vt = t;
   if (cons === "stop") { burstN(out, t + .025, amp * .35, "bandpass", 2600 * V.fs, 1.2, .018); vt = t + .045; }
   else if (cons === "hiss") { burstN(out, t, amp * .22, "bandpass", 5200, 1.6, .055, .015); vt = t + .06; }
@@ -1402,7 +1429,8 @@ function syllable(t, V, vowel, prev, cons, dur, amp, fA, fB) {
 }
 const VOW = ["a", "e", "i", "o", "u", "ə", "ə", "a", "e", "ai"], CONS = ["stop", "stop", "hiss", "hum", "none", "none", "stop", "hum"];
 // a sentence: a few words of one to three syllables, pitch falling across it, one stressed word
-function sentence(who, t0, kind) {
+function sentence(who, t0, kind, out = null) {
+  speakTo = out;
   const V = voiceOf(who);
   let at = t0, prev = "ə";
   if (kind === "back") {   // "mm-hm" or "yeah"
@@ -1429,14 +1457,35 @@ function sentence(who, t0, kind) {
   }
   return at;
 }
+// one side of a phone call, heard from the person's own spot in the room
+function phoneLine(m, t, kind) {
+  if (!m.out) return;
+  const lp = filt("lowpass", 1400, .5), g = A.ctx.createGain(); g.gain.value = 1.4; lp.connect(g); g.connect(m.out);
+  m.talkUntil = Math.max(m.talkUntil || 0, sentence(m, t, kind, lp));
+  setTimeout(() => { lp.disconnect(); g.disconnect(); }, (m.talkUntil - A.ctx.currentTime + 1) * 1000);
+}
+// who talks: people together at the pantry, or in Ambiance anyone with whoever sits nearest
+function chatGroup() {
+  const here = members.filter(m => m.out), pantry = here.filter(m => PANTRY.has(SEATS[m.desk].place));
+  if (pantry.length >= 2) return pantry;
+  if (A.mode !== "ambient" || A.night || here.length < 2) return null;
+  const a = pick(here, Math.random), [ax, ay] = posOf(a), far = m => Math.hypot(posOf(m)[0] - ax, posOf(m)[1] - ay);
+  return [a, here.filter(m => m !== a).sort((p, q) => far(p) - far(q))[0]];
+}
 function chatterTick(ct) {
-  const group = members.filter(m => m.out && PANTRY.has(SEATS[m.desk].place));
-  if (group.length < 2) { A.chatNext = null; A.chatTalk = 0; return; }
-  // conversations come and go: talk for a while, then a long quiet stretch
+  const amb = A.mode === "ambient" && !A.night;
+  // in Ambiance the room is never quite silent: a murmur of voices from all around, busier when it's busy
+  if (amb && members.some(m => m.out)) {
+    if (A.babNext == null || A.babNext < ct - 1) A.babNext = ct + rand(.2, 1);
+    while (A.babNext < ct + .12) { sentence({ seed: Math.floor(Math.random() * 1e6) }, A.babNext, chance(.05) ? "laugh" : "say", A.babble); A.babNext += rand(.5, 2.2) * busyScale(); }
+  } else A.babNext = null;
+  if (A.chatGroup && A.chatGroup.some(m => !m.out)) { A.chatGroup = null; A.chatTalk = 0; }
   if (A.chatNext == null) { A.chatNext = ct + rand(2, 6); A.chatTalk = Math.floor(rand(3, 8)); }
   while (A.chatNext < ct + 0.12) {
-    if (A.chatTalk <= 0) { A.chatTalk = Math.floor(rand(3, 8)); A.chatNext = ct + rand(18, 40); return; }
-    const others = group.filter(m => m !== A.chatLast), who = pick(others.length ? others : group, Math.random);
+    if (!A.chatGroup) { A.chatGroup = chatGroup(); if (!A.chatGroup) { A.chatNext = ct + 2; return; } }
+    // conversations come and go: talk for a while, then a quiet stretch (shorter in Ambiance)
+    if (A.chatTalk <= 0) { A.chatTalk = Math.floor(rand(3, 8)); A.chatGroup = null; A.chatNext = ct + (amb ? rand(4, 12) * busyScale() : rand(18, 40)); return; }
+    const group = A.chatGroup, others = group.filter(m => m !== A.chatLast), who = pick(others.length ? others : group, Math.random);
     const t0 = Math.max(A.chatNext, ct + .02);
     A.chatPan.pan && A.chatPan.pan.setValueAtTime(Math.max(-1, Math.min(1, (posOf(who)[0] - LW / 2) / (LW / 2) * .8)), t0);
     const kind = A.chatLast && chance(.18) ? "back" : chance(.07) ? "laugh" : "say";
@@ -1455,6 +1504,10 @@ function chatBus(ctx) {
   const lp = filt("lowpass", 1250, .5), hp = filt("highpass", 140, .5), rs = ctx.createGain(); rs.gain.value = .7;
   A.chatPan = ctx.createStereoPanner ? ctx.createStereoPanner() : ctx.createGain();
   A.chat.connect(hp); hp.connect(lp); lp.connect(A.chatPan); A.chatPan.connect(A.master); A.chatPan.connect(rs); rs.connect(A.rev);
+  // the far-off murmur: duller, quieter and roomier than anyone close by
+  A.babble = ctx.createGain(); A.babble.gain.value = .5;
+  const blp = filt("lowpass", 750, .5), bhp = filt("highpass", 170, .5), brs = ctx.createGain(); brs.gain.value = 1.1;
+  A.babble.connect(bhp); bhp.connect(blp); blp.connect(A.master); blp.connect(brs); brs.connect(A.rev);
 }
 // the visual queue stays sorted by time: ambient steps arrive out of order across people
 function queueVisual(ev) {
@@ -2679,7 +2732,7 @@ function pose(m, seat, T) {
   const ownDesk = !standing && place === "desk";
   // the role decides the action; a desk-bound copy of a room role gets a simple desk version
   const stayAct = A.night && place === "desk" && NIGHT_PLAN[m.name] && NIGHT_PLAN[m.name].stay ? NIGHT_PLAN[m.name].act : null;
-  const act = stayAct || (place === "desk" ? ({ coffee: "sip", copier: "typing", flush: "scroll", glass: "glassDesk" }[m.role] || m.role) : place);
+  const act = stayAct || (place === "desk" ? ({ coffee: "sip", copier: "typing", flush: "scroll", glass: A.mode === "ambient" && !A.night ? "sip" : "glassDesk" }[m.role] || m.role) : place);
   if (act === "typing") {
     const side = m.hits % 2 ? 1 : -1, tap = Math.max(soon, Math.exp(-hit * 18));
     R = [11.2 + Math.sin(t * .9 + idle) * .3, -2.6 + Math.sin(t * .6) * .4, deskZ + .3 - (side < 0 ? tap * .45 : 0)];
@@ -2760,6 +2813,16 @@ function pose(m, seat, T) {
     R = v3.mix([6.8, -3.6, 23.2], [7.6, -3.6, 21], press);
     L = [7.8, 2.6, 20.6 + Math.sin(t * 1.1) * .1];
     lean = .22; nod = .12;
+  } else if (act === "cooler" && A.mode === "ambient" && !A.night) {
+    // filling a glass at the cooler, then drinking from it now and then
+    const fill = Math.max(soon, hit < 2.1 ? 1 - smooth((hit - 1.7) / .4) : 0);
+    const ph = (t + idle) % 7, up = (1 - fill) * smooth((ph - 3) / .5) * smooth((4.8 - ph) / .5);
+    R = v3.mix([4.4, -2, 22.6], [5.6, -.2, 24.8], fill);
+    L = [3.2, 2.6, 18.5];
+    if (up > .02) headR = { up, at: [2.2, -.4, -1.5] };
+    props.push({ kind: "glass", hand: "R" });
+    mouth = up > .7 ? "sip" : "smile";
+    lean = -.02; nod = .08 - up * .1; turn = .06;
   } else if (act === "cooler") {
     // leaning on the cooler, tapping a glass with a pen in time
     const tap = Math.max(strike, back);
