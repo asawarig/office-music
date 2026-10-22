@@ -189,6 +189,18 @@ button { font: inherit; color: inherit; }
 .panel .tempo { border-left: 1px solid #d9d7d1; padding-left: 12px; color: #6b6b6e; font-size: 12px; }
 .panel .tempo input { width: 84px; accent-color: #ee6f6a; }
 .panel .tempo output { color: #2b2b2d; }
+/* the vibe picker: a button on the bar that drops a short list of styles */
+.vibe { position: relative; }
+.vibe .btn { display: inline-flex; align-items: center; gap: 8px; }
+.vibe .btn svg { width: 13px; height: 13px; fill: currentColor; }
+.vibe .btn .caret { width: 9px; height: 9px; }
+.vibemenu { position: absolute; top: calc(100% + 12px); left: 0; z-index: 6; width: 250px; background: #fff; color: #2b2b2d; border: 1px solid #3a3a3c; box-shadow: 1px 1px 0 #cfd6e2, 2px 2px 0 #cfd6e2, 3px 3px 0 #cfd6e2, 4px 4px 0 #cfd6e2, 4px 4px 0 1px #3a3a3c; padding: 6px; display: grid; gap: 2px; }
+.vibemenu[hidden] { display: none; }
+.vibemenu button { display: grid; grid-template-columns: 16px 1fr; column-gap: 8px; align-items: baseline; text-align: left; padding: 8px 10px; border: 0; background: none; color: inherit; cursor: pointer; font: 400 14px/1.2 var(--font-label); }
+.vibemenu button:hover, .vibemenu button:focus-visible { background: #f3f7fb; outline: none; }
+.vibemenu button i { font-style: normal; color: #ee6f6a; visibility: hidden; }
+.vibemenu button[aria-checked="true"] i { visibility: visible; }
+.vibemenu button small { grid-column: 2; font: 400 12px/1.3 var(--font-body); color: #6b6b6e; }
 /* Explore: bottom left, marks what you can click */
 .explore { position: fixed; left: max(14px, env(safe-area-inset-left, 0px)); bottom: max(16px, env(safe-area-inset-bottom, 0px)); z-index: 5; display: inline-flex; align-items: center; gap: 8px; }
 .explore svg { width: 15px; height: 15px; fill: currentColor; }
@@ -446,6 +458,10 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
       <output id="tempoOut">88 bpm</output>
     </label>
   </div>
+  <div class="vibe">
+    <button class="btn" id="vibeBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="vibeMenu"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M7 0 8.4 5.6 14 7 8.4 8.4 7 14 5.6 8.4 0 7 5.6 5.6z"/></svg><span>Vibe: <span id="vibeName">Lo-fi</span></span><svg class="caret" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 3h8L5 8z"/></svg></button>
+    <div class="vibemenu" id="vibeMenu" role="menu" aria-label="Music vibe" hidden></div>
+  </div>
 </div>
 </div>
 <button class="btn explore" id="exploreBtn" type="button" aria-pressed="false"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3C4 3 1.5 6 1 8c.5 2 3 5 7 5s6.5-3 7-5c-.5-2-3-5-7-5zm0 8a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"/></svg><span>Explore</span><small id="exploreCount"></small></button>
@@ -469,7 +485,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
   </header>
   <footer class="foot">
     <span>Hover over someone to see who they are. Click them to send them home, or click an empty seat to call its person back. On a phone, tap once to see what something is and tap again to use it.</span>
-    <span class="keys"><kbd>Space</kbd> play or pause · <kbd>M</kbd> Musical or Ambient · <kbd>E</kbd> everyone in · <kbd>N</kbd> day or night · <kbd>Esc</kbd> close</span>
+    <span class="keys"><kbd>Space</kbd> play or pause · <kbd>M</kbd> Musical or Ambient · <kbd>E</kbd> everyone in · <kbd>V</kbd> next vibe · <kbd>N</kbd> day or night · <kbd>Esc</kbd> close</span>
   </footer>
 </aside>
 <div class="toasts" id="toasts" aria-live="polite"></div>
@@ -479,13 +495,20 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
 "use strict";
 
 /* ---------- Music theory ---------- */
-// Four-bar lo-fi loop: Fmaj7 → Em7 → Dm7 → Cmaj7
-const CHORDS = [
-  [53, 57, 60, 64],
-  [52, 55, 59, 62],
-  [50, 53, 57, 60],
-  [48, 52, 55, 59],
+// Four-bar loop; the vibe picker swaps it (and tempo, swing, room, echo and brightness) for another style.
+// Each chord lists its root first, so the bass and the copier can find it.
+const VIBES = [
+  { name: "Lo-fi", note: "Slow, swung and dusty. The original.", bpm: 88, swing: .12, rev: .55, fb: .33, tone: 20000,
+    chords: [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]] },          // Fmaj7 Em7 Dm7 Cmaj7
+  { name: "Bossa nova", note: "Straight, warm and sunny.", bpm: 116, swing: 0, rev: .4, fb: .22, tone: 11000,
+    chords: [[48, 52, 55, 59], [57, 61, 64, 67], [50, 53, 57, 60], [55, 59, 62, 65]] },          // Cmaj7 A7 Dm7 G7
+  { name: "Jazz", note: "Heavy swing round a ii–V–I.", bpm: 100, swing: .3, rev: .5, fb: .25, tone: 9000,
+    chords: [[55, 58, 62, 65], [48, 52, 55, 58], [53, 57, 60, 64], [50, 54, 57, 60]] },          // Gm7 C7 Fmaj7 D7
+  { name: "Synth pop", note: "Bright, straight and full of echo.", bpm: 118, swing: 0, rev: .35, fb: .45, tone: 20000,
+    chords: [[57, 60, 64, 69], [53, 57, 60, 65], [48, 52, 55, 60], [55, 59, 62, 67]] },          // Am F C G
 ];
+let VIBE = VIBES[0];
+const CHORDS = VIBE.chords.map(c => c.slice());
 const PENTA = [0, 2, 4, 7, 9];
 const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 function rng(seed) {
@@ -502,7 +525,7 @@ const pick = (arr, r) => arr[Math.floor(r() * arr.length)];
 /* ---------- Audio engine ---------- */
 const A = { ctx: null, master: null, rev: null, dly: null, analyser: null, noise: null,
             playing: false, bpm: 88, step: 0, next: 0, timer: null,
-            mode: "musical", busy: .5, chordIdx: 0, chordAt: 0 };
+            mode: "musical", busy: .5, chordIdx: 0, chordAt: 0, swing: .12 };
 const visualQueue = [];
 
 function initAudio() {
@@ -513,7 +536,8 @@ function initAudio() {
   comp.threshold.value = -16; comp.ratio.value = 4; comp.attack.value = 0.005; comp.release.value = 0.2;
   A.master = ctx.createGain(); A.master.gain.value = 0.85;
   A.analyser = ctx.createAnalyser(); A.analyser.fftSize = 2048;
-  A.master.connect(comp); comp.connect(A.analyser); A.analyser.connect(ctx.destination);
+  A.tone = ctx.createBiquadFilter(); A.tone.type = "lowpass"; A.tone.frequency.value = VIBE.tone; A.tone.Q.value = .5;   // each vibe's brightness
+  A.master.connect(A.tone); A.tone.connect(comp); comp.connect(A.analyser); A.analyser.connect(ctx.destination);
 
   // reverb from a generated impulse
   const len = ctx.sampleRate * 1.4, imp = ctx.createBuffer(2, len, ctx.sampleRate);
@@ -527,7 +551,7 @@ function initAudio() {
 
   // dotted-eighth delay
   A.dly = ctx.createDelay(2);
-  const fb = ctx.createGain(); fb.gain.value = 0.33;
+  const fb = ctx.createGain(); fb.gain.value = VIBE.fb; A.fb = fb;
   const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2400;
   const dOut = ctx.createGain(); dOut.gain.value = 0.5;
   A.dly.connect(lp); lp.connect(fb); fb.connect(A.dly); lp.connect(dOut); dOut.connect(A.master);
@@ -979,7 +1003,7 @@ function scheduler() {
   if (A.mode === "ambient") { ambientTick(); return; }
   while (A.next < A.ctx.currentTime + 0.12) {
     const g = A.step % 64, s = g % 16, bar = g >> 4;
-    const swing = s % 2 ? sixteenth() * 0.12 : 0;
+    const swing = s % 2 ? sixteenth() * A.swing : 0;
     const t = A.next + swing;
     const c = { g, bar, chord: CHORDS[bar], sixteenth: sixteenth(), barLen: sixteenth() * 16 };
     for (const m of members) {
@@ -1211,7 +1235,7 @@ function queueVisual(ev) {
 function applyMix(fade = .8) {
   if (!A.ctx) return;
   const t = A.ctx.currentTime, amb = A.mode === "ambient";
-  A.revOut.gain.setTargetAtTime(amb ? .95 : .55, t, fade / 3);
+  A.revOut.gain.setTargetAtTime(amb ? .95 : VIBE.rev, t, fade / 3);
   A.dly.delayTime.setTargetAtTime(amb ? .55 : 60 / A.bpm * 0.75, t, .05);
   A.room.gain.setTargetAtTime(amb && A.playing ? 1 : 0, t, fade);
   members.forEach(m => panTo(m, fade / 3));
@@ -1903,6 +1927,31 @@ function pickMode(mode) {
 $("modeSwitch").addEventListener("click", () => pickMode(A.mode === "musical" ? "ambient" : "musical"));
 document.querySelectorAll(".modeswitch .ml").forEach(b => b.addEventListener("click", () => pickMode(b.dataset.mode)));
 syncMode();
+function setVibe(k) {
+  VIBE = VIBES[k];
+  CHORDS.splice(0, CHORDS.length, ...VIBE.chords.map(c => c.slice()));
+  A.bpm = VIBE.bpm; A.swing = VIBE.swing;
+  if (A.ctx) { const t = A.ctx.currentTime; A.fb.gain.setTargetAtTime(VIBE.fb, t, .1); A.tone.frequency.setTargetAtTime(VIBE.tone, t, .2); setDelayTime(); applyMix(.6); }
+  $("vibeName").textContent = VIBE.name;
+  vibeMenu.querySelectorAll("button").forEach((b, i) => b.setAttribute("aria-checked", String(i === k)));
+  syncMode();
+}
+const vibeBtn = $("vibeBtn"), vibeMenu = $("vibeMenu");
+vibeMenu.innerHTML = VIBES.map((v, i) => `<button type="button" role="menuitemradio" aria-checked="${i === 0}" data-k="${i}"><i>●</i><span>${v.name}</span><small>${v.note}</small></button>`).join("");
+function setVibeMenu(open) { vibeMenu.hidden = !open; vibeBtn.setAttribute("aria-expanded", String(open)); if (open) vibeMenu.querySelector('[aria-checked="true"]').focus(); }
+vibeBtn.addEventListener("click", e => { e.stopPropagation(); setVibeMenu(vibeMenu.hidden); });
+vibeMenu.addEventListener("click", e => {
+  e.stopPropagation();
+  const b = e.target.closest("button"); if (!b) return;
+  setVibe(+b.dataset.k); setVibeMenu(false); vibeBtn.focus(); start();
+  toast(`Vibe: ${VIBE.name}. ${VIBE.note}`);
+});
+vibeMenu.addEventListener("keydown", e => {
+  const items = [...vibeMenu.querySelectorAll("button")], i = items.indexOf(document.activeElement);
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); items[(i + (e.key === "ArrowDown" ? 1 : items.length - 1)) % items.length].focus(); }
+  if (e.key === "Escape") { e.stopPropagation(); setVibeMenu(false); vibeBtn.focus(); }
+});
+document.addEventListener("click", () => { if (!vibeMenu.hidden) setVibeMenu(false); });
 const menu = $("menu"), menuBtn = $("menuBtn");
 function setMenu(open) { menu.hidden = !open; menuBtn.setAttribute("aria-expanded", String(open)); if (open) $("menuClose").focus(); }
 menuBtn.addEventListener("click", () => setMenu(menu.hidden));
@@ -4015,6 +4064,7 @@ document.addEventListener("keydown", e => {
   if (e.code === "Space" && (e.target === document.body || e.target === cv)) { e.preventDefault(); A.playing ? stop() : start(); }
   else if (e.key === "m" || e.key === "M") pickMode(A.mode === "musical" ? "ambient" : "musical");
   else if (e.key === "e" || e.key === "E") $("fillBtn").click();
+  else if (e.key === "v" || e.key === "V") { start(); setVibe((VIBES.indexOf(VIBE) + 1) % VIBES.length); toast(`Vibe: ${VIBE.name}. ${VIBE.note}`); }
   else if (e.key === "n" || e.key === "N") { start(); setNight(!A.night); }
 });
 
