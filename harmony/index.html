@@ -952,7 +952,7 @@ const ROLES = {
   },
   coffee: {
     title: "Espresso Addict", sound: "Coffee machine buzz", covers: "Annual heart check-ups", color: "#c2407a",
-    gain: 0.5, rev: 0.06, dly: 0,
+    gain: 0.3, rev: 0.06, dly: 0,
     play(m, s, t, c) {
       const root = c.chord[0] - 12;
       if (m.variant % 2 === 0) {
@@ -1357,6 +1357,7 @@ function applyMix(fade = .8) {
   A.revOut.gain.setTargetAtTime(amb ? .95 : VIBE.rev, t, fade / 3);
   A.dly.delayTime.setTargetAtTime(amb ? .55 : 60 / A.bpm * 0.75, t, .05);
   A.room.gain.setTargetAtTime(amb && A.playing ? 1 : 0, t, fade);
+  A.buzz.gain.setTargetAtTime(A.playing ? (amb ? 1 : .6) : 0, t, fade);
   members.forEach(m => panTo(m, fade / 3));
 }
 function roomTone(ctx) {
@@ -1366,6 +1367,12 @@ function roomTone(ctx) {
   const lp = filt("lowpass", 420, .5), ng = ctx.createGain(); ng.gain.value = .045;
   n.connect(lp); lp.connect(ng); ng.connect(A.room); n.start();
   [[100, .006], [200, .003]].forEach(([f, v]) => { const o = ctx.createOscillator(), og = ctx.createGain(); o.frequency.value = f; og.gain.value = v; o.connect(og); og.connect(A.room); o.start(); });
+  // a very light buzz under everything, like a busy café heard from a corner: voice-band noise that swells and settles
+  A.buzz = ctx.createGain(); A.buzz.gain.value = 0; A.buzz.connect(A.master);
+  const bn = ctx.createBufferSource(); bn.buffer = A.noise; bn.loop = true; bn.playbackRate.value = .93;
+  const bp = filt("bandpass", 520, .7), lp2 = filt("lowpass", 1800, .5), bg = ctx.createGain(); bg.gain.value = .022;
+  bn.connect(bp); bp.connect(lp2); lp2.connect(bg); bg.connect(A.buzz); bn.start();
+  [[.11, .006], [.27, .004], [.7, .0025]].forEach(([f, d]) => { const o = ctx.createOscillator(), og = ctx.createGain(); o.frequency.value = f; og.gain.value = d; o.connect(og); og.connect(bg.gain); o.start(); });
 }
 function setMode(mode) {
   if (mode === A.mode) return;
