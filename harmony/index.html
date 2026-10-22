@@ -257,21 +257,16 @@ body.exploring .mark { opacity: 1; animation: markBob 1.6s ease-in-out infinite;
 .intro .btn.play { min-width: 0; padding: 9px 16px; }
 .intro .itip { display: flex; gap: 10px; align-items: center; font-size: 15px; line-height: 1.4; padding: 10px 12px; border: 1px dashed var(--edge); }
 .intro .itip svg { width: 18px; height: 18px; flex: none; fill: var(--accent); }
-/* the little scene on the second card: a click on an empty seat, and someone sits down and plays */
-.intro .iscene { border: 1px solid #3a3a3c; background: #fdeaa0; }
-.intro .iscene svg { width: 100%; height: auto; display: block; }
-.iscene .who { transform-box: fill-box; transform-origin: 50% 100%; animation: sitDown 5s infinite; }
-.iscene .cursor { animation: cursorIn 5s infinite; }
-.iscene .ripple { transform-box: fill-box; transform-origin: center; animation: ripple 5s infinite; }
-.iscene .note { animation: noteUp 5s infinite; }
-.iscene .note.n2 { animation-delay: .35s; }
-.iscene .hint { animation: hintBlink 5s infinite; }
-@keyframes cursorIn { 0% { transform: translate(70px, 40px); opacity: 0; } 8% { opacity: 1; } 30% { transform: translate(0, 0); } 33% { transform: translate(0, 0) scale(.86); } 36% { transform: translate(0, 0) scale(1); } 58% { transform: translate(18px, 14px); opacity: 1; } 66%, 100% { transform: translate(18px, 14px); opacity: 0; } }
-@keyframes ripple { 0%, 32% { transform: scale(.2); opacity: 0; } 33% { opacity: .9; } 52%, 100% { transform: scale(2.4); opacity: 0; } }
-@keyframes sitDown { 0%, 34% { transform: scale(0); opacity: 0; } 42% { transform: scale(1.14); opacity: 1; } 47% { transform: scale(.96); } 52%, 88% { transform: scale(1); opacity: 1; } 96%, 100% { transform: scale(0); opacity: 0; } }
-@keyframes noteUp { 0%, 50% { transform: translate(0, 0); opacity: 0; } 55% { opacity: 1; } 78%, 100% { transform: translate(8px, -34px); opacity: 0; } }
-@keyframes hintBlink { 0%, 30% { opacity: 1; } 34%, 92% { opacity: 0; } 100% { opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .intro .card { animation: none; } .iscene .who, .iscene .cursor, .iscene .ripple, .iscene .note, .iscene .hint { animation: none; } .iscene .ripple, .iscene .hint, .iscene .cursor { opacity: 0; } }
+/* the second card looks into the real office: a cursor clicks an empty desk and its person sits down */
+.intro .iscene { position: relative; border: 1px solid #3a3a3c; background: var(--bg); aspect-ratio: 16 / 9; overflow: hidden; }
+.intro .iscene canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.iscene .cursor { position: absolute; left: var(--cx, 50%); top: var(--cy, 50%); width: 22px; height: 28px; margin: -2px 0 0 -2px; filter: drop-shadow(1px 2px 0 rgba(0, 0, 0, .25)); opacity: 0; }
+.iscene .ring { position: absolute; left: var(--cx, 50%); top: var(--cy, 50%); width: 30px; height: 30px; margin: -15px 0 0 -15px; border: 3px solid #ee6f6a; border-radius: 50%; opacity: 0; }
+.iscene.go .cursor { animation: cursorIn 5s infinite; }
+.iscene.go .ring { animation: ripple 5s infinite; }
+@keyframes cursorIn { 0% { transform: translate(90px, 60px); opacity: 0; } 8% { opacity: 1; } 28% { transform: translate(0, 0); } 31% { transform: scale(.82); } 34% { transform: scale(1); } 56% { transform: translate(40px, 30px); opacity: 1; } 64%, 100% { transform: translate(40px, 30px); opacity: 0; } }
+@keyframes ripple { 0%, 30% { transform: scale(.3); opacity: 0; } 31% { opacity: 1; } 50%, 100% { transform: scale(2.2); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .intro .card { animation: none; } .iscene.go .cursor, .iscene.go .ring { animation: none; } }
 .btn.play svg { width: 14px; height: 14px; fill: currentColor; shape-rendering: crispEdges; }
 .tempo {
   display: flex;
@@ -539,30 +534,10 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
     <div class="brand"><img class="introLogo" alt="Plum"><h1>Office <em>Harmony</em></h1></div>
     <p class="ilabel">How it works</p>
     <h2>13 sounds, 13 people</h2>
-    <div class="iscene" aria-hidden="true"><svg viewBox="0 0 320 140">
-      <g stroke="#3a3a3c" stroke-width="1.2" stroke-linejoin="round">
-        <path d="M40 120 160 60 280 120" fill="none" stroke="#f5d679" stroke-width="1"/>
-        <path d="M72 72v26M168 72v26M120 96v26M216 48v26" />
-        <path d="M72 72 168 24 216 48 120 96Z" fill="#fff"/><path d="M72 72 120 96v5L72 77Z" fill="#f3f3f1"/><path d="M120 96 216 48v5l-96 48Z" fill="#e4e4e2"/>
-        <path d="M128 66 154 53 168 60 142 73Z" fill="#cfe2f3"/><path d="M154 53 152 38 166 31 168 60Z" fill="#9fb3cc"/>
-        <path d="M110 64 124 57 130 60 116 67Z" fill="#ffd95c"/>
-        <path d="M196 98 220 86 238 95 214 107Z" fill="#ee6f6a"/><path d="M220 86 220 66 238 75 238 95Z" fill="#d95c58"/>
-        <path d="M216 107v18M216 125l-10 5M216 125l10 5" fill="none"/>
-      </g>
-      <g class="hint"><circle cx="217" cy="96" r="9" fill="#fff" stroke="#3a3a3c" stroke-width="1.2" stroke-dasharray="3 2"/><path d="M217 91v10M212 96h10" stroke="#3a3a3c" stroke-width="1.6"/></g>
-      <circle class="ripple" cx="217" cy="96" r="10" fill="none" stroke="#ee6f6a" stroke-width="2.4"/>
-      <g class="who">
-        <path d="M204 100c0-14 4-24 13-24s13 10 13 24Z" fill="#c9b8ef" stroke="#3a3a3c" stroke-width="1"/>
-        <path d="M207 86 194 84" stroke="#c9b8ef" stroke-width="5" stroke-linecap="round"/>
-        <circle cx="217" cy="66" r="9" fill="#f6c795"/>
-        <path d="M208 66a9 9 0 0 1 18-2c-6-3-11-3-18 2Z" fill="#1f1b19"/><path d="M208 64c-2 6-1 14 2 18l4-1c-3-5-4-11-2-16Z" fill="#1f1b19"/>
-        <rect x="210" y="64" width="6" height="4.5" rx="1" fill="none" stroke="#1f1b19" stroke-width="1.2"/><rect x="218" y="64.5" width="5" height="4.5" rx="1" fill="none" stroke="#1f1b19" stroke-width="1.2"/>
-      </g>
-      <g class="note" fill="#ee6f6a"><path d="M240 58v-14l8-2v12a3 3 0 1 1-2-2.6V46l-4 1v11.4a3 3 0 1 1-2-2.6Z"/></g>
-      <g class="note n2" fill="#5b6ee1"><path d="M196 52v-12l7-2v10a2.6 2.6 0 1 1-1.8-2.3V42l-3.4 1v10a2.6 2.6 0 1 1-1.8-2.3Z"/></g>
-      <g class="cursor"><path d="M222 100v20l5-5 4 9 4-2-4-8.5 7-.5Z" fill="#fff" stroke="#2b2b2d" stroke-width="1.4" stroke-linejoin="round"/></g>
-    </svg></div>
-    <p>There are 13 sounds in this office, and they all work together. Each one belongs to someone. Click the empty seats to find all 13 employees and hear the whole office.</p>
+    <div class="iscene" aria-hidden="true"><canvas id="introView"></canvas>
+      <span class="ring"></span>
+      <svg class="cursor" viewBox="0 0 20 26"><path d="M2 2v19l5-5 4 9 4-2-4-8.5 7-.5Z" fill="#fff" stroke="#2b2b2d" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
+    <p>There are 13 sounds in this office, and they all work together. Each one belongs to someone. Click the empty seats to find all of them.</p>
     <div class="itip"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5 13 1v9.2a2.2 2.2 0 1 1-1.4-2V4.1L7.4 5v6.7a2.2 2.2 0 1 1-1.4-2z"/></svg><span>Want some fun? Flip the switch to Music and everyone plays on the beat.</span></div>
     <div class="row"><div class="dots" aria-label="Step 2 of 2"><i></i><i class="on"></i></div>
       <div class="acts"><button type="button" class="btn" data-intro="back">Back</button><button type="button" class="btn play" data-intro="go">Start listening</button></div></div>
@@ -4724,8 +4699,36 @@ const showMarks = () => { setTimeout(() => { if (!exploreTouched) setExplore(tru
 /* ---------- Welcome: on a first visit, why the office hums and what to do in it ---------- */
 const intro = $("intro"), introCards = intro.querySelectorAll(".card");
 intro.querySelectorAll(".introLogo").forEach(i => { i.src = document.querySelector(".menu-logo").src; });
-function introStep(n) { introCards.forEach(c => { c.hidden = c.dataset.step !== String(n); }); introCards[n - 1].querySelector(".btn.play").focus(); }
+function introStep(n) { introCards.forEach(c => { c.hidden = c.dataset.step !== String(n); }); introCards[n - 1].querySelector(".btn.play").focus(); n === 2 ? demoStart() : demoStop(); }
+// the demo: copy a corner of the office round one empty desk into the card, and every five seconds
+// click its seat, let its person sit down, then quietly empty it again
+const demoEl = intro.querySelector(".iscene"), demoCv = $("introView"), demo = { seat: -1, raf: 0, timers: [], who: null };
+function demoSeat() { for (const i of [3, 6, 4, 9, 1, 0]) if (CAST[i] && !members.some(m => m.desk === i)) return i; return -1; }
+function demoClear() { if (demo.who && members.includes(demo.who)) { members = members.filter(o => o !== demo.who); releaseNodes(demo.who); render(); } demo.who = null; }
+function demoStop() { cancelAnimationFrame(demo.raf); demo.timers.forEach(clearInterval); demo.timers.forEach(clearTimeout); demo.timers = []; demoEl.classList.remove("go"); demoClear(); }
+function demoStart() {
+  demoStop();
+  demo.seat = demoSeat(); if (demo.seat < 0) return;
+  const s = SEATS[demo.seat], w = 120, h = w * 9 / 16, x0 = s.sx - w / 2, y0 = s.sy - 22 - h / 2;
+  demoEl.style.setProperty("--cx", `${(s.sx - x0) / w * 100}%`); demoEl.style.setProperty("--cy", `${(s.sy - 14 - y0) / h * 100}%`);
+  const draw = () => {
+    const r = demoCv.getBoundingClientRect(), d = Math.min(2, devicePixelRatio || 1);
+    if (demoCv.width !== Math.round(r.width * d)) { demoCv.width = Math.round(r.width * d); demoCv.height = Math.round(r.height * d); }
+    const k = cv.width / LW, c = demoCv.getContext("2d");
+    c.fillStyle = getComputedStyle(document.body).backgroundColor; c.fillRect(0, 0, demoCv.width, demoCv.height);
+    c.drawImage(cv, x0 * k, y0 * k, w * k, h * k, 0, 0, demoCv.width, demoCv.height);
+    demo.raf = requestAnimationFrame(draw);
+  };
+  draw();
+  const loop = () => {
+    demoEl.classList.remove("go"); void demoEl.offsetWidth; demoEl.classList.add("go");
+    demo.timers.push(setTimeout(() => { if (!members.some(m => m.desk === demo.seat)) demo.who = callIn(demo.seat); }, 1550));
+    demo.timers.push(setTimeout(demoClear, 4700));
+  };
+  loop(); demo.timers.push(setInterval(loop, 5000));
+}
 function closeIntro(play) {
+  demoStop();
   intro.hidden = true;
   try { localStorage.setItem("office-harmony-intro", "1"); } catch (e) {}
   if (play && !A.playing) start();
