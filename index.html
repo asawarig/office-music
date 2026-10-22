@@ -191,6 +191,7 @@ button { font: inherit; color: inherit; }
 .panel .tempo output { color: #2b2b2d; }
 /* the vibe picker: a button on the bar that drops a short list of styles */
 .vibe { position: relative; }
+.vibe[hidden] { display: none; }
 .vibe .btn { display: inline-flex; align-items: center; gap: 8px; }
 .vibe .btn svg { width: 13px; height: 13px; fill: currentColor; }
 .vibe .btn .caret { width: 9px; height: 9px; }
@@ -448,10 +449,10 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
   </button>
 <div class="panel">
     <div class="modeswitch">
-      <button type="button" class="ml" data-mode="musical" aria-label="Musical: everyone plays in time"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5 13 1v9.2a2.2 2.2 0 1 1-1.4-2V4.1L7.4 5v6.7a2.2 2.2 0 1 1-1.4-2z"/></svg></button>
-      <button type="button" class="sw" id="modeSwitch" role="switch" aria-checked="false" aria-label="Ambient mode"><i></i></button>
+      <button type="button" class="ml" data-mode="musical" aria-label="Music: everyone plays in time"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 2.5 13 1v9.2a2.2 2.2 0 1 1-1.4-2V4.1L7.4 5v6.7a2.2 2.2 0 1 1-1.4-2z"/></svg>Music</button>
+      <button type="button" class="sw" id="modeSwitch" role="switch" aria-checked="false" aria-label="Ambiance"><i></i></button>
       <span class="modehint" id="modeHint" aria-hidden="true"></span>
-      <button type="button" class="ml" data-mode="ambient" aria-label="Ambient: everyone works at their own pace"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 6c2-2 4-2 6 0s4 2 6 0M1 10c2-2 4-2 6 0s4 2 6 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+      <button type="button" class="ml" data-mode="ambient" aria-label="Ambiance: everyone works at their own pace"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 6c2-2 4-2 6 0s4 2 6 0M1 10c2-2 4-2 6 0s4 2 6 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Ambiance</button>
     </div>
     <label class="tempo" for="tempo"><span id="tempoName">Tempo</span>
       <input type="range" id="tempo" min="70" max="120" value="88">
@@ -485,7 +486,7 @@ h2 { font-family: var(--font-display); font-weight: 700; font-size: 28px; margin
   </header>
   <footer class="foot">
     <span>Hover over someone to see who they are. Click them to send them home, or click an empty seat to call its person back. On a phone, tap once to see what something is and tap again to use it.</span>
-    <span class="keys"><kbd>Space</kbd> play or pause · <kbd>M</kbd> Musical or Ambient · <kbd>E</kbd> everyone in · <kbd>V</kbd> next vibe · <kbd>N</kbd> day or night · <kbd>Esc</kbd> close</span>
+    <span class="keys"><kbd>Space</kbd> play or pause · <kbd>M</kbd> Music or Ambiance · <kbd>E</kbd> everyone in · <kbd>V</kbd> next vibe · <kbd>N</kbd> day or night · <kbd>Esc</kbd> close</span>
   </footer>
 </aside>
 <div class="toasts" id="toasts" aria-live="polite"></div>
@@ -1439,7 +1440,10 @@ function syncMode() {
   const amb = A.mode === "ambient";
   $("modeSwitch").setAttribute("aria-checked", String(amb));
   document.querySelectorAll(".modeswitch .ml").forEach(b => b.classList.toggle("on", b.dataset.mode === A.mode));
-  $("modeHint").textContent = (amb ? "Ambient, office hum" : "Musical, on the beat") + " · click to switch";
+  $("modeHint").textContent = (amb ? "Ambiance: the office hum" : "Music: everyone on the beat") + " · click to switch";
+  // the vibe only shapes the music, so it steps aside in Ambiance
+  document.querySelector(".vibe").hidden = amb;
+  if (amb && typeof setVibeMenu === "function" && !vibeMenu.hidden) setVibeMenu(false);
   $("tempoName").textContent = amb ? "Busyness" : "Tempo";
   const el = $("tempo");
   el.value = amb ? 70 + A.busy * 50 : A.bpm;
@@ -2092,7 +2096,7 @@ $("playBtn").addEventListener("click", () => A.playing ? stop() : start());
 function pickMode(mode) {
   const was = A.mode;
   setMode(mode); start();
-  if (was !== A.mode) toast(A.mode === "ambient" ? "Ambient: everyone works at their own pace" : "Musical: everyone plays on the beat");
+  if (was !== A.mode) toast(A.mode === "ambient" ? "Ambiance: everyone works at their own pace" : "Music: everyone plays on the beat");
 }
 $("modeSwitch").addEventListener("click", () => pickMode(A.mode === "musical" ? "ambient" : "musical"));
 document.querySelectorAll(".modeswitch .ml").forEach(b => b.addEventListener("click", () => pickMode(b.dataset.mode)));
